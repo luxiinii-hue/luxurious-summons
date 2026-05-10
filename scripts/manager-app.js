@@ -1,12 +1,8 @@
 // scripts/manager-app.js — Companion Manager dialog (5 tabs, role-gated)
 import { templates as builtinTemplates } from "./templates-builtin.js";
-import { openSpawnDialog } from "./spawn-app.js";
-import { activatePlacement } from "./placement-overlay.js";
-import { postBrokerRequest } from "./chat-broker.js";
-import { checkRestrictions } from "./spawn-engine.js";
+import { runSpawnFlow } from "./spawn-flow.js";
 import { runDeathAndCleanup } from "./lifecycle.js";
 import { callHandler } from "./handlers/index.js";
-import { s } from "./settings.js";
 
 const MODULE_ID = "luxurious-summons";
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -176,52 +172,10 @@ export class ManagerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
   }
 
-  async #onTemplateCardClick(templateId) {
+  #onTemplateCardClick(templateId) {
     const tpl = builtinTemplates.find(t => t.id === templateId);
     if (!tpl) return;
-
-    openSpawnDialog(tpl, async ({ template, sourceActorId }) => {
-      // Restrictions pre-check (broker re-checks on GM client)
-      const activeCompanions = game.user.flags?.[MODULE_ID]?.activeCompanions ?? [];
-      const recentSpawnTimestamps = game.user.flags?.[MODULE_ID]?.recentSpawnTimestamps ?? [];
-      const config = {
-        globalCap: s("globalActiveCapPerPlayer"),
-        antispamMax: s("antispamMaxSpawnsPerWindow"),
-        antispamWindowSeconds: s("antispamWindowSeconds")
-      };
-      const verdict = checkRestrictions({
-        template, activeCompanions, recentSpawnTimestamps, now: Date.now(), config
-      });
-      if (!verdict.allowed) {
-        ui.notifications?.warn(verdict.message);
-        return;
-      }
-
-      // Placement overlay
-      const placements = await activatePlacement({
-        tokenWidth: canvas.grid.size,
-        tokenHeight: canvas.grid.size,
-        thumbnailSrc: template.thumbnail,
-        count: template.maxActive,
-        label: game.i18n.format("LUXSUM.Spawn.PlacementLabel", { templateName: template.name })
-      });
-      if (placements.length === 0) return;     // user cancelled
-
-      // Post to broker — primary GM auto-spawns
-      await postBrokerRequest("spawn", {
-        templateId: template.id,
-        sourceActorId,
-        sourcePlayerId: game.user.id,
-        placements,
-        visualOverrides: undefined            // template defaults; per-spawn override comes Plan 2
-      });
-
-      // Update local recent-spawn window for client-side restriction pre-check
-      const ts = Date.now();
-      const windowMs = config.antispamWindowSeconds * 1000;
-      const updatedRecent = [...recentSpawnTimestamps, ts].filter(t => ts - t <= windowMs);
-      await game.user.update({ [`flags.${MODULE_ID}.recentSpawnTimestamps`]: updatedRecent });
-    });
+    runSpawnFlow(tpl);     // shared with the dnd5e spell-cast trigger
   }
 
   async #onDismiss(actorId) {

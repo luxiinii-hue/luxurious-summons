@@ -8,6 +8,7 @@ export const templates = [
     name: "Simulacrum",
     description: "Illusory duplicate of the master. Half max HP, no spell-slot recovery on rest, no natural HP regain (Repair-only).",
     thumbnail: "modules/luxurious-summons/assets/templates-thumbs/simulacrum.svg",
+    triggerSpell: "Simulacrum",     // dnd5e.useItem with this name → auto-open spawn dialog
     source: {
       mode: "clone"
     },

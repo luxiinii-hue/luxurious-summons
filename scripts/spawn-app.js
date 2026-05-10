@@ -22,18 +22,24 @@ export class SpawnApp extends HandlebarsApplicationMixin(ApplicationV2) {
     body: { template: "modules/luxurious-summons/templates/spawn.hbs" }
   };
 
-  constructor({ template, onPlace }) {
+  constructor({ template, defaultSourceActorId = null, onPlace }) {
     super();
     this.#template = template;
     this.#onPlaceCallback = onPlace;
-    this.#sourceActorId = game.user.character?.id ?? null;
+    // Priority: explicit defaultSourceActorId (from spell-cast trigger) >
+    // player's assigned character. Falls back to null if neither.
+    this.#sourceActorId = defaultSourceActorId ?? game.user.character?.id ?? null;
     this.options.window.title = game.i18n.format("LUXSUM.Spawn.Title", { templateName: template.name });
   }
 
   async _prepareContext(_options) {
-    const sourceLocked = this.#template.source.mode === "clone" && !!game.user.character;
+    // For clone-mode templates, the source is the master actor — locked when
+    // the player has a default character (most common case).
+    const sourceLocked = this.#template.source.mode === "clone" && this.#sourceActorId !== null;
     const candidateActors = sourceLocked
-      ? [{ id: game.user.character.id, name: game.user.character.name, isSelected: true }]
+      ? [{ id: this.#sourceActorId,
+           name: game.actors.get(this.#sourceActorId)?.name ?? "(unknown)",
+           isSelected: true }]
       : game.actors
           .filter(a => a.isOwner && a.type !== "vehicle")
           .map(a => ({ id: a.id, name: a.name, isSelected: a.id === this.#sourceActorId }));
@@ -62,8 +68,8 @@ export class SpawnApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 }
 
-export function openSpawnDialog(template, onPlace) {
-  const app = new SpawnApp({ template, onPlace });
+export function openSpawnDialog({ template, defaultSourceActorId = null, onPlace }) {
+  const app = new SpawnApp({ template, defaultSourceActorId, onPlace });
   app.render({ force: true });
   return app;
 }
