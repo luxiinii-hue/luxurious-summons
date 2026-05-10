@@ -5,6 +5,7 @@ import { openManager } from "./manager-app.js";
 import { installBrokerHook } from "./chat-broker.js";
 import { installSpawnBrokerHandler } from "./spawn-engine.js";
 import { applyFiltersToToken } from "./visual-filters.js";
+import { installLifecycleHooks, installDeleteHandling } from "./lifecycle.js";
 
 const MODULE_ID = "luxurious-summons";
 
@@ -22,6 +23,8 @@ Hooks.once("ready", async () => {
   await refreshUserIndexes();
   installBrokerHook();
   installSpawnBrokerHandler();
+  installLifecycleHooks();
+  installDeleteHandling();
   if (s("verboseLogging")) {
     console.log(`[${MODULE_ID}] verbose logging enabled — full diagnostic trail will print`);
   }
