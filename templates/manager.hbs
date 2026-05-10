@@ -1,0 +1,35 @@
+<nav class="luxsum-tabs" data-group="primary">
+  <a class="item {{#if (eq activeTab "my-companions")}}active{{/if}}" data-tab="my-companions">{{localize "LUXSUM.Manager.Tab.MyCompanions"}}</a>
+  <a class="item {{#if (eq activeTab "spawn-new")}}active{{/if}}" data-tab="spawn-new">{{localize "LUXSUM.Manager.Tab.SpawnNew"}}</a>
+  {{#if isGM}}
+    <a class="item {{#if (eq activeTab "all-companions")}}active{{/if}}" data-tab="all-companions">{{localize "LUXSUM.Manager.Tab.AllCompanions"}}</a>
+    <a class="item {{#if (eq activeTab "templates")}}active{{/if}}" data-tab="templates">{{localize "LUXSUM.Manager.Tab.Templates"}}</a>
+  {{/if}}
+  <a class="item {{#if (eq activeTab "settings")}}active{{/if}}" data-tab="settings">{{localize "LUXSUM.Manager.Tab.Settings"}}</a>
+</nav>
+
+<section class="luxsum-tab-body">
+  {{#if (eq activeTab "my-companions")}}
+    <div class="luxsum-companion-grid">
+      {{#each myCompanions}}{{> "modules/luxurious-summons/templates/partials/companion-card.hbs"}}{{else}}
+        <p class="luxsum-empty">{{localize "LUXSUM.Manager.Empty.MyCompanions"}}</p>
+      {{/each}}
+    </div>
+  {{/if}}
+  {{#if (eq activeTab "spawn-new")}}
+    <div class="luxsum-template-gallery">
+      {{#each templates}}{{> "modules/luxurious-summons/templates/partials/template-card.hbs"}}{{else}}
+        <p class="luxsum-empty">{{localize "LUXSUM.Manager.Empty.SpawnNew"}}</p>
+      {{/each}}
+    </div>
+  {{/if}}
+  {{#if (eq activeTab "all-companions")}}
+    <p class="luxsum-empty">All Companions tab — implemented in Plan 4.</p>
+  {{/if}}
+  {{#if (eq activeTab "templates")}}
+    <p class="luxsum-empty">Templates tab — implemented in Plan 4.</p>
+  {{/if}}
+  {{#if (eq activeTab "settings")}}
+    <p>Open module settings via the Game Settings sidebar (or use the registerMenu shortcut, available in Plan 4).</p>
+  {{/if}}
+</section>

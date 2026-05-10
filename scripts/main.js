@@ -1,6 +1,7 @@
 // scripts/main.js — Luxurious Summons module entry
 import { registerSettings, s } from "./settings.js";
 import { refreshUserIndexes } from "./data-model.js";
+import { openManager } from "./manager-app.js";
 
 const MODULE_ID = "luxurious-summons";
 
@@ -18,5 +19,22 @@ Hooks.once("ready", async () => {
   await refreshUserIndexes();
   if (s("verboseLogging")) {
     console.log(`[${MODULE_ID}] verbose logging enabled — full diagnostic trail will print`);
+  }
+});
+
+Hooks.on("getSceneControlButtons", (controls) => {
+  const buttonConfig = {
+    name: MODULE_ID,
+    title: "LUXSUM.SceneControl.Title",
+    icon: "fa-solid fa-ghost",
+    button: true,
+    visible: true,
+    onClick: () => openManager(),
+    onChange: () => openManager()       // V13 vs V14 differ in which fires
+  };
+  if (Array.isArray(controls)) {
+    controls.push(buttonConfig);                        // V13
+  } else {
+    controls[MODULE_ID] = buttonConfig;                 // V14
   }
 });
