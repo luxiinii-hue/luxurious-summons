@@ -1,1 +1,60 @@
-/* luxurious-summons aesthetic — populated in Plan 1 Task 28 */
+/* styles/luxurious.css — Luxurious theme for the Companion Manager */
+
+:root {
+  --luxsum-bg:        #1c0e1a;
+  --luxsum-bg-elev:   #2a1828;
+  --luxsum-accent:    #c9a14b;
+  --luxsum-accent-hi: #f0c97a;
+  --luxsum-text:      #f5e9d8;
+  --luxsum-text-mute: #b6a890;
+  --luxsum-border:    #c9a14b;
+  --luxsum-danger:    #ff6b6b;
+  --luxsum-success:   #7ad17a;
+}
+
+.luxsum.luxsum-manager,
+.luxsum.luxsum-spawn {
+  background: var(--luxsum-bg);
+  color: var(--luxsum-text);
+  font-family: var(--font-primary, sans-serif);
+}
+
+.luxsum h1, .luxsum h2, .luxsum h3 {
+  font-family: "Cinzel", serif;
+  color: var(--luxsum-accent);
+  border: none;
+  margin-top: 0;
+}
+
+.luxsum-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--luxsum-accent);
+  padding: 6px 12px;
+  background: var(--luxsum-bg-elev);
+}
+
+.luxsum-tabs .item {
+  padding: 6px 12px;
+  cursor: pointer;
+  color: var(--luxsum-text-mute);
+  border-bottom: 2px solid transparent;
+  text-decoration: none;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.luxsum-tabs .item.active {
+  color: var(--luxsum-accent);
+  border-bottom-color: var(--luxsum-accent);
+}
+
+.luxsum-tabs .item:hover {
+  color: var(--luxsum-accent-hi);
+}
+
+.luxsum-empty {
+  color: var(--luxsum-text-mute);
+  text-align: center;
+  padding: 32px;
+  font-style: italic;
+}

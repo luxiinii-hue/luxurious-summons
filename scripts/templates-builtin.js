@@ -7,7 +7,7 @@ export const templates = [
     id: "simulacrum",
     name: "Simulacrum",
     description: "Illusory duplicate of the master. Half max HP, no spell-slot recovery on rest, no natural HP regain (Repair-only).",
-    thumbnail: "modules/luxurious-summons/assets/templates-thumbs/simulacrum.png",
+    thumbnail: "modules/luxurious-summons/assets/templates-thumbs/simulacrum.svg",
     source: {
       mode: "clone"
     },
