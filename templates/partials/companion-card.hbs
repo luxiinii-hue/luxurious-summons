@@ -1,11 +1,16 @@
-<div class="luxsum-card" data-actor-id="{{actorId}}" style="border-color: {{borderColor}}">
+<div class="luxsum-card" data-actor-id="{{actorId}}" data-action="open-sheet" style="border-color: {{borderColor}}" title="Click to open the companion's character sheet">
   <div class="luxsum-card-thumbs">
     <img class="luxsum-card-token" src="{{tokenImg}}" alt="{{name}}">
     {{#if templateThumb}}<img class="luxsum-card-template" src="{{templateThumb}}" alt="{{templateName}}">{{/if}}
   </div>
   <h3 class="luxsum-card-name">{{name}}</h3>
   <div class="luxsum-card-meta">HP {{hpValue}} / {{hpMax}}{{#if sceneName}} • Scene: {{sceneName}}{{/if}}</div>
-  <div class="luxsum-card-actions">
+  <div class="luxsum-card-quick" data-stop-propagation>
+    <span role="button" tabindex="0" data-action="open-sheet" data-actor-id="{{actorId}}" title="Open character sheet"><i class="fa-solid fa-id-card"></i> {{localize "LUXSUM.Companion.OpenSheet"}}</span>
+    <span role="button" tabindex="0" data-action="select-pan" data-actor-id="{{actorId}}" title="Select token and pan canvas to it"><i class="fa-solid fa-crosshairs"></i> {{localize "LUXSUM.Companion.SelectPan"}}</span>
+    <span role="button" tabindex="0" data-action="toggle-combat" data-actor-id="{{actorId}}" title="Add to (or remove from) the active combat tracker"><i class="fa-solid fa-swords"></i> {{localize "LUXSUM.Companion.ToggleCombat"}}</span>
+  </div>
+  <div class="luxsum-card-actions" data-stop-propagation>
     <span role="button" tabindex="0" data-action="dismiss" data-actor-id="{{actorId}}">{{localize "LUXSUM.Companion.Dismiss"}}</span>
     {{#each extraActions}}
       <span role="button" tabindex="0" data-action="extra" data-handler="{{handler}}" data-actor-id="{{../actorId}}">

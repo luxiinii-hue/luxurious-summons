@@ -83,14 +83,47 @@ export class ManagerApp extends foundry.applications.api.ApplicationV2 {
       card.addEventListener("click", () => this.#onTemplateCardClick(card.dataset.templateId));
     });
 
+    // Companion-card body click (anywhere except inside [data-stop-propagation]) → open sheet
+    this.element.querySelectorAll('.luxsum-card[data-action="open-sheet"]').forEach(card => {
+      card.addEventListener("click", (e) => {
+        // Ignore clicks inside the action rows (their own listeners handle them)
+        if (e.target.closest("[data-stop-propagation]")) return;
+        this.#onOpenSheet(card.dataset.actorId);
+      });
+    });
+
+    // Quick-access buttons
+    this.element.querySelectorAll('[data-action="open-sheet"]:not(.luxsum-card)').forEach(el => {
+      el.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.#onOpenSheet(e.currentTarget.dataset.actorId);
+      });
+    });
+    this.element.querySelectorAll('[data-action="select-pan"]').forEach(el => {
+      el.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.#onSelectAndPan(e.currentTarget.dataset.actorId);
+      });
+    });
+    this.element.querySelectorAll('[data-action="toggle-combat"]').forEach(el => {
+      el.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.#onToggleCombat(e.currentTarget.dataset.actorId);
+      });
+    });
+
     // Dismiss button
     this.element.querySelectorAll('[data-action="dismiss"]').forEach(el => {
-      el.addEventListener("click", (e) => this.#onDismiss(e.currentTarget.dataset.actorId));
+      el.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.#onDismiss(e.currentTarget.dataset.actorId);
+      });
     });
 
     // Extra actions (Repair, Refresh, etc.)
     this.element.querySelectorAll('[data-action="extra"]').forEach(el => {
       el.addEventListener("click", async (e) => {
+        e.stopPropagation();
         const handlerId = e.currentTarget.dataset.handler;
         const actorId = e.currentTarget.dataset.actorId;
         const actor = game.actors.get(actorId);
@@ -98,6 +131,48 @@ export class ManagerApp extends foundry.applications.api.ApplicationV2 {
         await callHandler(handlerId, { actor, app: this });
       });
     });
+  }
+
+  #onOpenSheet(actorId) {
+    const actor = game.actors.get(actorId);
+    if (!actor) return;
+    actor.sheet.render({ force: true });
+  }
+
+  async #onSelectAndPan(actorId) {
+    const actor = game.actors.get(actorId);
+    if (!actor) return;
+    const tokens = actor.getActiveTokens();
+    const token = tokens[0];
+    if (!token) {
+      ui.notifications?.warn(`[${MODULE_ID}] no active token for ${actor.name} on the current scene`);
+      return;
+    }
+    // If the token is on a different scene, view that scene first
+    if (token.scene && token.scene.id !== canvas.scene?.id) {
+      await token.scene.view();
+    }
+    token.control({ releaseOthers: true });
+    await canvas.animatePan({ x: token.center.x, y: token.center.y, duration: 250 });
+  }
+
+  async #onToggleCombat(actorId) {
+    const actor = game.actors.get(actorId);
+    if (!actor) return;
+    let combat = game.combat;
+    if (!combat) {
+      ui.notifications?.warn(`[${MODULE_ID}] no active combat. Start one first (left toolbar).`);
+      return;
+    }
+    const existing = combat.combatants.find(c => c.actorId === actor.id);
+    if (existing) {
+      await existing.delete();
+      ui.notifications?.info(`[${MODULE_ID}] ${actor.name} removed from combat`);
+    } else {
+      // dnd5e: rollInitiative auto-creates combatants when createCombatants:true
+      await actor.rollInitiative({ createCombatants: true });
+      ui.notifications?.info(`[${MODULE_ID}] ${actor.name} added to combat (initiative rolled)`);
+    }
   }
 
   async #onTemplateCardClick(templateId) {

@@ -79,6 +79,17 @@
   font-weight: bold;
 }
 
+.luxsum-card[data-action="open-sheet"] {
+  cursor: pointer;
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+
+.luxsum-card[data-action="open-sheet"]:hover {
+  box-shadow: 0 0 12px var(--luxsum-accent);
+  transform: translateY(-1px);
+}
+
+.luxsum-card-quick,
 .luxsum-card-actions {
   display: flex;
   gap: 6px;
@@ -86,6 +97,12 @@
   margin-top: 6px;
 }
 
+.luxsum-card-quick {
+  border-top: 1px dashed rgba(201, 161, 75, 0.3);
+  padding-top: 6px;
+}
+
+.luxsum-card-quick [role="button"],
 .luxsum-card-actions [role="button"],
 .luxsum-spawn-footer [role="button"] {
   background: var(--luxsum-bg);
@@ -96,10 +113,13 @@
   font-size: 12px;
   cursor: pointer;
   user-select: none;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   transition: background 0.15s, color 0.15s;
 }
 
+.luxsum-card-quick [role="button"]:hover,
 .luxsum-card-actions [role="button"]:hover,
 .luxsum-spawn-footer [role="button"]:hover {
   background: var(--luxsum-accent);

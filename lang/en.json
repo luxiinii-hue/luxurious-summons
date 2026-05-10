@@ -8,5 +8,22 @@
   "LUXSUM.Manager.Tab.Templates": "Templates",
   "LUXSUM.Manager.Tab.Settings": "Settings",
   "LUXSUM.Manager.Empty.MyCompanions": "No active companions. Open Spawn New to summon your first.",
-  "LUXSUM.Manager.Empty.SpawnNew": "No templates available."
+  "LUXSUM.Manager.Empty.SpawnNew": "No templates available.",
+  "LUXSUM.Spawn.Title": "Spawn — {templateName}",
+  "LUXSUM.Spawn.SourceLabel": "Master / source actor",
+  "LUXSUM.Spawn.PlaceBtn": "Place",
+  "LUXSUM.Spawn.CancelBtn": "Cancel",
+  "LUXSUM.Spawn.PlacementLabel": "Select tile(s) to summon {templateName}",
+  "LUXSUM.Companion.Dismiss": "Dismiss",
+  "LUXSUM.Companion.Restyle": "Restyle",
+  "LUXSUM.Companion.OpenSheet": "Open Sheet",
+  "LUXSUM.Companion.SelectPan": "Select & Pan",
+  "LUXSUM.Companion.ToggleCombat": "Combat",
+  "LUXSUM.Companion.RemoveFromCombat": "Leave Combat",
+  "LUXSUM.Companion.DismissConfirm": "Dismiss {name}? This will delete the actor and its tokens.",
+  "LUXSUM.Sheet.BannerPrefix": "Companion",
+  "LUXSUM.Sheet.OfMaster": "of {master}",
+  "LUXSUM.Sheet.Mod.HpHalved": "HP halved at spawn",
+  "LUXSUM.Sheet.Mod.NoNaturalRecovery": "No natural HP recovery",
+  "LUXSUM.Sheet.Mod.SnapshotSpells": "Spell slots frozen at spawn"
 }

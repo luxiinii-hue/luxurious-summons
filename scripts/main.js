@@ -8,6 +8,7 @@ import { applyFiltersToToken } from "./visual-filters.js";
 import { installLifecycleHooks, installDeleteHandling } from "./lifecycle.js";
 import { installDnd5eHooks } from "./dnd5e-mods.js";
 import "./handlers/simulacrum.js";   // self-registers Repair via registerHandler
+import { installSheetDecorator } from "./sheet-decorator.js";
 
 const MODULE_ID = "luxurious-summons";
 
@@ -28,6 +29,7 @@ Hooks.once("ready", async () => {
   installLifecycleHooks();
   installDeleteHandling();
   installDnd5eHooks();
+  installSheetDecorator();
   if (s("verboseLogging")) {
     console.log(`[${MODULE_ID}] verbose logging enabled — full diagnostic trail will print`);
   }

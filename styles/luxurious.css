@@ -58,3 +58,89 @@
   padding: 32px;
   font-style: italic;
 }
+
+/* ── Companion sheet decoration ──────────────────────────────────────── */
+
+/* The wrapping window-app gets a subtle wine glow + thicker gold border so
+   it's instantly visually distinct from the master's sheet. */
+.window-app.luxsum-companion-sheet {
+  box-shadow: 0 0 20px rgba(201, 161, 75, 0.3), 0 0 60px rgba(28, 14, 26, 0.6);
+}
+
+.window-app.luxsum-companion-sheet .window-header {
+  background: linear-gradient(90deg, #1c0e1a 0%, #2a1828 100%);
+  border-bottom: 2px solid var(--luxsum-accent);
+}
+
+.window-app.luxsum-companion-sheet .window-header .window-title {
+  color: var(--luxsum-accent-hi);
+  text-shadow: 0 0 4px rgba(201, 161, 75, 0.5);
+}
+
+/* Banner injected at the top of the sheet's window-content */
+.luxsum-companion-banner {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 14px;
+  margin: -8px -8px 10px -8px;     /* overlap the inner padding so it spans the sheet */
+  background: linear-gradient(90deg, rgba(28, 14, 26, 0.95) 0%, rgba(42, 24, 40, 0.85) 100%);
+  border-bottom: 2px solid;        /* color from inline style */
+  border-image: linear-gradient(90deg, #c9a14b 0%, #f0c97a 50%, #c9a14b 100%) 1;
+  color: var(--luxsum-text);
+  font-family: var(--font-primary, sans-serif);
+}
+
+.luxsum-companion-banner-thumb {
+  width: 56px;
+  height: 56px;
+  border-radius: 4px;
+  border: 1px solid var(--luxsum-accent);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.luxsum-companion-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.luxsum-companion-banner-title {
+  font-family: "Cinzel", serif;
+  font-size: 16px;
+  color: var(--luxsum-accent-hi);
+  letter-spacing: 0.5px;
+}
+
+.luxsum-companion-banner-prefix {
+  text-transform: uppercase;
+  color: var(--luxsum-text-mute);
+  font-size: 10px;
+  letter-spacing: 2px;
+  margin-right: 4px;
+}
+
+.luxsum-companion-banner-master {
+  color: var(--luxsum-text-mute);
+  font-style: italic;
+  font-size: 13px;
+  margin-left: 6px;
+}
+
+.luxsum-companion-banner-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.luxsum-companion-banner-badge {
+  background: rgba(201, 161, 75, 0.15);
+  color: var(--luxsum-accent-hi);
+  border: 1px solid var(--luxsum-accent);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  letter-spacing: 0.3px;
+}
