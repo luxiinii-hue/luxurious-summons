@@ -384,7 +384,7 @@ Revised per design critique — radial gradients at 22 px read as muddy skeuomor
 
 - **Track:** 8 px tall, `--luxsum-track` background with a 1 px inset gold border (`box-shadow: inset 0 1px 0 var(--luxsum-brass-dark), inset 0 -1px 0 var(--luxsum-brass-light)`). Engraved feel.
 - **Thumb (resting):** 22 px wide. Solid `--luxsum-brass` fill. 1 px `--luxsum-brass-light` border. 1 px inset highlight at the top (`box-shadow: inset 0 1px 0 var(--luxsum-brass-light)`) to catch the light. Crisp drop shadow `0 1px 2px rgba(0, 0, 0, 0.45)`. No radial gradient.
-- **Thumb shape — to evaluate in preview:** circular vs. hexagonal (CSS `clip-path: polygon(...)`). Hexagonal reads as "brass rivet" / "screw head" and reinforces the mechanical-luxury feel, while costing essentially nothing. Final call after seeing both in the HTML preview.
+- **Thumb shape: hexagonal, point-up orientation.** Decided in preview review. CSS `clip-path: polygon(50% 0%, 93.3% 25%, 93.3% 75%, 50% 100%, 6.7% 75%, 6.7% 25%)` — geometrically regular hexagon inscribed in the 22 × 22 square with 6.7 % horizontal margin (since √3:2 aspect ratio cannot be 1:1 without elongation). Reads as a brass bolt-head seen from above — reinforces the mechanical-luxury vocabulary without adding directional cues that would compete with the slider's left-right motion.
 - **Hover:** thumb scales 1.05× with a gold glow halo (`box-shadow: 0 0 0 4px var(--luxsum-glow)`). Cursor `pointer`.
 - **Active (dragging):** thumb scales 0.96× (pressed). Inset highlight brightens to `--luxsum-accent-hi`.
 - **Focus (keyboard):** 2 px gold-glow outline ring. Same look as hover halo but slightly tighter (`box-shadow: 0 0 0 2px var(--luxsum-accent-hi)`).
@@ -550,7 +550,7 @@ The look is **Belle Époque parlor, not industrial workshop.** No exposed gears 
     **Decided:** Plan 2 ships the template-themed title accent (§9.7) — the dialog title text samples the template's `hueColor`, so the title visually identifies the template's flavor without rebuilding the dialog chrome. Single CSS variable, zero new tokens. Full per-family chrome variation (different palette, different ornaments) remains deferred to Plan 5 polish.
 
 12. **Q:** Circular vs. hexagonal slider thumbs?
-    **Decided in principle, refined in preview:** the HTML preview phase tests both. Hexagonal reads as "brass rivet" / "screw head" and reinforces the mechanical-luxury feel for essentially zero CSS cost (`clip-path: polygon(...)`). Circular is the safe default. Pick after seeing both side-by-side in `previews/restyle.html`.
+    **Decided:** hexagonal, point-up orientation. Picked after preview review — user explicitly preferred hex. First polygon attempt used a horizontal-orientation hex stretched into a 1:1 square container, which read as visually elongated because a regular hexagon's natural aspect is √3:2 (not 1:1). Final polygon `polygon(50% 0%, 93.3% 25%, 93.3% 75%, 50% 100%, 6.7% 75%, 6.7% 25%)` uses point-up orientation with 6.7 % horizontal margin — geometrically regular, reads cleanly. Circular thumb variant and the preview toggle button are removed (no longer evaluated).
 
 ---
 

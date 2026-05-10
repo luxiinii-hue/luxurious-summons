@@ -184,7 +184,6 @@ const dom = {
 
   // Preview switchers
   flavorButtons: document.querySelectorAll(".luxsum-preview-flavor-btn"),
-  thumbToggle: document.getElementById("thumb-toggle"),
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -446,13 +445,6 @@ document.querySelectorAll('input[name="motion-preset"]').forEach(radio => {
 // Template flavor switcher
 dom.flavorButtons.forEach(btn => {
   btn.addEventListener("click", () => loadTemplate(btn.dataset.template));
-});
-
-// Thumb-shape toggle (round ↔ hex)
-dom.thumbToggle.addEventListener("click", () => {
-  const isHex = dom.dialog.classList.toggle("thumbs-hex");
-  dom.thumbToggle.classList.toggle("hex", isHex);
-  dom.thumbToggle.textContent = isHex ? "⬡ Hex thumbs" : "○ Round thumbs";
 });
 
 // Reset / Cancel / Save — preview no-ops with a visual confirmation.

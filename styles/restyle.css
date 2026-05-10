@@ -241,7 +241,9 @@
     inset 0 -1px 0 rgba(212, 175, 55, 0.15);
 }
 
-/* Thumb (Chrome / Edge / Safari). Flat brass, top inset highlight, drop shadow. */
+/* Thumb (Chrome / Edge / Safari). Flat brass hexagon (point-up orientation — reads as a
+   brass bolt head seen from above). Polygon vertices use 6.7% horizontal margin to make
+   the hex geometrically regular inscribed in the 22×22 square. */
 .luxsum-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
@@ -250,7 +252,8 @@
   margin-top: -8px;        /* center on 8 px track: (22-8)/2 = 7 above + 1 border */
   background: var(--luxsum-brass);
   border: 1px solid var(--luxsum-brass-light);
-  border-radius: 50%;
+  border-radius: 2px;      /* fallback rounding; clip-path takes precedence visually */
+  clip-path: polygon(50% 0%, 93.3% 25%, 93.3% 75%, 50% 100%, 6.7% 75%, 6.7% 25%);
   box-shadow:
     inset 0 1px 0 var(--luxsum-brass-light),          /* top inner highlight */
     inset 0 -1px 0 rgba(0, 0, 0, 0.35),               /* bottom inner shadow */
@@ -268,7 +271,8 @@
   height: 22px;
   background: var(--luxsum-brass);
   border: 1px solid var(--luxsum-brass-light);
-  border-radius: 50%;
+  border-radius: 2px;
+  clip-path: polygon(50% 0%, 93.3% 25%, 93.3% 75%, 50% 100%, 6.7% 75%, 6.7% 25%);
   box-shadow:
     inset 0 1px 0 var(--luxsum-brass-light),
     inset 0 -1px 0 rgba(0, 0, 0, 0.35),
@@ -330,17 +334,6 @@
     inset 0 1px 0 var(--luxsum-brass-light),
     inset 0 -1px 0 rgba(0, 0, 0, 0.35),
     0 0 0 2px var(--luxsum-accent-hi);
-}
-
-/* Hexagonal-thumb experiment (toggled via .luxsum-restyle.thumbs-hex class on the dialog
-   root). Evaluated visually in the preview to decide whether to ship it. Per §12 Q12. */
-.luxsum-restyle.thumbs-hex .luxsum-slider::-webkit-slider-thumb {
-  border-radius: 4px;
-  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
-}
-.luxsum-restyle.thumbs-hex .luxsum-slider::-moz-range-thumb {
-  border-radius: 4px;
-  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
 }
 
 /* ── §9.3: toggle switch ─────────────────────────────────────────────── */
@@ -957,34 +950,6 @@
 
 .luxsum-preview-flavor-btn:hover {
   color: var(--luxsum-accent-hi);
-}
-
-/* Thumb-shape toggle (preview only — top-right). */
-.luxsum-preview-thumb-toggle {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  font-family: inherit;
-  font-size: 10px;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  padding: 4px 10px;
-  background: rgba(0, 0, 0, 0.5);
-  color: var(--luxsum-text-mute);
-  border: 1px solid var(--luxsum-brass-dark);
-  border-radius: 2px;
-  cursor: pointer;
-  transition: all 150ms ease-out;
-}
-
-.luxsum-preview-thumb-toggle:hover {
-  color: var(--luxsum-accent-hi);
-}
-
-.luxsum-preview-thumb-toggle.hex {
-  background: var(--luxsum-brass);
-  color: var(--luxsum-text);
-  border-color: var(--luxsum-accent);
 }
 
 /* Stage layout container (preview only — places stage + dialog side by side). */
