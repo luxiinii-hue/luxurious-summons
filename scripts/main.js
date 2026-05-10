@@ -6,6 +6,7 @@ import { installBrokerHook } from "./chat-broker.js";
 import { installSpawnBrokerHandler } from "./spawn-engine.js";
 import { applyFiltersToToken } from "./visual-filters.js";
 import { installLifecycleHooks, installDeleteHandling } from "./lifecycle.js";
+import { installDnd5eHooks } from "./dnd5e-mods.js";
 
 const MODULE_ID = "luxurious-summons";
 
@@ -25,6 +26,7 @@ Hooks.once("ready", async () => {
   installSpawnBrokerHandler();
   installLifecycleHooks();
   installDeleteHandling();
+  installDnd5eHooks();
   if (s("verboseLogging")) {
     console.log(`[${MODULE_ID}] verbose logging enabled — full diagnostic trail will print`);
   }
