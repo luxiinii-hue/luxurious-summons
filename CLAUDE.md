@@ -4,7 +4,7 @@
 
 ## What this module is
 
-A Foundry VTT V14 module for D&D 5e companion-management. Players spawn and control "summon"-style companions (Simulacrum first; Mirror Image, Find Familiar, Echo Knight Echo, Beast Companion, Animate Dead, Mage Hand, Unseen Servant, etc. coming in Plan 3). Visual customization via PIXI filters. Per-template fancy death animations. Click-to-place placement overlay with occupancy detection. Per-master folder organization in the actor sidebar.
+A Foundry VTT V14 module for D&D 5e companion-management. Players spawn and control "summon"-style companions (Simulacrum first; Mirror Image, Find Familiar, Echo Knight Echo, Beast Companion, Animate Dead, Mage Hand, Unseen Servant, etc. coming in Plan 3). Visual customization via PIXI filters + procedural motion. Per-template fancy death animations. Click-to-place placement overlay with occupancy detection. Per-master folder organization in the actor sidebar.
 
 ## Repo arrangement
 
@@ -16,6 +16,8 @@ When invoked with this dir as cwd, **the parent `Laps/CLAUDE.md` does NOT auto-l
 
 **Plan 1 (Foundation + Simulacrum vertical slice) is functionally complete through v0.1.5.** Awaiting friend's live-Foundry verification.
 
+**Plan 2 (visual customization UI + motion system) is in preview-iteration phase.** Design doc finalized, HTML preview built and design-critique-revised, awaiting friend's v0.1.5 verification before any spec amendments commit or Foundry-coupled code lands. The preview is at `previews/restyle.html` — open in any modern browser, no server needed.
+
 | Version | What landed |
 |---|---|
 | 0.1.0 | Plan 1 ship: spawn / dismiss / repair Simulacrum end-to-end; HP halve, block natural recovery, snapshot spell slots; icyShatter death animation; per-master folder; chat-broker; placement overlay; PIXI filter chain; manager skeleton |
@@ -24,38 +26,76 @@ When invoked with this dir as cwd, **the parent `Laps/CLAUDE.md` does NOT auto-l
 | 0.1.3 | Fix manager not opening — V14 ApplicationV2 needs `HandlebarsApplicationMixin` |
 | 0.1.4 | Cast Simulacrum spell auto-opens Spawn dialog (dnd5e.useItem hook + triggerSpell field) |
 | 0.1.5 | Fix manager not rendering — V14 PARTS require single root element. Wrap manager.hbs + spawn.hbs in single root div; switch manager body to flex layout (drops fragile `calc(100% - 50px)`) |
+| **0.2.0** (pending) | Plan 2 visual customization UI + motion system + shimmer filter — ships once preview is approved, design doc amended, and live-Foundry integration completes |
 
-**33 unit tests passing.** Distribution ZIPs in `../../dist/luxurious-summons-X.Y.Z.zip`.
+**42 unit tests passing.** Distribution ZIPs in `../../dist/luxurious-summons-X.Y.Z.zip`.
 
-**Next step depends on feedback:**
-- If friend reports a bug: reproduce minimally, fix in inner repo, bump patch version (0.1.5+), commit + tag + new ZIP.
-- If Plan 1 stable: kick off Plan 2 (visual customization UI — per-spawn override + live Restyle dialog).
+### What's actively in flight
+
+- **Plan 2 preview** (`previews/restyle.html` + `previews/restyle-preview.js`) — three template flavors (Simulacrum / Mage Hand / Familiar) drive a mock token through the full filter + motion chain. The dialog itself is a 2-column layout: left = summon details info card, right = customization controls. Design-locked after user review.
+- **Plan 2 design doc** at `docs/2026-05-10-plan-2-restyle-design.md` (inner-repo `docs/`, NOT the parent workspace). This is the canonical Plan 2 reference and has absorbed both my original design and the design-critique revision pass + user review feedback.
+
+### What's gated on the friend's v0.1.5 verification
+
+- **Spec amendments** (on parent `main` branch — touches §5.3, §6.6, §6.8, §6.9, §7.1, §7.2 + Plan 3 + Plan 4 doc edits). Batched commit when v0.1.5 verifies.
+- **Plan 2 implementation phase** — porting the preview to `restyle-app.js` + `restyle.hbs`, wiring PIXI filters / motion ticker / shimmer DisplacementFilter, plumbing the new schema fields through the spawn flow, shipping as v0.2.0. Files this touches overlap with files Plan 1 bugs might surface in (`spawn-app.js`, `visual-filters.js`), so the gate matters.
+
+### What's next once v0.1.5 verifies
+
+1. Batched spec amendment commit on parent `main`.
+2. Plan 2 design-doc reconciliation against the spec amendments.
+3. Plan 2 implementation phase → `restyle-app.js` + Foundry integration → v0.2.0 ship.
+4. Plan 3 (asset generation + 11 more templates + multi-variant gallery selector).
+5. Plan 4 (GM Console + Templates editor + per-variant CRUD + D-mode approval).
+
+### Decisions taken during planning, important to remember
+
+Captured during the user-feedback brainstorming and plan-mode planning session. All approved by user. Each one is non-trivial to reverse once code lands:
+
+1. **Aesthetic family is declarative metadata on templates.** Each template has `aestheticFamily: "belle-epoque" | "hextech"`. Drives default `visualOverrides` palette + motion profile choice at *template-authoring time*, NOT runtime CSS variable swapping. Plan 5 owns the per-family chrome variation polish.
+2. **Restyle dialog widens to 720 px** with a 2-column layout — left column = summon details info card, right column = controls. `@media (max-width: 900px)` stacks vertically and caps width at 480 px for narrow viewports.
+3. **Info card content profile is minimal**: HP, AC, speed, 6 ability scores with save-prof pips, save chips, "Open Foundry Sheet" CTA. No spell lists / abilities / senses / languages — the actor sheet covers that with one click. `description-only` variant for non-creature summons (Mage Hand).
+4. **Per-spawn customize-visuals expander on Spawn dialog is CUT.** Spec §5.3's 3-layer customize model (template-default / per-spawn / live-restyle) collapses to 2 layers. Reason: pre-spawn customization without a live canvas preview is weak; players who care about visuals iterate post-spawn with the token visible.
+5. **Template variants are first-class schema.** Spec §7.1 gets `variants?: [{ id, name, thumbnail, compendiumEntry, defaultVisualOverrides?, defaultMotionOverrides?, source? }]` replacing the current `compendiumOptions: string[]`. `compendiumEntry` is a Foundry UUID like `"Compendium.dnd5e.monsters.Actor.abc123"` — name-based lookup is fragile across dnd5e v4's compendium re-indexing.
+6. **Multi-variant gallery selector in Spawn dialog** (Plan 3, not 2). Find Familiar (14 SRD options) / Pact of the Chain (4) / Conjure Animals (4 CR bundles) / Drakewarden Drake (5 damage variants) / Beast Companion (3) all use the same gallery component.
+7. **Slider thumbs are hexagonal, point-up, geometrically regular.** Final polygon: `polygon(50% 0%, 93.3% 25%, 93.3% 75%, 50% 100%, 6.7% 75%, 6.7% 25%)`. The first attempt used a horizontal hex stretched into a 1:1 square, which read as elongated (regular hex aspect is √3:2, not 1:1). Decided after preview review — user explicitly preferred hex over round; round variant + toggle removed entirely.
+8. **GM per-variant editing lives in Plan 4 Templates editor**, not a new menu surface. Each variant gets its own row in the editor: name, thumbnail (FilePicker), compendium UUID, optional default visual/motion overrides (reuses the Restyle control set as a sub-form).
+9. **Asset generation prompt** (Plan 3): every custom-generated token requires "isolated subject, no scenic background." Mage Hand specifically: hand only, transparent — the existing third-party Mage Hand module's full-scene render is the anti-pattern.
+10. **Belle Époque + subtle steampunk** aesthetic vocabulary. Brass slider thumbs, etched track inserts, gilded swatch frames, fleur-de-lis dividers between groups, Cinzel titles. Restraint is the key word — every ornament earns its place by demarcating structure, not decorating. The hammered-metal background texture and gold-underline group titles were cut during the design-critique pass to keep the dialog from feeling cluttered.
 
 ## User preferences
 
 - **Quality over speed.** Verify outputs before claiming done. For UI work, build a standalone HTML preview using the actual CSS and iterate visually before porting changes back, when the user can't easily test in live Foundry. The user explicitly said: "please work slowly and check your work to make it work well and look great."
 - **Be genuinely critical.** Push back, don't glaze. Suggest better approaches. Go back and forth on design decisions rather than accepting the first one.
+- **Trust the user with the final call.** When asked "you decide," make the call decisively and proceed — don't bounce decisions back as questions when the user has explicitly delegated. Use the brainstorming skill as a structured-thinking framework but don't kick decisions back to the user after they've delegated.
 - **Verify in live Foundry.** Self-host or live-Foundry verification is on the user's friend (he hosts). Build verbose `[luxurious-summons]` `console.log` instrumentation into dialog-open / hook / socket / broker paths so the user can paste a clear log trail when something fails.
 - **System target:** D&D 5e (dnd5e v3+). Module logs warning + disables spawn on other systems.
 
 ## Module conventions
 
-- **Test files** in `tests/` prefixed `lux-*.test.js`. Run via `npm test` (`node --test`, no npm deps). 33 tests as of v0.1.4.
+- **Test files** in `tests/` prefixed `lux-*.test.js`. Run via `npm test` (`node --test`, no npm deps). **42 tests as of v0.1.5 + Plan 2 preview phase.**
 - **All console logs** prefixed `[luxurious-summons]` so a clean log trail is paste-friendly.
 - **Companion record state** on `actor.flags["luxurious-summons"]` (canonical); `user.flags["luxurious-summons"].activeCompanions` is a fast index regenerated from authoritative state on world init.
 - **Chat-broker pattern** (chat messages with module flags) for player↔GM coordination — never `game.socket.emit` (drops messages silently in V14 with no error trace).
-- **Distribution ZIP** via PowerShell:
+- **HTML preview workflow** (Plan 2+): standalone HTML at `previews/<dialog>.html` using actual module CSS. Loads in any modern browser from `file://` — no module imports, no server, no Foundry. Mock data inline in the preview JS. Iterate aesthetic + interaction before porting to Handlebars + ApplicationV2.
+- **Distribution ZIP** via PowerShell. Exclude dev infrastructure (`.git/`, `.claude/`, `.gitignore`, `node_modules/`, `tests/`, `package.json`, `package-lock.json`, `CLAUDE.md`, `docs/`, `previews/`):
   ```powershell
   $src = "<repo>\modules\luxurious-summons"
   $out = "<repo>\dist\luxurious-summons-<version>.zip"
+  # See git history for the staging-dir approach used in v0.1.5 ZIP build.
   Compress-Archive -Path $src -DestinationPath $out -Force
   ```
 
-## Spec & plan (in parent Laps workspace)
+## Spec & plan locations
 
-- **Spec:** `../../docs/superpowers/specs/2026-05-10-luxurious-summons-design.md` — 14 sections + 24-entry Decisions log, ~750 lines. Read end-to-end before non-trivial design changes.
-- **Plan:** `../../docs/superpowers/plans/2026-05-10-luxurious-summons.md` — Plan 1 detailed (~30 tasks) + Plans 2-5 high-level roadmap.
-- Read with `cat ../../docs/superpowers/specs/...` from this dir; the Read tool also accepts the relative path.
+The canonical design + roadmap docs are split across the parent workspace and this inner repo:
+
+| Path | What's there | Authority |
+|---|---|---|
+| `../../docs/superpowers/specs/2026-05-10-luxurious-summons-design.md` (parent `main`) | Full module spec (14 sections, ~750 lines + 24-entry decisions log) | **Canonical** for module-wide design intent. Read end-to-end before non-trivial design changes. Read via `git -C ../.. show main:docs/superpowers/specs/...` since parent is usually on a different branch. |
+| `../../docs/superpowers/plans/2026-05-10-luxurious-summons.md` (parent `main`) | Plan 1 detailed (~30 tasks) + Plans 2–5 high-level roadmap | **Canonical** for milestone ordering and scope boundaries. |
+| `docs/2026-05-10-plan-2-restyle-design.md` (inner repo) | Plan 2 design doc — Restyle dialog, motion system, aesthetic family, summon details card, hex thumb decision, whitespace targets, decisions log | **Canonical for Plan 2.** Amends the parent spec where they conflict. Gets reconciled into the parent spec once Plan 2 implementation phase begins. |
+| `~/.claude/plans/ethereal-fluttering-steele.md` (Claude Code user dir) | Plan-mode plan synthesizing user's review feedback into the roadmap (audit + 6 decisions + file-modification list + verification) | **Reference** for what was decided during the planning session. Not actively edited after plan-mode exited. |
 
 ## Surrounding workspace — when you need more context
 
@@ -64,8 +104,8 @@ The parent `Laps` workspace (one dir up: `../`) holds adjacent context that this
 | Path | What's there | When to consult |
 |---|---|---|
 | `../../CLAUDE.md` | Parent project CLAUDE.md (universal Foundry/V14 conventions, build tooling, image-processing pipeline) | If something here references "the parent CLAUDE.md" and you need the original wording, or if you suspect a V14 gotcha not yet captured here |
-| `../../docs/superpowers/specs/` | Design specs for both modules (this one + emote-wheel) | Spec is the canonical source for design intent |
-| `../../docs/superpowers/plans/` | Implementation plans for both modules | Plan 1 detailed + Plans 2-5 roadmap |
+| `../../docs/superpowers/specs/` | Design specs for both modules (this one + emote-wheel). luxurious-summons spec lives on parent `main` — read via `git show main:...`. | Spec is the canonical source for design intent |
+| `../../docs/superpowers/plans/` | Implementation plans for both modules. Same git-show pattern. | Plan 1 detailed + Plans 2-5 roadmap |
 | `../../dist/` | Distribution ZIPs (gitignored in parent) for all modules | Verify the latest shipped ZIP for this module (`luxurious-summons-X.Y.Z.zip`) |
 | `../emote-wheel/` | The other Foundry module in the workspace, system-agnostic emote selector | Cross-pattern reference: how does emote-wheel solve scene controls / dialogs / chat-broker / sprite anchoring? Patterns may transfer (V14 gotchas overlap) — but the user is actively iterating on emote-wheel, so don't modify |
 | `../emote-wheel/CLAUDE.md` | emote-wheel's module-local notes | Reference if a pattern was paid for there |
@@ -145,6 +185,12 @@ The parent `Laps` workspace (one dir up: `../`) holds adjacent context that this
 - `scope: "client"` settings live in each user's localStorage — the GM CANNOT read them. If you need per-user state visible to the GM, use `user.flags["<module-id>"].field` instead.
 - `registerMenu`'s `restricted: true` is UI-only. Real gating comes from `scope: "world"`.
 
+### dnd5e compendium lookup (V13 vs V14)
+
+- dnd5e v3 (V13) returned Document instances from compendium indexes; v4 (V14) returns `_id` strings.
+- Prefer **UUID-based lookup** via `fromUuid("Compendium.dnd5e.monsters.Actor.<id>")` — works on both versions and survives compendium re-indexing.
+- This is why the Plan 2 variant schema uses `compendiumEntry: <uuid-string>`, not a name lookup.
+
 ### Promise idempotence
 
 - Any fire-once callback that can be triggered from multiple paths needs a `_finished` flag guard.
@@ -167,22 +213,65 @@ scripts/
 ├── spell-trigger.js     ← dnd5e.useItem hook → runSpawnFlow
 ├── sheet-decorator.js   ← renderActorSheet hook → Luxurious banner + .luxsum-companion-sheet class
 ├── manager-app.js       ← Manager dialog (5 tabs, role-gated)
-├── spawn-app.js         ← Spawn Dialog (modal)
+├── spawn-app.js         ← Spawn Dialog (modal — minimal, will be replaced in Plan 2 implementation)
 ├── templates-builtin.js ← Simulacrum template (other 11 in Plan 3)
+├── motion-profiles.js   ← Plan 2: 6 named motion profiles (none, floating-hand, ethereal-drift, mirror-wobble, idle-breathing, flame-flicker) + getMotionProfile fallback. Pure functions (t, intensity) → transform deltas.
 └── handlers/
     ├── index.js         ← handler registry + callHandler
     └── simulacrum.js    ← Repair action + onAfterSpawn (spell-slot snapshot)
+
+styles/
+├── luxurious.css        ← Base palette (wine + gold + hextech reserved tokens) + theme rules
+├── manager.css          ← Companion Manager dialog layout
+├── restyle.css          ← Plan 2: Restyle dialog steampunk-luxury controls — sliders (hex thumbs), toggles, color pickers, motion radio, fleur-de-lis dividers, shimmer keyframe approximation
+└── summon-details.css   ← Plan 2: summon info card chrome (gilded plaque feel, ability score grid, save-prof pips, Open Foundry Sheet CTA)
+
+templates/
+├── manager.hbs          ← Manager dialog (5 tabs)
+├── spawn.hbs            ← Spawn dialog (will be amended in Plan 2 implementation to use the info card + drop the per-spawn customize expander)
+└── partials/
+    ├── companion-card.hbs ← Manager My-Companions card
+    └── template-card.hbs  ← Manager Spawn-New gallery card
+
+assets/
+├── icons/                ← Module icons
+├── templates-thumbs/     ← Template gallery thumbnails (Simulacrum SVG placeholder ships today; Plan 3 generates the rest via Replicate)
+├── tokens/               ← Per-template token assets (Plan 3 — Mage Hand, Unseen Servant, etc.; transparent backgrounds, isolated subjects only)
+└── ui/
+    └── fleur-de-lis.svg  ← Plan 2: divider ornament, used between control groups in the Restyle dialog
+
+previews/                  (NOT shipped in dist ZIP)
+├── restyle.html          ← Plan 2: standalone HTML preview of the Restyle dialog. Three template flavors, hex thumbs, full control set, summon details card, mock motion via CSS keyframes.
+└── restyle-preview.js    ← Vanilla JS wiring for the preview (no Foundry, no PIXI).
+
+docs/                      (NOT shipped in dist ZIP)
+└── 2026-05-10-plan-2-restyle-design.md  ← Plan 2 design doc; canonical for Plan 2 scope and decisions.
+
+tests/                     (NOT shipped in dist ZIP)
+├── lux-broker.test.js
+├── lux-data-model.test.js
+├── lux-dnd5e-mods.test.js
+├── lux-lifecycle-state.test.js
+├── lux-motion-profiles.test.js   ← Plan 2: 9 tests, intensity scaling + bounds + fallback behavior
+├── lux-placement-occupancy.test.js
+├── lux-restrictions.test.js
+└── lux-visual-overrides.test.js
 ```
 
 ## How to resume in a new session
 
-1. **Read this file** + the spec + plan (in `../../docs/superpowers/`).
-2. **`npm test`** — should print 33/33 passing.
-3. **`git log --oneline | head -10`** — see recent commits + tags.
-4. **`ls ../../dist/luxurious-summons-*.zip`** — see latest distribution ZIPs.
-5. If iterating on a bug from the friend's report: reproduce, fix, bump patch, commit, tag, new ZIP.
-6. If Plan 1 confirmed stable: kick off Plan 2 by reading the plan's "Plan 2" roadmap section.
+1. **Read this file** + the parent spec + plan (in `../../docs/superpowers/`, via `git -C ../.. show main:...`).
+2. **Read `docs/2026-05-10-plan-2-restyle-design.md`** — Plan 2 canonical design.
+3. **`npm test`** — should print 42/42 passing.
+4. **`git log --oneline | head -10`** — see recent commits + tags. Latest tag: `luxurious-summons-v0.1.5`. Latest commit (as of 2026-05-10 session end): `1e65143` (hex thumbs fix).
+5. **`ls ../../dist/luxurious-summons-*.zip`** — see latest distribution ZIPs.
+6. **Check whether friend has reported back on v0.1.5.**
+   - If **friend reports a bug**: reproduce minimally, fix in inner repo, bump patch version (0.1.6+), commit + tag + new ZIP. Plan 2 implementation phase stays gated.
+   - If **friend confirms v0.1.5 stable**: kick off the batched spec amendment commit on parent `main` (see "Decisions taken during planning" — they enumerate what needs to change in spec §5.3, §6.6, §6.8, §6.9, §7.1, §7.2, plus Plan 3 + 4 doc edits). Then begin Plan 2 implementation phase per `docs/2026-05-10-plan-2-restyle-design.md` §13 task list, starting at task 8 (Extend `scripts/visual-filters.js`).
+7. **Open `previews/restyle.html`** in a browser to see the current locked aesthetic of the Restyle dialog. This is the visual target for the Foundry-coupled implementation.
 
 ## Asset generation (Plan 3)
 
-Mage Hand + Unseen Servant tokens + 13 template thumbnails — generate via Replicate via the asset-planner agent (in parent's user agents at `~/.claude/agents/asset-planner.md`). Prompts in spec §9 / E.2.
+Mage Hand + Unseen Servant tokens + 13 template thumbnails — generate via Replicate via the asset-planner agent (in parent's user agents at `~/.claude/agents/asset-planner.md`). Prompts in parent spec §9 / E.2.
+
+**Asset prompt convention** (per user feedback during Plan 2 review): **isolated subject, transparent background, no scenic / environmental elements.** Mage Hand specifically: "ethereal disembodied hand of pure arcane force, gold and cyan magical glow, transparent background, no environment." The existing third-party Mage Hand module's full-scene render is the anti-pattern.
