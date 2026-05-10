@@ -24,3 +24,12 @@ Plan 1 (Foundation + Simulacrum vertical slice) targets v0.1.0.
 ## V14 gotchas
 
 The parent workspace's `../../CLAUDE.md` holds the universal Foundry-V14 / project-tooling gotchas. Read it before doing any module work — it covers ApplicationV2 traps, V14-specific Handlebars, scene-control wiring, FilePicker, PIXI, ChatMessage, settings scope, and other already-paid-for lessons.
+
+### V14 gotchas paid for here (worth promoting to parent CLAUDE.md when convenient)
+
+- **`ApplicationV2` is rendering-agnostic.** A class that extends `foundry.applications.api.ApplicationV2` directly cannot render — Foundry throws "not renderable because it does not implement the abstract methods _renderHTML and _replaceHTML". To use the Handlebars `static PARTS = { body: { template: ... } }` pattern, mix in `HandlebarsApplicationMixin`:
+  ```js
+  const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
+  export class MyApp extends HandlebarsApplicationMixin(ApplicationV2) { ... }
+  ```
+- **`getSceneControlButtons` requires a `tools` collection on every control.** Registering a flat top-level control without `tools` causes `Object.entries(undefined)` in `#prepareControls` and crashes the canvas-draw cascade (NotesLayer querySelector blow-up follows). The launcher button must be a TOOL inside a control, with `button: true` on the tool. V14 uses `tools: { [name]: tool }` (dict); V13 uses `tools: [tool]` (array).

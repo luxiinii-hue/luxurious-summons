@@ -9,8 +9,9 @@ import { callHandler } from "./handlers/index.js";
 import { s } from "./settings.js";
 
 const MODULE_ID = "luxurious-summons";
+const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
-export class ManagerApp extends foundry.applications.api.ApplicationV2 {
+export class ManagerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   #activeTab = "my-companions";
 
   static DEFAULT_OPTIONS = {

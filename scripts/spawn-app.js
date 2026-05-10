@@ -1,7 +1,8 @@
 // scripts/spawn-app.js — Spawn Dialog (ApplicationV2 modal)
 const MODULE_ID = "luxurious-summons";
+const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
-export class SpawnApp extends foundry.applications.api.ApplicationV2 {
+export class SpawnApp extends HandlebarsApplicationMixin(ApplicationV2) {
   #template = null;
   #sourceActorId = null;
   #onPlaceCallback = null;
