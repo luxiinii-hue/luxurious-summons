@@ -29,7 +29,7 @@
 /* ── §9.7: dialog frame + chrome ─────────────────────────────────────── */
 
 .window-app.luxsum-restyle {
-  width: 360px;
+  width: 720px;
   background: var(--luxsum-bg);
   /* Double-rule gold border: outer thin gold, inner thinner gold, 2 px gap of bg between. */
   border: 1px solid var(--luxsum-accent);
@@ -40,6 +40,15 @@
   border-radius: 2px;
   color: var(--luxsum-text);
   font-family: var(--font-primary, sans-serif);
+}
+
+/* Below 900 px viewport, stack the columns vertically and let the dialog shrink. Cheap
+   insurance against canvas occlusion on a 768 p laptop with sidebar open. */
+@media (max-width: 900px) {
+  .window-app.luxsum-restyle {
+    width: calc(100vw - 32px);
+    max-width: 480px;
+  }
 }
 
 .luxsum-restyle .window-header {
@@ -88,11 +97,30 @@
 
 /* ── §9.8: dialog body layout — vertical rhythm in 4 px multiples ─────── */
 
+/* Two-column layout: left = summon details info card, right = customization controls.
+   Each column flex-grows from its content; the 24 px gap is the visual breathing room
+   between info and controls. */
 .luxsum-restyle-body {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+/* On narrow viewports (responsive breakpoint), stack vertically. */
+@media (max-width: 900px) {
+  .luxsum-restyle-body {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+/* Right column holds the controls. Itself a vertical stack with the fleur-de-lis
+   dividers between groups — no row-gap here, each .luxsum-restyle-group provides its
+   own bottom padding containing the divider. */
+.luxsum-restyle-controls {
   display: flex;
   flex-direction: column;
-  /* No row-gap here — each .luxsum-restyle-group provides its own bottom margin
-     containing the divider. */
 }
 
 /* ── §9.6: group + divider styling ───────────────────────────────────── */
@@ -824,6 +852,65 @@
 .luxsum-preview-token.motion-mirror-wobble   { animation-name: luxsum-motion-mirror-wobble;  animation-duration: 0.4s; animation-direction: normal; animation-timing-function: linear; }
 .luxsum-preview-token.motion-idle-breathing  { animation-name: luxsum-motion-idle-breathing; animation-duration: 3.6s; }
 .luxsum-preview-token.motion-flame-flicker   { animation-name: luxsum-motion-flame-flicker;  animation-duration: 1.6s; }
+
+/* ── Shimmer overlay — preview-only approximation of PIXI DisplacementFilter ─────
+   Real Foundry uses a PIXI DisplacementFilter with a Perlin noise texture for a true
+   distortion shimmer; CSS can't replicate that. As a visual hint of "shimmer is on,"
+   the preview overlays a subtle moving radial-gradient glow on top of the token. The
+   .luxsum-preview-stage hosts the glow as a ::after layer so it composites correctly
+   over the token regardless of token transparency. */
+
+.luxsum-preview-stage {
+  position: relative;
+  isolation: isolate;
+}
+
+.luxsum-preview-stage.shimmering::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      circle at 50% 50%,
+      transparent 0%,
+      transparent 30%,
+      rgba(255, 255, 255, calc(0.05 + 0.06 * var(--shimmer-strength, 0.35))) 45%,
+      transparent 70%
+    );
+  mix-blend-mode: screen;
+  animation: luxsum-shimmer-pulse 2.4s ease-in-out infinite alternate;
+  z-index: 2;
+}
+
+/* Optional second layer for stronger shimmers — a slow-rotating sheen sweep. */
+.luxsum-preview-stage.shimmering::before {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  pointer-events: none;
+  background:
+    conic-gradient(
+      from 0deg,
+      transparent 0deg,
+      rgba(255, 255, 255, calc(0.03 + 0.05 * var(--shimmer-strength, 0.35))) 30deg,
+      transparent 60deg,
+      transparent 360deg
+    );
+  mix-blend-mode: screen;
+  animation: luxsum-shimmer-rotate 4s linear infinite;
+  z-index: 1;
+}
+
+@keyframes luxsum-shimmer-pulse {
+  0%   { opacity: 0.4; transform: scale(0.92); }
+  100% { opacity: 1;   transform: scale(1.08); }
+}
+
+@keyframes luxsum-shimmer-rotate {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
 
 /* The template name overlay below the token. */
 .luxsum-preview-nameplate {

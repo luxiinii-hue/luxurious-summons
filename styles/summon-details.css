@@ -1,0 +1,274 @@
+/* styles/summon-details.css — Summon info card. Sits in the left column of the Restyle
+   dialog (and, later, the Spawn dialog) showing at-a-glance stats so the player can decide
+   what to spawn or remember what they're styling without opening the Foundry actor sheet.
+
+   Minimal content profile per Plan 2 decision #2: HP, AC, speed, six ability scores with
+   modifiers, saving-throw proficiencies, "Open Foundry Sheet" CTA. Everything richer
+   (spells, abilities, senses, languages) is one click away via the CTA.
+
+   Belle Époque ornament + steampunk-luxury — same vocabulary as restyle.css. Reads as
+   "an engraved brass plaque on a wine-dark mahogany card." */
+
+.luxsum-summon-details {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px 12px;
+  background:
+    linear-gradient(180deg, rgba(212, 175, 55, 0.04) 0%, rgba(0, 0, 0, 0.15) 100%),
+    var(--luxsum-bg-elev);
+  border: 1px solid var(--luxsum-accent);
+  border-radius: 3px;
+  box-shadow:
+    inset 0 0 0 1px var(--luxsum-bg),
+    inset 0 0 0 2px var(--luxsum-accent),
+    0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* ── Header — name + creature type ───────────────────────────────────── */
+
+.luxsum-summon-details-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(201, 161, 75, 0.4);
+}
+
+.luxsum-summon-details-name {
+  font-family: "Cinzel", "Cormorant Garamond", serif;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  color: var(--luxsum-title-accent, var(--luxsum-accent-hi));
+  margin: 0;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+}
+
+.luxsum-summon-details-type {
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--luxsum-text-mute);
+}
+
+/* ── Flavor text — one-line description, italic, dim ─────────────────── */
+
+.luxsum-summon-details-flavor {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--luxsum-text);
+  opacity: 0.85;
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* ── Vitals row — HP, AC, Speed ──────────────────────────────────────── */
+
+.luxsum-summon-details-vitals {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.luxsum-vital {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 4px;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0.15) 100%);
+  border: 1px solid var(--luxsum-brass-dark);
+  border-radius: 2px;
+  box-shadow: inset 0 1px 0 rgba(212, 175, 55, 0.1);
+}
+
+.luxsum-vital-label {
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--luxsum-text-mute);
+}
+
+.luxsum-vital-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--luxsum-accent-hi);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Ability score grid — 6 stats in 2 rows × 3 cols ─────────────────── */
+
+.luxsum-summon-details-abilities {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.luxsum-ability {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 6px 2px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--luxsum-brass-dark);
+  border-radius: 2px;
+}
+
+.luxsum-ability-name {
+  font-family: "Cinzel", serif;
+  font-size: 9px;
+  letter-spacing: 1.2px;
+  color: var(--luxsum-accent);
+  font-weight: 600;
+}
+
+.luxsum-ability-score {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--luxsum-text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.luxsum-ability-mod {
+  font-size: 10px;
+  color: var(--luxsum-text-mute);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Ability cell with save proficiency — small gold pip indicator. */
+.luxsum-ability.has-save-prof {
+  border-color: var(--luxsum-accent);
+  box-shadow: inset 0 0 0 1px rgba(240, 201, 122, 0.15);
+}
+
+.luxsum-ability.has-save-prof::after {
+  content: "";
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: var(--luxsum-accent-hi);
+  border-radius: 50%;
+  box-shadow: 0 0 4px var(--luxsum-glow);
+  margin-top: -2px;
+  align-self: flex-end;
+}
+
+.luxsum-ability {
+  position: relative;
+}
+
+/* ── Saves chips row — "Saves: INT +6 · WIS +3" style ────────────────── */
+
+.luxsum-summon-details-saves {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  align-items: center;
+}
+
+.luxsum-summon-details-saves-label {
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--luxsum-text-mute);
+  margin-right: 4px;
+}
+
+.luxsum-save-prof {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  background: rgba(184, 134, 11, 0.18);
+  border: 1px solid var(--luxsum-brass-dark);
+  border-radius: 8px;
+  font-size: 10px;
+  color: var(--luxsum-accent-hi);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.3px;
+}
+
+/* ── Open Foundry Sheet button — primary CTA in the card ─────────────── */
+
+.luxsum-open-sheet-btn {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background:
+    linear-gradient(180deg, rgba(184, 134, 11, 0.5) 0%, rgba(107, 79, 14, 0.5) 100%),
+    var(--luxsum-bg);
+  color: var(--luxsum-accent-hi);
+  border: 1px solid var(--luxsum-accent);
+  border-radius: 2px;
+  font-family: "Cinzel", serif;
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 rgba(212, 175, 55, 0.25),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+    0 1px 2px rgba(0, 0, 0, 0.4);
+  transition:
+    background 150ms ease-out,
+    color 150ms ease-out,
+    box-shadow 150ms ease-out;
+}
+
+.luxsum-open-sheet-btn::before {
+  content: "";
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  background-color: currentColor;
+  /* Subtle book-icon clip-path. */
+  clip-path: polygon(15% 10%, 50% 25%, 85% 10%, 85% 90%, 50% 75%, 15% 90%);
+  flex: 0 0 12px;
+}
+
+.luxsum-open-sheet-btn:hover {
+  background:
+    linear-gradient(180deg, rgba(212, 175, 55, 0.6) 0%, rgba(184, 134, 11, 0.5) 100%),
+    var(--luxsum-bg);
+  color: var(--luxsum-text);
+  box-shadow:
+    inset 0 1px 0 rgba(240, 201, 122, 0.35),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 0 0 3px var(--luxsum-glow);
+}
+
+.luxsum-open-sheet-btn:active {
+  transform: translateY(1px);
+}
+
+.luxsum-open-sheet-btn:focus-visible {
+  outline: 2px solid var(--luxsum-accent-hi);
+  outline-offset: 2px;
+}
+
+/* ── Variant — description-focused (for non-creature summons like Mage Hand) ── */
+
+/* When the card has the .description-only class, only header + flavor + sheet
+   button render. Vitals / abilities / saves are hidden via CSS rather than removed
+   from the DOM so the same partial template covers both creature and non-creature
+   summons. */
+.luxsum-summon-details.description-only .luxsum-summon-details-vitals,
+.luxsum-summon-details.description-only .luxsum-summon-details-abilities,
+.luxsum-summon-details.description-only .luxsum-summon-details-saves {
+  display: none;
+}
+
+/* When description-only, the flavor text gets a bit more room since it's the main content. */
+.luxsum-summon-details.description-only .luxsum-summon-details-flavor {
+  font-size: 13px;
+  line-height: 1.55;
+  padding: 4px 0;
+}

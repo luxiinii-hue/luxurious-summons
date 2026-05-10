@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="../styles/luxurious.css">
   <link rel="stylesheet" href="../styles/restyle.css">
+  <link rel="stylesheet" href="../styles/summon-details.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&display=swap" rel="stylesheet">
@@ -80,6 +81,49 @@
 
     <section class="window-content">
       <div class="luxsum-restyle-body">
+
+        <!-- ── Left column: Summon details info card ─────────────────────── -->
+        <section class="luxsum-summon-details" id="summon-details">
+          <header class="luxsum-summon-details-header">
+            <h3 class="luxsum-summon-details-name" id="sd-name">Snowflake</h3>
+            <span class="luxsum-summon-details-type" id="sd-type">Construct (illusion), neutral</span>
+          </header>
+
+          <p class="luxsum-summon-details-flavor" id="sd-flavor">
+            An icy duplicate of the caster. Half HP, no natural recovery, snapshot spell slots.
+          </p>
+
+          <div class="luxsum-summon-details-vitals" id="sd-vitals">
+            <div class="luxsum-vital">
+              <span class="luxsum-vital-label">HP</span>
+              <span class="luxsum-vital-value" id="sd-hp">31 / 31</span>
+            </div>
+            <div class="luxsum-vital">
+              <span class="luxsum-vital-label">AC</span>
+              <span class="luxsum-vital-value" id="sd-ac">12</span>
+            </div>
+            <div class="luxsum-vital">
+              <span class="luxsum-vital-label">Speed</span>
+              <span class="luxsum-vital-value" id="sd-speed">30 ft</span>
+            </div>
+          </div>
+
+          <div class="luxsum-summon-details-abilities" id="sd-abilities">
+            <!-- Populated by preview JS so the save-prof modifier can be applied per template. -->
+          </div>
+
+          <div class="luxsum-summon-details-saves" id="sd-saves">
+            <span class="luxsum-summon-details-saves-label">Saves</span>
+            <!-- Save-prof chips appended by JS. -->
+          </div>
+
+          <button class="luxsum-open-sheet-btn" id="sd-open-sheet" title="Open the companion's Foundry character sheet">
+            Open Foundry Sheet
+          </button>
+        </section>
+
+        <!-- ── Right column: customization controls ──────────────────────── -->
+        <div class="luxsum-restyle-controls">
 
         <!-- Group 1: Color -->
         <div class="luxsum-restyle-group">
@@ -253,6 +297,7 @@
           </div>
         </div>
 
+        </div><!-- /.luxsum-restyle-controls -->
       </div>
     </section>
 

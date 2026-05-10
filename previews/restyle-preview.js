@@ -17,6 +17,27 @@ const TEMPLATES = {
     family: "hextech",
     silhouette: "silh-simulacrum",
     fallbackBg: "#88ccff",
+    summonDetails: {
+      name: "Snowflake",
+      type: "Construct (illusion), neutral",
+      flavor: "An icy duplicate of the caster. Half HP, no natural recovery, snapshot spell slots.",
+      hp: "31 / 31",
+      ac: 12,
+      speed: "30 ft",
+      abilities: [
+        { name: "STR", score: 10, save: false },
+        { name: "DEX", score: 14, save: false },
+        { name: "CON", score: 12, save: false },
+        { name: "INT", score: 18, save: true },
+        { name: "WIS", score: 13, save: true },
+        { name: "CHA", score: 14, save: false }
+      ],
+      saves: [
+        { ability: "INT", modifier: "+6" },
+        { ability: "WIS", modifier: "+3" }
+      ],
+      descriptionOnly: false
+    },
     defaults: {
       tintColor: "#88ccff", tintStrength: 18,
       brightness: 105, vibrance: 130,
@@ -36,6 +57,12 @@ const TEMPLATES = {
     family: "hextech",
     silhouette: "silh-magehand",
     fallbackBg: "#c9a14b",
+    summonDetails: {
+      name: "Spectral Hand",
+      type: "Magical effect (force)",
+      flavor: "A ghostly disembodied hand of arcane force. Lifts up to 10 lb, manipulates objects, reaches 30 ft from the caster. Lasts 1 minute per cast.",
+      descriptionOnly: true
+    },
     defaults: {
       tintColor: "#c9a14b", tintStrength: 28,
       brightness: 110, vibrance: 95,
@@ -55,6 +82,24 @@ const TEMPLATES = {
     family: "belle-epoque",
     silhouette: "silh-owl",
     fallbackBg: "#e8dcc4",
+    summonDetails: {
+      name: "Snowy",
+      type: "Beast (familiar), unaligned",
+      flavor: "A wise companion. Sharp senses, telepathic bond to the caster, fully obedient.",
+      hp: "1 / 1",
+      ac: 11,
+      speed: "5 ft · fly 60 ft",
+      abilities: [
+        { name: "STR", score: 3, save: false },
+        { name: "DEX", score: 13, save: false },
+        { name: "CON", score: 8, save: false },
+        { name: "INT", score: 2, save: false },
+        { name: "WIS", score: 12, save: false },
+        { name: "CHA", score: 7, save: false }
+      ],
+      saves: [],
+      descriptionOnly: false
+    },
     defaults: {
       tintColor: "#e8dcc4", tintStrength: 12,
       brightness: 100, vibrance: 100,
@@ -81,6 +126,18 @@ const dom = {
   previewToken: document.getElementById("preview-token"),
   previewTokenSvg: document.getElementById("preview-token-svg"),
   previewNameplate: document.getElementById("preview-nameplate"),
+
+  // Summon details card
+  sdCard: document.getElementById("summon-details"),
+  sdName: document.getElementById("sd-name"),
+  sdType: document.getElementById("sd-type"),
+  sdFlavor: document.getElementById("sd-flavor"),
+  sdHp: document.getElementById("sd-hp"),
+  sdAc: document.getElementById("sd-ac"),
+  sdSpeed: document.getElementById("sd-speed"),
+  sdAbilities: document.getElementById("sd-abilities"),
+  sdSaves: document.getElementById("sd-saves"),
+  sdOpenSheet: document.getElementById("sd-open-sheet"),
 
   // Dialog title
   dialogTitle: document.getElementById("dialog-title"),
@@ -161,6 +218,67 @@ function setVar(name, value) {
   dom.previewToken.style.setProperty(name, value);
 }
 
+// Format a D&D 5e ability modifier from a raw score: floor((score - 10) / 2), signed.
+function formatModifier(score) {
+  const mod = Math.floor((score - 10) / 2);
+  return mod >= 0 ? `+${mod}` : `${mod}`;
+}
+
+// Render the summon details card for a given template's summonDetails block.
+function renderSummonDetails(details) {
+  if (!details) return;
+
+  // Toggle the "description-only" variant (hides vitals/abilities/saves) for non-creature
+  // summons like Mage Hand. The DOM stays the same; CSS hides the irrelevant sections.
+  dom.sdCard.classList.toggle("description-only", !!details.descriptionOnly);
+
+  dom.sdName.textContent = details.name ?? "";
+  dom.sdType.textContent = details.type ?? "";
+  dom.sdFlavor.textContent = details.flavor ?? "";
+
+  if (!details.descriptionOnly) {
+    dom.sdHp.textContent = details.hp ?? "—";
+    dom.sdAc.textContent = (details.ac ?? "—").toString();
+    dom.sdSpeed.textContent = details.speed ?? "—";
+
+    // Ability score cells — 6 in a 2 × 3 grid.
+    dom.sdAbilities.innerHTML = "";
+    for (const abil of (details.abilities ?? [])) {
+      const cell = document.createElement("div");
+      cell.className = "luxsum-ability";
+      if (abil.save) cell.classList.add("has-save-prof");
+      const name = document.createElement("span");
+      name.className = "luxsum-ability-name";
+      name.textContent = abil.name;
+      const score = document.createElement("span");
+      score.className = "luxsum-ability-score";
+      score.textContent = abil.score.toString();
+      const mod = document.createElement("span");
+      mod.className = "luxsum-ability-mod";
+      mod.textContent = formatModifier(abil.score);
+      cell.append(name, score, mod);
+      dom.sdAbilities.appendChild(cell);
+    }
+
+    // Save-prof chips — rebuild after the label span so the label stays first.
+    while (dom.sdSaves.lastChild && !dom.sdSaves.lastChild.classList?.contains("luxsum-summon-details-saves-label")) {
+      dom.sdSaves.removeChild(dom.sdSaves.lastChild);
+    }
+    if (details.saves && details.saves.length > 0) {
+      for (const s of details.saves) {
+        const chip = document.createElement("span");
+        chip.className = "luxsum-save-prof";
+        chip.textContent = `${s.ability} ${s.modifier}`;
+        dom.sdSaves.appendChild(chip);
+      }
+      dom.sdSaves.style.display = "";
+    } else {
+      // Hide the whole row when nothing to show (Familiar example has no save profs).
+      dom.sdSaves.style.display = "none";
+    }
+  }
+}
+
 // ── Apply current control state to the token preview ─────────────────────
 
 function applyAllToToken() {
@@ -190,9 +308,13 @@ function applyAllToToken() {
   setVar("--filter-outline-thickness", outlineEnabled ? `${outlineThickness * 2}px` : "0px");
   setVar("--filter-outline-color", outlineEnabled ? outlineColor : "transparent");
 
-  // ── Shimmer (CSS approximation: subtle text-shadow flicker via an extra filter layer) ───
-  // For preview purposes, we just toggle a class — real PIXI uses DisplacementFilter.
-  dom.previewToken.classList.toggle("shimmering", shimmerEnabled && shimmerStrength > 0);
+  // ── Shimmer (preview-only approximation; real PIXI uses DisplacementFilter) ───
+  // Toggle on the stage (not the token) so the shimmer composites cleanly over the token's
+  // background. Sets --shimmer-strength so the radial-gradient + rotating-sheen layers can
+  // scale their alpha by the slider value.
+  const shimmerOn = shimmerEnabled && shimmerStrength > 0;
+  dom.stage.classList.toggle("shimmering", shimmerOn);
+  dom.stage.style.setProperty("--shimmer-strength", (shimmerStrength / 100).toFixed(2));
 
   // ── Motion ───
   const presetEl = document.querySelector('input[name="motion-preset"]:checked');
@@ -286,6 +408,9 @@ function loadTemplate(key) {
   const presetInput = document.getElementById(`motion-${d.motionPreset}`);
   if (presetInput) presetInput.checked = true;
 
+  // Render the summon details info card
+  renderSummonDetails(tpl.summonDetails);
+
   // Re-apply everything
   applyAllToToken();
 
@@ -354,6 +479,12 @@ function flashButton(id) {
   btn.style.boxShadow = "0 0 0 4px var(--luxsum-accent-hi)";
   setTimeout(() => { btn.style.boxShadow = ""; }, 200);
 }
+
+// Open Foundry Sheet — preview no-op with visible feedback.
+dom.sdOpenSheet.addEventListener("click", () => {
+  flashButton("sd-open-sheet");
+  // In real Foundry: actor.sheet.render({ force: true });
+});
 
 // ── Initial load ──────────────────────────────────────────────────────────
 
