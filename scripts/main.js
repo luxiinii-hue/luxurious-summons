@@ -4,6 +4,7 @@ import { refreshUserIndexes } from "./data-model.js";
 import { openManager } from "./manager-app.js";
 import { installBrokerHook } from "./chat-broker.js";
 import { installSpawnBrokerHandler } from "./spawn-engine.js";
+import { applyFiltersToToken } from "./visual-filters.js";
 
 const MODULE_ID = "luxurious-summons";
 
@@ -23,6 +24,16 @@ Hooks.once("ready", async () => {
   installSpawnBrokerHandler();
   if (s("verboseLogging")) {
     console.log(`[${MODULE_ID}] verbose logging enabled — full diagnostic trail will print`);
+  }
+});
+
+// Apply visual filters when a companion token is drawn / its overrides change
+Hooks.on("drawToken", (token) => {
+  applyFiltersToToken(token);
+});
+Hooks.on("updateActor", (actor, changes) => {
+  if (changes.flags?.[MODULE_ID]?.visualOverrides) {
+    for (const t of actor.getActiveTokens()) applyFiltersToToken(t);
   }
 });
 
