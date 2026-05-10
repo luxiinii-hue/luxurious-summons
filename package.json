@@ -1,0 +1,8 @@
+{
+  "name": "luxurious-summons",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  }
+}

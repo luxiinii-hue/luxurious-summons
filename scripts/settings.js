@@ -1,0 +1,98 @@
+// scripts/settings.js — module settings registration
+const MODULE_ID = "luxurious-summons";
+
+export function registerSettings() {
+  // ── World-scope (GM-only writes; world database) ─────────────────────
+  game.settings.register(MODULE_ID, "requireApprovalForAllSpawns", {
+    name: "Require GM approval for all spawns",
+    hint: "When on, every spawn request goes through a GM-approval chat card (D-mode). When off (default), spawns auto-fire via the active GM client (C-mode).",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: false
+  });
+  game.settings.register(MODULE_ID, "globalActiveCapPerPlayer", {
+    name: "Global active companion cap (per player)",
+    hint: "Hard ceiling on how many companions a single player may have active at once, regardless of per-template caps.",
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 10,
+    range: { min: 1, max: 50, step: 1 }
+  });
+  game.settings.register(MODULE_ID, "antispamMaxSpawnsPerWindow", {
+    name: "Anti-spam: max spawns per window",
+    hint: "Maximum spawn requests a single player may make within the anti-spam window (see below).",
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 5,
+    range: { min: 1, max: 30, step: 1 }
+  });
+  game.settings.register(MODULE_ID, "antispamWindowSeconds", {
+    name: "Anti-spam: window length (seconds)",
+    hint: "Length of the rolling anti-spam window.",
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 60,
+    range: { min: 10, max: 600, step: 10 }
+  });
+  game.settings.register(MODULE_ID, "autoDeductGoldForRepair", {
+    name: "Auto-deduct gold for Simulacrum Repair",
+    hint: "When on, the Repair action deducts 100gp from the master's character automatically. When off (default), Repair logs the cost without enforcing it.",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: false
+  });
+  game.settings.register(MODULE_ID, "customTemplates", {
+    scope: "world", config: false, type: Array, default: []
+  });
+  game.settings.register(MODULE_ID, "templateOverrides", {
+    scope: "world", config: false, type: Object, default: {}
+  });
+  game.settings.register(MODULE_ID, "dataModelVersion", {
+    scope: "world", config: false, type: String, default: "1"
+  });
+
+  // ── Client-scope (per-user; localStorage) ────────────────────────────
+  game.settings.register(MODULE_ID, "aestheticTheme", {
+    name: "Aesthetic theme",
+    hint: "Visual theme for the Companion Manager UI.",
+    scope: "client",
+    config: true,
+    type: String,
+    choices: { luxurious: "Luxurious (default)", "luxurious-light": "Luxurious Light", "foundry-native": "Foundry Native" },
+    default: "luxurious"
+  });
+  game.settings.register(MODULE_ID, "enableDeathAnimations", {
+    name: "Enable death animations",
+    hint: "Performance escape hatch — turn off if PIXI animations cause lag on your client.",
+    scope: "client",
+    config: true,
+    type: Boolean,
+    default: true
+  });
+  game.settings.register(MODULE_ID, "enablePIXIFilters", {
+    name: "Enable PIXI filters",
+    hint: "Performance escape hatch — when off, only basic token tinting is applied (no outline, shimmer, etc.).",
+    scope: "client",
+    config: true,
+    type: Boolean,
+    default: true
+  });
+  game.settings.register(MODULE_ID, "verboseLogging", {
+    name: "Verbose logging",
+    hint: "Diagnostic — emits [luxurious-summons] console logs at every dialog/hook/broker point. Useful when reporting issues.",
+    scope: "client",
+    config: true,
+    type: Boolean,
+    default: false
+  });
+}
+
+// Convenience getter — keeps the settings call site terse and one-place to grep
+export function s(key) {
+  return game.settings.get(MODULE_ID, key);
+}

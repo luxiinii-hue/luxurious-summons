@@ -1,0 +1,12 @@
+{
+  "LUXSUM.ModuleTitle": "Luxurious Summons",
+  "LUXSUM.SceneControl.Title": "Open Companion Manager",
+  "LUXSUM.Manager.Title": "Companion Manager",
+  "LUXSUM.Manager.Tab.MyCompanions": "My Companions",
+  "LUXSUM.Manager.Tab.SpawnNew": "Spawn New",
+  "LUXSUM.Manager.Tab.AllCompanions": "All Companions",
+  "LUXSUM.Manager.Tab.Templates": "Templates",
+  "LUXSUM.Manager.Tab.Settings": "Settings",
+  "LUXSUM.Manager.Empty.MyCompanions": "No active companions. Open Spawn New to summon your first.",
+  "LUXSUM.Manager.Empty.SpawnNew": "No templates available."
+}
