@@ -2,6 +2,7 @@
 import { registerSettings, s } from "./settings.js";
 import { refreshUserIndexes } from "./data-model.js";
 import { openManager } from "./manager-app.js";
+import { installBrokerHook } from "./chat-broker.js";
 
 const MODULE_ID = "luxurious-summons";
 
@@ -17,6 +18,7 @@ Hooks.once("ready", async () => {
     return;
   }
   await refreshUserIndexes();
+  installBrokerHook();
   if (s("verboseLogging")) {
     console.log(`[${MODULE_ID}] verbose logging enabled — full diagnostic trail will print`);
   }
