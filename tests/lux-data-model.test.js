@@ -56,3 +56,33 @@ test("makeCompanionFlag produces the canonical default shape", () => {
   assert.equal(flag.notes, "");
   assert.ok(typeof flag.spawnedAt === "number");
 });
+
+import { regenerateUserIndex } from "../scripts/data-model.js";
+
+test("regenerateUserIndex groups companions by sourcePlayerId", () => {
+  const actors = [
+    { id: "a1", flags: { "luxurious-summons": { isCompanion: true, templateId: "simulacrum",
+        sourceActorId: "src1", sourcePlayerId: "u1", sourceMode: "snapshot",
+        visualOverrides: {}, spawnedAt: 1000 } }, _sceneId: "sceneA" },
+    { id: "a2", flags: { "luxurious-summons": { isCompanion: true, templateId: "find-familiar",
+        sourceActorId: "src2", sourcePlayerId: "u1", sourceMode: "snapshot",
+        visualOverrides: {}, spawnedAt: 2000 } }, _sceneId: "sceneA" },
+    { id: "a3", flags: { "luxurious-summons": { isCompanion: true, templateId: "simulacrum",
+        sourceActorId: "src3", sourcePlayerId: "u2", sourceMode: "snapshot",
+        visualOverrides: {}, spawnedAt: 3000 } }, _sceneId: "sceneB" },
+    { id: "a4", flags: {} }   // not a companion — should be ignored
+  ];
+  const sceneOf = (actor) => actor._sceneId;
+  const index = regenerateUserIndex(actors, sceneOf);
+  assert.equal(index.get("u1").length, 2);
+  assert.equal(index.get("u2").length, 1);
+  assert.equal(index.has("u3"), false);
+  assert.equal(index.get("u1")[0].actorId, "a1");
+  assert.equal(index.get("u1")[0].sceneId, "sceneA");
+  assert.equal(index.get("u1")[0].templateId, "simulacrum");
+});
+
+test("regenerateUserIndex returns empty map for empty input", () => {
+  const index = regenerateUserIndex([], () => null);
+  assert.equal(index.size, 0);
+});

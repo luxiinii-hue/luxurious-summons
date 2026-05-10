@@ -46,3 +46,51 @@ export async function setCompanionFlag(actor, partial) {
   const current = getCompanionFlag(actor) ?? {};
   return actor.update({ [`flags.${MODULE_ID}`]: { ...current, ...partial } });
 }
+
+/**
+ * Pure-logic. Groups companion actors by sourcePlayerId, returning
+ * Map<userId, Array<{actorId, sceneId, templateId, spawnedAt}>>.
+ *
+ * @param actors  array of actor-like objects with .id and .flags
+ * @param sceneOf function(actor) → sceneId (or null)
+ */
+export function regenerateUserIndex(actors, sceneOf) {
+  const index = new Map();
+  for (const actor of actors) {
+    const flag = actor?.flags?.[MODULE_ID];
+    if (!flag?.isCompanion) continue;
+    const entry = {
+      actorId: actor.id,
+      sceneId: sceneOf(actor),
+      templateId: flag.templateId,
+      spawnedAt: flag.spawnedAt
+    };
+    if (!index.has(flag.sourcePlayerId)) index.set(flag.sourcePlayerId, []);
+    index.get(flag.sourcePlayerId).push(entry);
+  }
+  return index;
+}
+
+/**
+ * Foundry-side wrapper. Walks live game state, builds the index via
+ * regenerateUserIndex, and writes each user's slice to
+ * user.flags[MODULE_ID].activeCompanions.
+ *
+ * Only the GM can write to other users' flags, so this no-ops on
+ * non-GM clients. Idempotent — safe to call multiple times.
+ */
+export async function refreshUserIndexes() {
+  if (!game.user.isGM) return;
+  const sceneOf = (actor) => {
+    for (const scene of game.scenes) {
+      if (scene.tokens.find(t => t.actorId === actor.id)) return scene.id;
+    }
+    return null;
+  };
+  const index = regenerateUserIndex(game.actors.contents, sceneOf);
+  for (const user of game.users) {
+    const slice = index.get(user.id) ?? [];
+    await user.update({ [`flags.${MODULE_ID}.activeCompanions`]: slice });
+  }
+  console.log(`[${MODULE_ID}] user-flag indexes refreshed for ${index.size} user(s)`);
+}
