@@ -380,44 +380,102 @@ These hextech tokens are *not consumed by Plan 2 CSS*. They're declared in `luxu
 
 ### 9.2 Slider styling
 
+Revised per design critique — radial gradients at 22 px read as muddy skeuomorphism. Modern luxury is flatter and lets state cues (hover, active) carry the tactile feel.
+
 - **Track:** 8 px tall, `--luxsum-track` background with a 1 px inset gold border (`box-shadow: inset 0 1px 0 var(--luxsum-brass-dark), inset 0 -1px 0 var(--luxsum-brass-light)`). Engraved feel.
-- **Thumb:** 22 px circular with brass gradient (`background: radial-gradient(circle at 35% 30%, var(--luxsum-brass-light), var(--luxsum-brass) 50%, var(--luxsum-brass-dark) 100%)`), a 1 px gold ring border, and a subtle inset highlight to suggest a polished knob. Drop shadow for elevation.
-- **Hover:** thumb scales 1.05× with a gold glow halo.
-- **Active (dragging):** thumb scales 0.98× (pressed), the track around the thumb shows a brighter gold tick mark.
-- **Focus:** 2 px gold-glow outline ring (keyboard nav).
+- **Thumb (resting):** 22 px wide. Solid `--luxsum-brass` fill. 1 px `--luxsum-brass-light` border. 1 px inset highlight at the top (`box-shadow: inset 0 1px 0 var(--luxsum-brass-light)`) to catch the light. Crisp drop shadow `0 1px 2px rgba(0, 0, 0, 0.45)`. No radial gradient.
+- **Thumb shape — to evaluate in preview:** circular vs. hexagonal (CSS `clip-path: polygon(...)`). Hexagonal reads as "brass rivet" / "screw head" and reinforces the mechanical-luxury feel, while costing essentially nothing. Final call after seeing both in the HTML preview.
+- **Hover:** thumb scales 1.05× with a gold glow halo (`box-shadow: 0 0 0 4px var(--luxsum-glow)`). Cursor `pointer`.
+- **Active (dragging):** thumb scales 0.96× (pressed). Inset highlight brightens to `--luxsum-accent-hi`.
+- **Focus (keyboard):** 2 px gold-glow outline ring. Same look as hover halo but slightly tighter (`box-shadow: 0 0 0 2px var(--luxsum-accent-hi)`).
 
 ### 9.3 Toggle switch styling
 
-- **Off:** a horizontal slot (engraved well, dark wine) with a brass lever positioned left, a tiny engraved "OFF" label faintly visible.
-- **On:** lever slides right, well changes to a slightly warmer gold glow inside, faint "ON" label.
-- **Transition:** 200 ms cubic-bezier ease-out. Includes a subtle "click" via micro-bounce.
+Revised per design critique — engraved ON/OFF text at 44 × 22 px would read as compression artifacts. The lever position and the well-glow color shift carry the state cue. External `<label>` text alongside the toggle carries semantic meaning.
+
+- **Off:** horizontal slot (engraved well, `--luxsum-track` interior, 1 px `--luxsum-brass-dark` inset border) with a brass lever (12 px circle, flat `--luxsum-brass`) positioned left. No interior text.
+- **On:** lever slides right. Well interior fills with a warm gradient `linear-gradient(90deg, var(--luxsum-brass-dark), var(--luxsum-brass))` and gains a 1 px `--luxsum-accent` outer border (subtle "lit-up" cue).
+- **Transition:** 200 ms cubic-bezier(0.4, 0.0, 0.2, 1). Subtle micro-bounce on commit (lever overshoots 1 px and settles).
 - 44 px wide × 22 px tall — touch-friendly.
+- **External label** (e.g., "Shimmer enabled", "Outline enabled") sits to the right of the switch, 12 px gap, regular weight, cream color (`--luxsum-text`).
 
 ### 9.4 Color picker styling
 
-- Native `<input type="color">` (we don't reinvent the picker — browser support is good).
-- Wrapped in a div with a 3 px gold border and inner 1 px dark-wine border, mimicking a gilded frame.
-- 36×36 px swatch.
-- Hover: outer border brightens to `--luxsum-accent-hi`.
+Revised per design critique — native `<input type="color">` chrome differs per browser (Chrome: thick gray border with inner swatch; Firefox: minimal; Safari: rounded). Wrapping the native input in our gilded frame would produce inconsistent chunky results across the user's player base. Standard mitigation: hide the native input, overlay a `<div>` we fully control.
+
+**Pattern:**
+
+```html
+<label class="luxsum-color-picker">
+  <div class="luxsum-color-swatch" style="background-color: #88ccff"></div>
+  <input type="color" value="#88ccff" />
+</label>
+```
+
+```css
+.luxsum-color-picker { position: relative; width: 36px; height: 36px; cursor: pointer; }
+.luxsum-color-swatch {
+  width: 100%; height: 100%;
+  border: 2px solid var(--luxsum-accent);
+  box-shadow: inset 0 0 0 1px var(--luxsum-bg), 0 1px 2px rgba(0,0,0,0.4);
+  border-radius: 3px;
+  background-color: var(--current-color);
+}
+.luxsum-color-picker input[type="color"] {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  opacity: 0; cursor: pointer; border: 0; padding: 0;
+}
+```
+
+JS updates `.luxsum-color-swatch` `background-color` on the input's `input` event. The native picker dropdown still opens on click (the invisible `<input>` over the swatch captures the click and triggers the browser's native picker), so we keep platform-native UX without inheriting platform-native chrome.
+
+- **36×36 px swatch.**
+- **Hover:** outer border brightens to `--luxsum-accent-hi`, swatch scales 1.03× via transform.
+- **Active (dropdown open):** outer border `--luxsum-accent-hi`, subtle inset glow.
 
 ### 9.5 Radio buttons (Motion preset)
 
 - Custom-styled. Four pill segments in a horizontal group, each with a brass interior. Selected segment has the accent fill. Hover: gold glow. Active: pressed micro-animation.
 
-### 9.6 Dividers between groups
+### 9.6 Dividers and group headers
 
-- 1 px gold rule (`background: linear-gradient(90deg, transparent, var(--luxsum-accent) 20%, var(--luxsum-accent) 80%, transparent)`).
-- Optional small fleur-de-lis SVG centered (12 px tall, in `--luxsum-accent`) — adds the "Belle Époque" feel.
+Revised per design critique — having both gold-underline group titles AND fleur-de-lis dividers compounds ornamentation. The dividers carry hierarchy on their own; group titles get warm gold Cinzel and no underline.
+
+- **Group title:** Cinzel, 14 px, weight 500, color `--luxsum-accent`. No underline. 8 px bottom margin to its first control. Letter-spacing 0.5 px (Cinzel benefits from a touch).
+- **Group divider:** 1 px gold rule (`background: linear-gradient(90deg, transparent, var(--luxsum-accent) 20%, var(--luxsum-accent) 80%, transparent)`) with a centered 12 px fleur-de-lis SVG in `--luxsum-accent`. Renders between groups, not above the first or below the last. The fleur-de-lis is *the* signature Belle Époque touch in this UI — it's the one decorative element earning its keep.
+- The fleur-de-lis SVG ships as `assets/ui/fleur-de-lis.svg` (8-line path, 12×12 viewBox). Reused everywhere a divider appears.
 
 ### 9.7 Dialog chrome
 
-- The Restyle dialog window border carries a thin gold double-rule (outer + inner separated by 2 px).
-- Header has the Cinzel title centered with a tiny ornate corner flourish on each side.
-- Subtle background texture — a very faint diagonal repeating pattern (1% opacity) suggesting hammered metal. Optional; ship if low effort.
+Revised per design critique — hammered-metal background texture dropped (was already marked "optional, ship if low effort"; the dialog has enough character without it).
 
-### 9.8 Restraint
+- The Restyle dialog window border carries a thin gold double-rule (outer + inner separated by 2 px). This is the dialog edge, not interior decoration — it earns its keep by demarcating the dialog from whatever's behind it on the canvas.
+- Header has the Cinzel title centered with a tiny ornate corner flourish on each side (e.g., a 14 px SVG curl in `--luxsum-accent` at each end of the title row). Subtle.
+- **No background texture** on the dialog interior. Solid `--luxsum-bg` (deep wine).
+- **Template-themed title accent** (per design-critique mitigation of the hextech-disconnect concern): the dialog title's text color samples the template's `hueColor` rather than a fixed gold. So editing Simulacrum, the title reads in icy blue against the wine chrome; editing a Find Familiar owl, the title is warm amber. Single CSS variable (`--luxsum-title-accent`) set inline per-render. The corner flourishes stay gold (chrome consistency); only the title text shifts.
 
-The look is **Belle Époque parlor, not industrial workshop.** No exposed gears or visible pipework. Brass accents on otherwise clean surfaces. The ornate elements (corner flourishes, fleur-de-lis dividers) are subtle — they should reward attention, not demand it.
+### 9.8 Whitespace targets
+
+Per the design critique, whitespace is load-bearing — the difference between "Belle Époque parlor" (spacious, breathable) and "cluttered antique shop" (cramped, overwhelming) is mostly padding.
+
+| Where | Value | Rationale |
+|---|---|---|
+| Dialog interior padding | 20 px sides, 16 px top + bottom | Generous breathing room from the gold-rule edge. |
+| Between control groups | 20 px (10 px space + 12 px divider + reset, including the fleur-de-lis) | Visible separation; the divider sits in the middle of the gap. |
+| Within a group: title to first control | 8 px | Tight enough that the title clearly belongs to the controls below. |
+| Within a group: between controls (e.g., color + strength) | 12 px | Each control is visually distinct without forcing eye-jumps. |
+| Label to control (horizontal layouts) | 12 px gap | Comfortable reading distance. |
+| Between footer and content | 16 px space + 1 px gold rule | Footer is visually distinct as an action zone. |
+| Footer button gaps | 8 px between Cancel and Save; 16 px between Reset and (Cancel + Save) cluster | "Reset" sits apart from the commit cluster. |
+
+**Vertical rhythm:** all whitespace values are multiples of 4 px. Helps visual coherence and aligns with most icon grids.
+
+**Dialog total height:** the panel is height-auto. With 8 groups and the whitespace above, expect ~720–780 px total at standard zoom. That fits a 1080p viewport with room. For shorter viewports (laptop screens at 768p), the dialog scrolls — Foundry's `.window-content` handles this natively.
+
+### 9.9 Restraint
+
+The look is **Belle Époque parlor, not industrial workshop.** No exposed gears or visible pipework. Brass accents on otherwise clean surfaces. After the design critique cuts, the ornate elements that remain — corner flourishes, fleur-de-lis dividers, the gold double-rule frame — each have to *earn* their place by demarcating structure, not just decorating. If an ornament could be removed without losing legibility or hierarchy, remove it.
 
 ---
 
@@ -488,6 +546,12 @@ The look is **Belle Époque parlor, not industrial workshop.** No exposed gears 
 10. **Q:** Are the two aesthetic families enough, or do we need a third (e.g., infernal-red for warlock pact creatures)?
     **Decided:** Two for Plan 2. Pact of the Chain familiars (imp, quasit) are warm-toned enough to live in Belle Époque with a red-orange palette per-template (`hueColor: "#7a1c1c"`-style). Plan 5 polish can introduce a third family if a clear visual gap emerges from real use. YAGNI applies — don't pre-build categories without templates to fill them.
 
+11. **Q:** How to mitigate the hextech-disconnect (warm wine-and-gold dialog editing a cold cyan-and-silver token)?
+    **Decided:** Plan 2 ships the template-themed title accent (§9.7) — the dialog title text samples the template's `hueColor`, so the title visually identifies the template's flavor without rebuilding the dialog chrome. Single CSS variable, zero new tokens. Full per-family chrome variation (different palette, different ornaments) remains deferred to Plan 5 polish.
+
+12. **Q:** Circular vs. hexagonal slider thumbs?
+    **Decided in principle, refined in preview:** the HTML preview phase tests both. Hexagonal reads as "brass rivet" / "screw head" and reinforces the mechanical-luxury feel for essentially zero CSS cost (`clip-path: polygon(...)`). Circular is the safe default. Pick after seeing both side-by-side in `previews/restyle.html`.
+
 ---
 
 ## 13. Deliverable ordering (Plan 2 tasks at a high level)
@@ -498,22 +562,23 @@ The writing-plans skill will break these down into bite-sized tasks. Listed here
 2. New tests: `tests/lux-motion-profiles.test.js`.
 3. New file: `scripts/restyle-app.js` (skeleton — ApplicationV2 + HandlebarsApplicationMixin per CLAUDE.md gotchas, single-root `templates/restyle.hbs`).
 4. New file: `templates/restyle.hbs` + 4 control partials.
-5. New file: `styles/restyle.css` (steampunk-luxury control styling).
-6. **HTML preview:** `previews/restyle.html` + `previews/restyle-preview.js`.
-7. **STOP for user visual review.** Iterate aesthetic + interaction polish until approved.
-8. Extend `scripts/visual-filters.js`: implement shimmer, motion application, escape-hatch short-circuit.
-9. New tests: `tests/lux-restyle-draft.test.js`.
-10. Wire `manager-app.js` Restyle button → opens `RestyleApp`.
-11. Wire `spawn-app.js` "Customize visuals" expander — same control template, CSS-filter thumbnail preview.
-12. Wire `spawn-flow.js` + `spawn-engine.js` to plumb per-spawn overrides into the spawn payload.
-13. Update `templates-builtin.js` Simulacrum with `aestheticFamily: "hextech"` + `defaults.motionOverrides: { profile: "flame-flicker", intensity: 0.6 }`.
-14. Update `styles/luxurious.css` with the hextech CSS color tokens (passive — not consumed by Plan 2 CSS, but available for Plan 3 template authors).
-15. Update `data-model.js` validators (recognize `motionOverrides`, accept the two `aestheticFamily` values on template registration).
-16. Update `lang/en.json` with all new labels + tooltips.
-17. Update ZIP build exclusion to include `previews/`.
-18. Bump version to 0.2.0 (minor version — feature work, not a bug-fix patch).
-19. Update CLAUDE.md status table.
-20. Build + ship ZIP, tag `luxurious-summons-v0.2.0`.
+5. New file: `styles/restyle.css` (steampunk-luxury control styling, post-design-critique revisions baked in — flat brass thumbs, no ON/OFF engraved text, custom-overlaid color swatches, no group-title underlines, no background texture).
+6. New asset: `assets/ui/fleur-de-lis.svg` (12×12 viewBox, single-path, gold-filled).
+7. **HTML preview:** `previews/restyle.html` + `previews/restyle-preview.js`. Iterate hexagonal-vs-circular thumb decision (§12 Q12) and validate whitespace targets (§9.8) visually.
+8. **STOP for user visual review.** Iterate aesthetic + interaction polish until approved.
+9. Extend `scripts/visual-filters.js`: implement shimmer, motion application, escape-hatch short-circuit.
+10. New tests: `tests/lux-restyle-draft.test.js`.
+11. Wire `manager-app.js` Restyle button → opens `RestyleApp`.
+12. Wire `spawn-app.js` "Customize visuals" expander — same control template, CSS-filter thumbnail preview.
+13. Wire `spawn-flow.js` + `spawn-engine.js` to plumb per-spawn overrides into the spawn payload.
+14. Update `templates-builtin.js` Simulacrum with `aestheticFamily: "hextech"` + `defaults.motionOverrides: { profile: "flame-flicker", intensity: 0.6 }`.
+15. Update `styles/luxurious.css` with the hextech CSS color tokens (passive — not consumed by Plan 2 CSS, but available for Plan 3 template authors).
+16. Update `data-model.js` validators (recognize `motionOverrides`, accept the two `aestheticFamily` values on template registration).
+17. Update `lang/en.json` with all new labels + tooltips.
+18. Update ZIP build exclusion to include `previews/`.
+19. Bump version to 0.2.0 (minor version — feature work, not a bug-fix patch).
+20. Update CLAUDE.md status table.
+21. Build + ship ZIP, tag `luxurious-summons-v0.2.0`.
 
 Plan 1 v0.1.5 verification is a soft prerequisite for tasks 8–18 (the live-Foundry side). Tasks 1–7 are zero-coupling and can ship preview-first.
 
@@ -523,11 +588,25 @@ Plan 1 v0.1.5 verification is a soft prerequisite for tasks 8–18 (the live-Fou
 
 **Placeholder scan:** No TBD / TODO / FIXME present in the doc as of commit time. All decisions in §12 marked **Decided:**.
 
-**Internal consistency check:** Caught one contradiction — §3.3's motion-profile catalog assigned `flame-flicker` to Simulacrum, while §3.2 and §13 originally said `mirror-wobble`. Resolved to `flame-flicker` consistently: it matches Simulacrum's "icy crackle" flavor (subtle alpha/brightness shimmer reads as ice catching the light) while preserving `mirror-wobble` as Mirror Image's signature high-frequency-jitter look — visual differentiation between two illusion-family templates.
+**Internal consistency check:** Caught one contradiction during the initial self-review pass — §3.3's motion-profile catalog assigned `flame-flicker` to Simulacrum, while §3.2 and §13 originally said `mirror-wobble`. Resolved to `flame-flicker` consistently: it matches Simulacrum's "icy crackle" flavor (subtle alpha/brightness shimmer reads as ice catching the light) while preserving `mirror-wobble` as Mirror Image's signature high-frequency-jitter look — visual differentiation between two illusion-family templates.
 
 **Scope check:** Doc covers Plan 2 only. Plans 3, 4, 5 referenced as out-of-scope or future polish at appropriate places. Tight.
 
 **Ambiguity check:** §3.3 motion `t` defined as "seconds since `performance.now()` baseline at sprite spawn" — explicit. §4.4 distinguishes `input` vs `change` events for sliders + color pickers + text inputs — explicit. §4.6 "X = Cancel" is opinionated and called out. §2.4 makes clear `aestheticFamily` is *declarative metadata only* and does not drive Plan 2 runtime CSS variable swapping — clear separation between Plan 2 (data-only family) and Plan 5 (chrome-variation polish).
+
+**Design-critique pass (post-Gemini-as-graphic-designer review):**
+
+Five revisions accepted from the design critique, one mitigation added that the critique didn't propose:
+
+1. **Slider thumb** — dropped the radial brass gradient at 22 px (it reads as muddy skeuomorphism). Now flat brass + 1 px inset highlight + crisp drop shadow + hover-driven glow halo as the tactile cue. Hexagonal-vs-circular thumb shape evaluated in preview phase (§9.2, §12 Q12).
+2. **Toggle ON/OFF engraved text** — dropped. At 44 × 22 px it would read as compression artifacts. Lever position + well-glow state shift + external `<label>` carries the meaning (§9.3).
+3. **Color picker chrome** — switched from "wrap native input in gilded frame" to "hide native input, overlay our own styled swatch." Standard pattern that avoids browser-specific native chrome leaking through (§9.4).
+4. **Group-title underlines** — dropped. With fleur-de-lis dividers between groups, double-marking hierarchy adds visual noise. Typography carries the title weight (§9.6).
+5. **Hammered-metal background texture** — dropped. Was already marked "optional, ship if low effort" in the original; the dialog has enough character without it (§9.7).
+
+**Critique-not-accepted (with rationale):** the Hextech disconnect was raised as a Plan 5 concern. The critique proposed accepting the dissonance until Plan 5 introduces full per-family chrome variation. Counter-mitigation in Plan 2: the dialog title text color samples the template's `hueColor` (§9.7, §12 Q11). A single inline CSS variable change — cognitively cues "you're editing this template" while keeping the chrome wine-and-gold for consistency. Plan 5 still owns the full chrome variation; Plan 2 just acknowledges the template's flavor.
+
+**Whitespace targets** added as §9.8 — the critique's most load-bearing point. Belle Époque parlors have *air*; without explicit padding/gap targets, the preview risks drifting toward "cluttered antique shop." All values are multiples of 4 px for vertical rhythm.
 
 **Open design risks worth flagging but not resolving here:**
 
