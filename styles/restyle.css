@@ -1,0 +1,912 @@
+/* styles/restyle.css — Restyle dialog + Spawn-expander control styling.
+   Belle Époque parlor + subtle steampunk: brass and gold on wine, ornamentation through
+   restraint. Read alongside design spec §9 (whitespace, slider thumbs, toggle, color picker,
+   dividers) — every block in this file maps to a numbered subsection there.
+
+   This stylesheet does NOT depend on `manager.css`. It does depend on `luxurious.css` for
+   the base palette (--luxsum-bg, --luxsum-accent, etc.) and is loaded after it. */
+
+/* ── §9.1: extended palette tokens ───────────────────────────────────── */
+
+.luxsum.luxsum-restyle {
+  /* Brass family — for slider thumbs, toggle levers, ornament fills. */
+  --luxsum-brass-light: #d4af37;
+  --luxsum-brass:       #b8860b;
+  --luxsum-brass-dark:  #6b4f0e;
+
+  /* Track / inset wells for sliders and toggles. Slightly darker than --luxsum-bg so the
+     control reads as recessed into the dialog. */
+  --luxsum-track:       #1a0a16;
+
+  /* Focus / hover glow — warm gold, 35 % alpha so it blooms without dominating. */
+  --luxsum-glow:        rgba(240, 201, 122, 0.35);
+
+  /* Template-themed title accent — set inline per-render in the future Restyle JS.
+     Defaults to the gold accent when nothing else is provided. */
+  --luxsum-title-accent: var(--luxsum-accent-hi);
+}
+
+/* ── §9.7: dialog frame + chrome ─────────────────────────────────────── */
+
+.window-app.luxsum-restyle {
+  width: 360px;
+  background: var(--luxsum-bg);
+  /* Double-rule gold border: outer thin gold, inner thinner gold, 2 px gap of bg between. */
+  border: 1px solid var(--luxsum-accent);
+  box-shadow:
+    inset 0 0 0 2px var(--luxsum-bg),
+    inset 0 0 0 3px var(--luxsum-accent),
+    0 8px 32px rgba(0, 0, 0, 0.55);
+  border-radius: 2px;
+  color: var(--luxsum-text);
+  font-family: var(--font-primary, sans-serif);
+}
+
+.luxsum-restyle .window-header {
+  position: relative;
+  background: linear-gradient(180deg, var(--luxsum-bg-elev) 0%, var(--luxsum-bg) 100%);
+  border-bottom: 1px solid var(--luxsum-accent);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+/* Tiny corner flourishes flanking the title. They stay gold regardless of the template-themed
+   title accent — chrome consistency. */
+.luxsum-restyle .window-header::before,
+.luxsum-restyle .window-header::after {
+  content: "";
+  flex: 0 0 14px;
+  height: 14px;
+  background-color: var(--luxsum-accent);
+  /* Decorative curl shape via clip-path. Subtle when small. */
+  clip-path: polygon(0% 50%, 30% 30%, 60% 50%, 30% 70%);
+  opacity: 0.7;
+}
+
+.luxsum-restyle .window-title {
+  font-family: "Cinzel", "Cormorant Garamond", serif;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.8px;
+  color: var(--luxsum-title-accent);
+  margin: 0;
+  text-align: center;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+  flex: 0 1 auto;
+}
+
+.luxsum-restyle .window-content {
+  /* §9.8 whitespace: dialog interior padding */
+  padding: 16px 20px;
+  background: var(--luxsum-bg);
+  /* If the dialog needs to scroll on short viewports, the scrollbar is themed. */
+  overflow-y: auto;
+}
+
+/* ── §9.8: dialog body layout — vertical rhythm in 4 px multiples ─────── */
+
+.luxsum-restyle-body {
+  display: flex;
+  flex-direction: column;
+  /* No row-gap here — each .luxsum-restyle-group provides its own bottom margin
+     containing the divider. */
+}
+
+/* ── §9.6: group + divider styling ───────────────────────────────────── */
+
+.luxsum-restyle-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;            /* §9.8: title to first control */
+  /* Bottom spacing of group + the divider it owns below itself (except the last). */
+  padding-bottom: 20px;
+  position: relative;
+}
+
+.luxsum-restyle-group:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--luxsum-accent) 20%,
+    var(--luxsum-accent) 80%,
+    transparent 100%
+  );
+}
+
+/* Fleur-de-lis ornament centered on the divider rule. */
+.luxsum-restyle-group:not(:last-child) > .luxsum-fleur {
+  position: absolute;
+  bottom: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 14px;
+  color: var(--luxsum-accent);
+  background: var(--luxsum-bg);     /* mask out the divider line behind it */
+  padding: 0 4px;
+  z-index: 1;
+}
+
+.luxsum-fleur svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+}
+
+.luxsum-restyle-group-title {
+  font-family: "Cinzel", "Cormorant Garamond", serif;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: var(--luxsum-accent);
+  margin: 0;
+  /* No underline, per design-critique revision (§9.6). */
+}
+
+/* ── §9.2: slider track + thumb ──────────────────────────────────────── */
+
+.luxsum-restyle-row {
+  display: grid;
+  grid-template-columns: 90px 1fr 36px;
+  align-items: center;
+  gap: 12px;            /* §9.8: label / control / value horizontal rhythm */
+}
+
+.luxsum-restyle-row-label {
+  font-size: 12px;
+  color: var(--luxsum-text-mute);
+  font-weight: 400;
+  letter-spacing: 0.2px;
+}
+
+.luxsum-restyle-row-value {
+  font-size: 11px;
+  color: var(--luxsum-text-mute);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.3px;
+}
+
+/* The range input itself. We zero out the appearance and rebuild via pseudo-elements. */
+.luxsum-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 22px;          /* matches thumb height for vertical hit area */
+  background: transparent;
+  cursor: pointer;
+  /* Remove the dotted focus outline; we replace it with a glow ring on the thumb. */
+  outline: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Track (Chrome / Edge / Safari). 8 px tall, engraved well. */
+.luxsum-slider::-webkit-slider-runnable-track {
+  height: 8px;
+  background: var(--luxsum-track);
+  border-radius: 4px;
+  border: 1px solid var(--luxsum-brass-dark);
+  box-shadow:
+    inset 0 1px 0 rgba(0, 0, 0, 0.6),                 /* shadow inside top */
+    inset 0 -1px 0 rgba(212, 175, 55, 0.15);          /* faint highlight inside bottom */
+}
+
+/* Track (Firefox). */
+.luxsum-slider::-moz-range-track {
+  height: 8px;
+  background: var(--luxsum-track);
+  border-radius: 4px;
+  border: 1px solid var(--luxsum-brass-dark);
+  box-shadow:
+    inset 0 1px 0 rgba(0, 0, 0, 0.6),
+    inset 0 -1px 0 rgba(212, 175, 55, 0.15);
+}
+
+/* Thumb (Chrome / Edge / Safari). Flat brass, top inset highlight, drop shadow. */
+.luxsum-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  margin-top: -8px;        /* center on 8 px track: (22-8)/2 = 7 above + 1 border */
+  background: var(--luxsum-brass);
+  border: 1px solid var(--luxsum-brass-light);
+  border-radius: 50%;
+  box-shadow:
+    inset 0 1px 0 var(--luxsum-brass-light),          /* top inner highlight */
+    inset 0 -1px 0 rgba(0, 0, 0, 0.35),               /* bottom inner shadow */
+    0 1px 2px rgba(0, 0, 0, 0.45);                    /* crisp outer drop shadow */
+  cursor: pointer;
+  transition:
+    transform 120ms ease-out,
+    box-shadow 120ms ease-out,
+    background-color 120ms ease-out;
+}
+
+/* Thumb (Firefox). */
+.luxsum-slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  background: var(--luxsum-brass);
+  border: 1px solid var(--luxsum-brass-light);
+  border-radius: 50%;
+  box-shadow:
+    inset 0 1px 0 var(--luxsum-brass-light),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.35),
+    0 1px 2px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  transition:
+    transform 120ms ease-out,
+    box-shadow 120ms ease-out,
+    background-color 120ms ease-out;
+}
+
+/* Hover — thumb gains a gold glow halo and grows slightly. */
+.luxsum-slider:hover::-webkit-slider-thumb {
+  transform: scale(1.06);
+  box-shadow:
+    inset 0 1px 0 var(--luxsum-brass-light),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.35),
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 0 0 4px var(--luxsum-glow);
+}
+.luxsum-slider:hover::-moz-range-thumb {
+  transform: scale(1.06);
+  box-shadow:
+    inset 0 1px 0 var(--luxsum-brass-light),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.35),
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 0 0 4px var(--luxsum-glow);
+}
+
+/* Active (dragging) — thumb compresses slightly and the inner highlight brightens. */
+.luxsum-slider:active::-webkit-slider-thumb,
+.luxsum-slider:focus:active::-webkit-slider-thumb {
+  transform: scale(0.96);
+  background: var(--luxsum-brass-light);
+  box-shadow:
+    inset 0 1px 0 var(--luxsum-accent-hi),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.5),
+    0 0 0 4px var(--luxsum-glow);
+}
+.luxsum-slider:active::-moz-range-thumb,
+.luxsum-slider:focus:active::-moz-range-thumb {
+  transform: scale(0.96);
+  background: var(--luxsum-brass-light);
+  box-shadow:
+    inset 0 1px 0 var(--luxsum-accent-hi),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.5),
+    0 0 0 4px var(--luxsum-glow);
+}
+
+/* Focus (keyboard) — tighter gold ring. */
+.luxsum-slider:focus-visible::-webkit-slider-thumb {
+  box-shadow:
+    inset 0 1px 0 var(--luxsum-brass-light),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.35),
+    0 0 0 2px var(--luxsum-accent-hi);
+}
+.luxsum-slider:focus-visible::-moz-range-thumb {
+  box-shadow:
+    inset 0 1px 0 var(--luxsum-brass-light),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.35),
+    0 0 0 2px var(--luxsum-accent-hi);
+}
+
+/* Hexagonal-thumb experiment (toggled via .luxsum-restyle.thumbs-hex class on the dialog
+   root). Evaluated visually in the preview to decide whether to ship it. Per §12 Q12. */
+.luxsum-restyle.thumbs-hex .luxsum-slider::-webkit-slider-thumb {
+  border-radius: 4px;
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+}
+.luxsum-restyle.thumbs-hex .luxsum-slider::-moz-range-thumb {
+  border-radius: 4px;
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+}
+
+/* ── §9.3: toggle switch ─────────────────────────────────────────────── */
+
+.luxsum-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.luxsum-toggle-input {
+  /* Visually hidden, keyboard-accessible. */
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.luxsum-toggle-track {
+  position: relative;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 22px;
+  background: var(--luxsum-track);
+  border: 1px solid var(--luxsum-brass-dark);
+  border-radius: 11px;
+  box-shadow:
+    inset 0 1px 0 rgba(0, 0, 0, 0.6),
+    inset 0 -1px 0 rgba(212, 175, 55, 0.1);
+  transition:
+    background 200ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 200ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.luxsum-toggle-lever {
+  position: absolute;
+  left: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  background: var(--luxsum-brass);
+  border: 1px solid var(--luxsum-brass-light);
+  border-radius: 50%;
+  box-shadow:
+    inset 0 1px 0 var(--luxsum-brass-light),
+    0 1px 2px rgba(0, 0, 0, 0.5);
+  transition: left 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* On state: warmer well, lever slides right. */
+.luxsum-toggle-input:checked ~ .luxsum-toggle-track {
+  background: linear-gradient(90deg, var(--luxsum-brass-dark) 0%, var(--luxsum-brass) 100%);
+  border-color: var(--luxsum-accent);
+  box-shadow:
+    inset 0 1px 0 rgba(0, 0, 0, 0.3),
+    0 0 0 1px var(--luxsum-glow);
+}
+.luxsum-toggle-input:checked ~ .luxsum-toggle-track .luxsum-toggle-lever {
+  left: calc(100% - 18px);
+}
+
+/* Focus ring for keyboard users. */
+.luxsum-toggle-input:focus-visible ~ .luxsum-toggle-track {
+  box-shadow:
+    inset 0 1px 0 rgba(0, 0, 0, 0.6),
+    0 0 0 2px var(--luxsum-accent-hi);
+}
+
+.luxsum-toggle-label {
+  font-size: 13px;
+  color: var(--luxsum-text);
+  font-weight: 400;
+}
+
+/* ── §9.4: color picker (hidden native + custom swatch overlay) ──────── */
+
+.luxsum-color-picker {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.luxsum-color-swatch {
+  width: 100%;
+  height: 100%;
+  border: 2px solid var(--luxsum-accent);
+  box-shadow:
+    inset 0 0 0 1px var(--luxsum-bg),
+    inset 0 1px 1px rgba(0, 0, 0, 0.5),
+    0 1px 2px rgba(0, 0, 0, 0.45);
+  border-radius: 3px;
+  background-color: var(--swatch-color, var(--luxsum-accent));
+  transition:
+    border-color 150ms ease-out,
+    transform 150ms ease-out,
+    box-shadow 150ms ease-out;
+}
+
+.luxsum-color-picker:hover .luxsum-color-swatch {
+  border-color: var(--luxsum-accent-hi);
+  transform: scale(1.04);
+  box-shadow:
+    inset 0 0 0 1px var(--luxsum-bg),
+    inset 0 1px 1px rgba(0, 0, 0, 0.4),
+    0 1px 3px rgba(0, 0, 0, 0.5),
+    0 0 0 3px var(--luxsum-glow);
+}
+
+.luxsum-color-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  border: 0;
+  padding: 0;
+  background: none;
+}
+
+.luxsum-color-input:focus-visible ~ .luxsum-color-swatch {
+  border-color: var(--luxsum-accent-hi);
+  box-shadow:
+    inset 0 0 0 1px var(--luxsum-bg),
+    0 0 0 2px var(--luxsum-accent-hi);
+}
+
+/* ── Motion preset radio (4 pill segments) ───────────────────────────── */
+
+.luxsum-motion-presets {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  padding: 2px;
+  background: var(--luxsum-track);
+  border: 1px solid var(--luxsum-brass-dark);
+  border-radius: 3px;
+  box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.5);
+}
+
+.luxsum-motion-presets input[type="radio"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+.luxsum-motion-preset-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 2px;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  color: var(--luxsum-text-mute);
+  background: transparent;
+  border-radius: 2px;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background 150ms ease-out,
+    color 150ms ease-out;
+  font-family: "Cinzel", "Cormorant Garamond", serif;
+  font-weight: 500;
+}
+
+.luxsum-motion-preset-label:hover {
+  color: var(--luxsum-accent-hi);
+}
+
+.luxsum-motion-presets input[type="radio"]:checked + .luxsum-motion-preset-label {
+  background: linear-gradient(180deg, var(--luxsum-brass) 0%, var(--luxsum-brass-dark) 100%);
+  color: var(--luxsum-text);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
+  box-shadow:
+    inset 0 1px 0 var(--luxsum-brass-light),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.4);
+}
+
+.luxsum-motion-presets input[type="radio"]:focus-visible + .luxsum-motion-preset-label {
+  outline: 2px solid var(--luxsum-accent-hi);
+  outline-offset: 1px;
+}
+
+/* ── Advanced disclosure (motion profile + per-axis) ─────────────────── */
+
+.luxsum-restyle-advanced {
+  margin-top: 8px;
+}
+
+.luxsum-restyle-advanced summary {
+  font-size: 12px;
+  color: var(--luxsum-text-mute);
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 0;
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 150ms ease-out;
+}
+
+.luxsum-restyle-advanced summary::-webkit-details-marker {
+  display: none;
+}
+
+.luxsum-restyle-advanced summary::before {
+  content: "▸";
+  font-size: 10px;
+  color: var(--luxsum-accent);
+  transition: transform 150ms ease-out;
+  display: inline-block;
+}
+
+.luxsum-restyle-advanced[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.luxsum-restyle-advanced summary:hover {
+  color: var(--luxsum-accent-hi);
+}
+
+.luxsum-restyle-advanced-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-left: 2px solid var(--luxsum-brass-dark);
+  border-radius: 2px;
+}
+
+/* ── Text inputs (naming prefix / suffix) ────────────────────────────── */
+
+.luxsum-restyle-input {
+  width: 100%;
+  background: var(--luxsum-track);
+  color: var(--luxsum-text);
+  border: 1px solid var(--luxsum-brass-dark);
+  border-radius: 2px;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-family: inherit;
+  box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.5);
+  transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
+}
+
+.luxsum-restyle-input:hover {
+  border-color: var(--luxsum-brass);
+}
+
+.luxsum-restyle-input:focus,
+.luxsum-restyle-input:focus-visible {
+  outline: none;
+  border-color: var(--luxsum-accent-hi);
+  box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.5), 0 0 0 2px var(--luxsum-glow);
+}
+
+/* Select element (profile picker in Advanced motion) — minimally styled. */
+.luxsum-restyle-select {
+  width: 100%;
+  background: var(--luxsum-track);
+  color: var(--luxsum-text);
+  border: 1px solid var(--luxsum-brass-dark);
+  border-radius: 2px;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-family: inherit;
+}
+
+.luxsum-restyle-select:focus {
+  outline: none;
+  border-color: var(--luxsum-accent-hi);
+  box-shadow: 0 0 0 2px var(--luxsum-glow);
+}
+
+/* ── Footer (buttons) ────────────────────────────────────────────────── */
+
+.luxsum-restyle-footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 20px 14px;
+  border-top: 1px solid var(--luxsum-accent);
+  background: linear-gradient(180deg, var(--luxsum-bg) 0%, var(--luxsum-bg-elev) 100%);
+}
+
+.luxsum-restyle-reset {
+  flex: 1 1 auto;
+  font-size: 11px;
+  color: var(--luxsum-text-mute);
+  background: transparent;
+  border: none;
+  padding: 4px 0;
+  cursor: pointer;
+  text-decoration: underline dotted var(--luxsum-text-mute);
+  text-underline-offset: 3px;
+  transition: color 150ms ease-out;
+  font-family: inherit;
+}
+
+.luxsum-restyle-reset:hover {
+  color: var(--luxsum-accent-hi);
+  text-decoration-color: var(--luxsum-accent-hi);
+}
+
+.luxsum-restyle-actions {
+  display: flex;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.luxsum-restyle-btn {
+  font-family: "Cinzel", "Cormorant Garamond", serif;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.8px;
+  padding: 7px 16px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition:
+    background 150ms ease-out,
+    color 150ms ease-out,
+    box-shadow 150ms ease-out,
+    transform 100ms ease-out;
+  user-select: none;
+}
+
+.luxsum-restyle-btn-cancel {
+  background: transparent;
+  color: var(--luxsum-text-mute);
+  border: 1px solid var(--luxsum-brass-dark);
+}
+
+.luxsum-restyle-btn-cancel:hover {
+  color: var(--luxsum-accent-hi);
+  border-color: var(--luxsum-accent);
+}
+
+.luxsum-restyle-btn-save {
+  background: linear-gradient(180deg, var(--luxsum-brass) 0%, var(--luxsum-brass-dark) 100%);
+  color: var(--luxsum-text);
+  border: 1px solid var(--luxsum-brass-light);
+  box-shadow:
+    inset 0 1px 0 var(--luxsum-brass-light),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.4),
+    0 1px 2px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
+}
+
+.luxsum-restyle-btn-save:hover {
+  background: linear-gradient(180deg, var(--luxsum-brass-light) 0%, var(--luxsum-brass) 100%);
+  box-shadow:
+    inset 0 1px 0 var(--luxsum-accent-hi),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.4),
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 0 0 3px var(--luxsum-glow);
+}
+
+.luxsum-restyle-btn-save:active {
+  transform: translateY(1px);
+}
+
+.luxsum-restyle-btn:focus-visible {
+  outline: 2px solid var(--luxsum-accent-hi);
+  outline-offset: 2px;
+}
+
+/* ── Close button in header (X) ──────────────────────────────────────── */
+
+.luxsum-restyle .window-header .header-button.close,
+.luxsum-restyle .header-button.close {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: var(--luxsum-text-mute);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 2px;
+  transition: color 150ms ease-out, background 150ms ease-out;
+}
+
+.luxsum-restyle .header-button.close:hover {
+  color: var(--luxsum-accent-hi);
+  background: rgba(212, 175, 55, 0.08);
+}
+
+/* ── Live preview area on the canvas (for the HTML preview only) ─────── */
+
+/* In the standalone HTML preview, we render a mock token next to the dialog so the user
+   can see the controls update something. In real Foundry, the canvas IS the preview and
+   this area doesn't exist. */
+.luxsum-preview-stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 320px;
+  height: 320px;
+  background:
+    radial-gradient(circle at center, var(--luxsum-bg-elev) 0%, var(--luxsum-bg) 100%),
+    repeating-linear-gradient(
+      45deg,
+      transparent 0,
+      transparent 19px,
+      rgba(212, 175, 55, 0.04) 19px,
+      rgba(212, 175, 55, 0.04) 20px
+    );
+  border: 1px solid var(--luxsum-accent);
+  border-radius: 2px;
+  box-shadow:
+    inset 0 0 0 2px var(--luxsum-bg),
+    inset 0 0 0 3px var(--luxsum-accent),
+    0 8px 32px rgba(0, 0, 0, 0.55);
+}
+
+.luxsum-preview-token {
+  width: 192px;
+  height: 192px;
+  border-radius: 50%;
+  background-color: var(--swatch-color, #888);   /* default — overridden inline */
+  background-size: cover;
+  background-position: center;
+  transform-origin: center;
+  /* Filter pipeline matches the spec: brightness · saturation · hue-rotate · opacity · drop-shadow.
+     CSS variables set by preview JS. */
+  filter:
+    brightness(var(--filter-brightness, 1))
+    saturate(var(--filter-saturate, 1))
+    hue-rotate(var(--filter-hue, 0deg))
+    opacity(var(--filter-alpha, 1))
+    drop-shadow(0 0 var(--filter-outline-thickness, 0px) var(--filter-outline-color, transparent));
+  transition: filter 100ms linear;
+  /* Motion-profile keyframe animation (set via class on this element). */
+  animation-duration: var(--motion-duration, 4s);
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+
+/* CSS-keyframe approximations of the motion profiles for the preview.
+   These are intentionally rougher than the JS profile output — they exist to give the user
+   a visual hint of "what does Subtle / Default / Lively feel like" while iterating sliders.
+   The real PIXI motion ticker is exact; this is the preview's cheap approximation. */
+
+@keyframes luxsum-motion-floating-hand {
+  0%   { transform: translate(0, calc(-4px * var(--motion-intensity, 1))) rotate(calc(-2deg * var(--motion-intensity, 1))) scale(calc(1 + 0.02 * var(--motion-intensity, 1))); }
+  100% { transform: translate(0, calc(4px * var(--motion-intensity, 1)))  rotate(calc(2deg * var(--motion-intensity, 1)))  scale(calc(1 - 0.02 * var(--motion-intensity, 1))); }
+}
+@keyframes luxsum-motion-ethereal-drift {
+  0%   { transform: translate(calc(-3px * var(--motion-intensity, 1)), 0); opacity: calc(0.92 + 0 * var(--motion-intensity, 1)); }
+  100% { transform: translate(calc(3px * var(--motion-intensity, 1)), 0);  opacity: calc(1 - 0.08 * var(--motion-intensity, 1)); }
+}
+@keyframes luxsum-motion-mirror-wobble {
+  0%   { transform: translate(calc(-1px * var(--motion-intensity, 1)), calc(-0.8px * var(--motion-intensity, 1))); }
+  25%  { transform: translate(calc(1px * var(--motion-intensity, 1)),  calc(0.8px * var(--motion-intensity, 1))); }
+  50%  { transform: translate(calc(-1px * var(--motion-intensity, 1)), calc(0.5px * var(--motion-intensity, 1))); }
+  75%  { transform: translate(calc(0.8px * var(--motion-intensity, 1)), calc(-1px * var(--motion-intensity, 1))); }
+  100% { transform: translate(calc(-0.6px * var(--motion-intensity, 1)), calc(1px * var(--motion-intensity, 1))); }
+}
+@keyframes luxsum-motion-idle-breathing {
+  0%   { transform: scale(calc(1 - 0.03 * var(--motion-intensity, 1))); }
+  100% { transform: scale(calc(1 + 0.03 * var(--motion-intensity, 1))); }
+}
+@keyframes luxsum-motion-flame-flicker {
+  0%   { opacity: calc(0.93 + 0.02 * var(--motion-intensity, 1));  filter:
+    brightness(calc(0.96 + 0.02 * var(--motion-intensity, 1)))
+    saturate(var(--filter-saturate, 1))
+    hue-rotate(var(--filter-hue, 0deg))
+    opacity(var(--filter-alpha, 1))
+    drop-shadow(0 0 var(--filter-outline-thickness, 0px) var(--filter-outline-color, transparent)); }
+  50%  { opacity: 1;     filter:
+    brightness(calc(1.04 + 0.02 * var(--motion-intensity, 1)))
+    saturate(var(--filter-saturate, 1))
+    hue-rotate(var(--filter-hue, 0deg))
+    opacity(var(--filter-alpha, 1))
+    drop-shadow(0 0 var(--filter-outline-thickness, 0px) var(--filter-outline-color, transparent)); }
+  100% { opacity: calc(0.92 + 0.04 * var(--motion-intensity, 1));  filter:
+    brightness(calc(0.97 + 0.01 * var(--motion-intensity, 1)))
+    saturate(var(--filter-saturate, 1))
+    hue-rotate(var(--filter-hue, 0deg))
+    opacity(var(--filter-alpha, 1))
+    drop-shadow(0 0 var(--filter-outline-thickness, 0px) var(--filter-outline-color, transparent)); }
+}
+
+.luxsum-preview-token.motion-none            { animation-name: none; }
+.luxsum-preview-token.motion-floating-hand   { animation-name: luxsum-motion-floating-hand;  animation-duration: 2.4s; }
+.luxsum-preview-token.motion-ethereal-drift  { animation-name: luxsum-motion-ethereal-drift; animation-duration: 4s; }
+.luxsum-preview-token.motion-mirror-wobble   { animation-name: luxsum-motion-mirror-wobble;  animation-duration: 0.4s; animation-direction: normal; animation-timing-function: linear; }
+.luxsum-preview-token.motion-idle-breathing  { animation-name: luxsum-motion-idle-breathing; animation-duration: 3.6s; }
+.luxsum-preview-token.motion-flame-flicker   { animation-name: luxsum-motion-flame-flicker;  animation-duration: 1.6s; }
+
+/* The template name overlay below the token. */
+.luxsum-preview-nameplate {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: "Cinzel", serif;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  color: var(--luxsum-accent-hi);
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.7), 0 1px 0 rgba(0, 0, 0, 0.9);
+  white-space: nowrap;
+}
+
+/* Template-flavor switcher (preview only — top-left of the stage). */
+.luxsum-preview-flavor-switcher {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  gap: 4px;
+}
+
+.luxsum-preview-flavor-btn {
+  font-family: inherit;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  background: rgba(0, 0, 0, 0.5);
+  color: var(--luxsum-text-mute);
+  border: 1px solid var(--luxsum-brass-dark);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 150ms ease-out;
+}
+
+.luxsum-preview-flavor-btn.active {
+  background: var(--luxsum-brass);
+  color: var(--luxsum-text);
+  border-color: var(--luxsum-accent);
+}
+
+.luxsum-preview-flavor-btn:hover {
+  color: var(--luxsum-accent-hi);
+}
+
+/* Thumb-shape toggle (preview only — top-right). */
+.luxsum-preview-thumb-toggle {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-family: inherit;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  background: rgba(0, 0, 0, 0.5);
+  color: var(--luxsum-text-mute);
+  border: 1px solid var(--luxsum-brass-dark);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 150ms ease-out;
+}
+
+.luxsum-preview-thumb-toggle:hover {
+  color: var(--luxsum-accent-hi);
+}
+
+.luxsum-preview-thumb-toggle.hex {
+  background: var(--luxsum-brass);
+  color: var(--luxsum-text);
+  border-color: var(--luxsum-accent);
+}
+
+/* Stage layout container (preview only — places stage + dialog side by side). */
+.luxsum-preview-layout {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 32px;
+  min-height: 100vh;
+  background: #0a0410;
+}

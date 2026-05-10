@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Luxurious Summons — Restyle dialog preview</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../styles/luxurious.css">
+  <link rel="stylesheet" href="../styles/restyle.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* Preview-only chrome — page background, body reset. Most styling lives in restyle.css. */
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #050208;
+      color: #f5e9d8;
+      font-family: var(--font-primary, "Cinzel", serif);
+    }
+  </style>
+</head>
+<body>
+
+<!-- Inline SVG sprite — fleur-de-lis is used in every group divider. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="fleur-de-lis" viewBox="0 0 24 24">
+      <path d="M12 2 C 10.5 5.5 10.5 9 12 12.5 C 13.5 9 13.5 5.5 12 2 Z"/>
+      <path d="M11.5 5 C 8 6.5 4.5 9 4 12 C 5.5 13.5 9 13.5 11 12 C 11.5 9.5 11.5 7 11.5 5 Z"/>
+      <path d="M12.5 5 C 16 6.5 19.5 9 20 12 C 18.5 13.5 15 13.5 13 12 C 12.5 9.5 12.5 7 12.5 5 Z"/>
+      <path d="M3.5 12.5 L 20.5 12.5 L 20.5 14.5 L 3.5 14.5 Z"/>
+      <path d="M12 14.5 C 10.8 17 10.8 20.5 12 22 C 13.2 20.5 13.2 17 12 14.5 Z"/>
+    </symbol>
+
+    <!-- Placeholder silhouettes for the preview token. Real Foundry uses the token's actual texture. -->
+    <symbol id="silh-simulacrum" viewBox="0 0 256 256">
+      <circle cx="128" cy="92" r="42" fill="#fff" opacity="0.85"/>
+      <path d="M68 156 C 68 130 88 122 128 122 C 168 122 188 130 188 156 L 188 230 L 68 230 Z" fill="#fff" opacity="0.85"/>
+    </symbol>
+    <symbol id="silh-magehand" viewBox="0 0 256 256">
+      <path d="M 96 40 L 112 40 L 112 144 L 144 144 L 144 32 L 160 32 L 160 144 L 192 144 L 192 56 L 208 56 L 208 184 C 208 220 176 232 152 232 L 116 232 C 88 232 60 208 60 180 L 60 96 L 76 96 L 76 156 L 96 156 Z" fill="#fff" opacity="0.92"/>
+    </symbol>
+    <symbol id="silh-owl" viewBox="0 0 256 256">
+      <ellipse cx="128" cy="148" rx="80" ry="92" fill="#fff" opacity="0.88"/>
+      <circle cx="100" cy="118" r="22" fill="#1c0e1a"/>
+      <circle cx="156" cy="118" r="22" fill="#1c0e1a"/>
+      <circle cx="100" cy="118" r="9" fill="#f5e9d8"/>
+      <circle cx="156" cy="118" r="9" fill="#f5e9d8"/>
+      <path d="M 110 142 L 128 158 L 146 142 Z" fill="#c9a14b"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="luxsum-preview-layout">
+
+  <!-- ===================== LIVE PREVIEW STAGE ===================== -->
+  <section class="luxsum-preview-stage" id="stage">
+    <div class="luxsum-preview-flavor-switcher">
+      <button class="luxsum-preview-flavor-btn active" data-template="simulacrum">Simulacrum</button>
+      <button class="luxsum-preview-flavor-btn" data-template="mage-hand">Mage Hand</button>
+      <button class="luxsum-preview-flavor-btn" data-template="familiar">Familiar</button>
+    </div>
+    <button class="luxsum-preview-thumb-toggle" id="thumb-toggle">○ Round thumbs</button>
+
+    <div class="luxsum-preview-token" id="preview-token">
+      <svg id="preview-token-svg" viewBox="0 0 256 256" style="width:100%;height:100%">
+        <use href="#silh-simulacrum"/>
+      </svg>
+    </div>
+    <div class="luxsum-preview-nameplate" id="preview-nameplate">Simulacrum of Daisy</div>
+  </section>
+
+  <!-- ===================== RESTYLE DIALOG ===================== -->
+  <div class="window-app luxsum luxsum-restyle" id="restyle-dialog">
+    <header class="window-header">
+      <h4 class="window-title" id="dialog-title">Restyle: Daisy</h4>
+      <button class="header-button close" aria-label="Cancel">✕</button>
+    </header>
+
+    <section class="window-content">
+      <div class="luxsum-restyle-body">
+
+        <!-- Group 1: Color -->
+        <div class="luxsum-restyle-group">
+          <h5 class="luxsum-restyle-group-title">Color</h5>
+          <div class="luxsum-restyle-row">
+            <span class="luxsum-restyle-row-label">Tint</span>
+            <label class="luxsum-color-picker">
+              <div class="luxsum-color-swatch" id="swatch-tint" style="--swatch-color:#88ccff"></div>
+              <input type="color" class="luxsum-color-input" id="ctrl-tint-color" value="#88ccff">
+            </label>
+            <span class="luxsum-restyle-row-value"></span>
+          </div>
+          <div class="luxsum-restyle-row">
+            <span class="luxsum-restyle-row-label">Strength</span>
+            <input type="range" class="luxsum-slider" id="ctrl-tint-strength" min="0" max="100" value="18">
+            <span class="luxsum-restyle-row-value" id="val-tint-strength">18%</span>
+          </div>
+          <span class="luxsum-fleur"><svg><use href="#fleur-de-lis"/></svg></span>
+        </div>
+
+        <!-- Group 2: Tone -->
+        <div class="luxsum-restyle-group">
+          <h5 class="luxsum-restyle-group-title">Tone</h5>
+          <div class="luxsum-restyle-row">
+            <span class="luxsum-restyle-row-label">Brightness</span>
+            <input type="range" class="luxsum-slider" id="ctrl-brightness" min="0" max="200" value="105">
+            <span class="luxsum-restyle-row-value" id="val-brightness">1.05×</span>
+          </div>
+          <div class="luxsum-restyle-row">
+            <span class="luxsum-restyle-row-label">Vibrance</span>
+            <input type="range" class="luxsum-slider" id="ctrl-vibrance" min="0" max="200" value="130">
+            <span class="luxsum-restyle-row-value" id="val-vibrance">1.30×</span>
+          </div>
+          <span class="luxsum-fleur"><svg><use href="#fleur-de-lis"/></svg></span>
+        </div>
+
+        <!-- Group 3: Visibility -->
+        <div class="luxsum-restyle-group">
+          <h5 class="luxsum-restyle-group-title">Visibility</h5>
+          <div class="luxsum-restyle-row">
+            <span class="luxsum-restyle-row-label">Transparency</span>
+            <input type="range" class="luxsum-slider" id="ctrl-alpha" min="0" max="100" value="88">
+            <span class="luxsum-restyle-row-value" id="val-alpha">88%</span>
+          </div>
+          <span class="luxsum-fleur"><svg><use href="#fleur-de-lis"/></svg></span>
+        </div>
+
+        <!-- Group 4: Outline -->
+        <div class="luxsum-restyle-group">
+          <h5 class="luxsum-restyle-group-title">Outline</h5>
+          <label class="luxsum-toggle">
+            <input type="checkbox" class="luxsum-toggle-input" id="ctrl-outline-enabled" checked>
+            <span class="luxsum-toggle-track">
+              <span class="luxsum-toggle-lever"></span>
+            </span>
+            <span class="luxsum-toggle-label">Outline enabled</span>
+          </label>
+          <div class="luxsum-restyle-outline-body" id="outline-body">
+            <div class="luxsum-restyle-row">
+              <span class="luxsum-restyle-row-label">Color</span>
+              <label class="luxsum-color-picker">
+                <div class="luxsum-color-swatch" id="swatch-outline" style="--swatch-color:#aaffff"></div>
+                <input type="color" class="luxsum-color-input" id="ctrl-outline-color" value="#aaffff">
+              </label>
+              <span class="luxsum-restyle-row-value"></span>
+            </div>
+            <div class="luxsum-restyle-row">
+              <span class="luxsum-restyle-row-label">Thickness</span>
+              <input type="range" class="luxsum-slider" id="ctrl-outline-thickness" min="0" max="8" value="3" step="1">
+              <span class="luxsum-restyle-row-value" id="val-outline-thickness">3 px</span>
+            </div>
+          </div>
+          <span class="luxsum-fleur"><svg><use href="#fleur-de-lis"/></svg></span>
+        </div>
+
+        <!-- Group 5: Shimmer -->
+        <div class="luxsum-restyle-group">
+          <h5 class="luxsum-restyle-group-title">Shimmer</h5>
+          <label class="luxsum-toggle">
+            <input type="checkbox" class="luxsum-toggle-input" id="ctrl-shimmer-enabled" checked>
+            <span class="luxsum-toggle-track">
+              <span class="luxsum-toggle-lever"></span>
+            </span>
+            <span class="luxsum-toggle-label">Shimmer enabled</span>
+          </label>
+          <div class="luxsum-restyle-shimmer-body" id="shimmer-body">
+            <div class="luxsum-restyle-row">
+              <span class="luxsum-restyle-row-label">Strength</span>
+              <input type="range" class="luxsum-slider" id="ctrl-shimmer-strength" min="0" max="100" value="35">
+              <span class="luxsum-restyle-row-value" id="val-shimmer-strength">35%</span>
+            </div>
+          </div>
+          <span class="luxsum-fleur"><svg><use href="#fleur-de-lis"/></svg></span>
+        </div>
+
+        <!-- Group 6: Motion -->
+        <div class="luxsum-restyle-group">
+          <h5 class="luxsum-restyle-group-title">Motion</h5>
+          <div class="luxsum-motion-presets" role="radiogroup" aria-label="Motion preset">
+            <input type="radio" name="motion-preset" id="motion-off"     value="off">
+            <label for="motion-off"     class="luxsum-motion-preset-label">Off</label>
+
+            <input type="radio" name="motion-preset" id="motion-subtle"  value="subtle">
+            <label for="motion-subtle"  class="luxsum-motion-preset-label">Subtle</label>
+
+            <input type="radio" name="motion-preset" id="motion-default" value="default" checked>
+            <label for="motion-default" class="luxsum-motion-preset-label">Default</label>
+
+            <input type="radio" name="motion-preset" id="motion-lively"  value="lively">
+            <label for="motion-lively"  class="luxsum-motion-preset-label">Lively</label>
+          </div>
+
+          <details class="luxsum-restyle-advanced">
+            <summary>Advanced</summary>
+            <div class="luxsum-restyle-advanced-body">
+              <div class="luxsum-restyle-row">
+                <span class="luxsum-restyle-row-label">Profile</span>
+                <select id="ctrl-motion-profile" class="luxsum-restyle-select" style="grid-column: 2 / span 2;">
+                  <option value="none">None</option>
+                  <option value="floating-hand">Floating hand</option>
+                  <option value="ethereal-drift">Ethereal drift</option>
+                  <option value="mirror-wobble">Mirror wobble</option>
+                  <option value="idle-breathing">Idle breathing</option>
+                  <option value="flame-flicker" selected>Flame flicker</option>
+                </select>
+              </div>
+              <div class="luxsum-restyle-row">
+                <span class="luxsum-restyle-row-label">Float</span>
+                <input type="range" class="luxsum-slider" id="ctrl-motion-float" min="0" max="100" value="0">
+                <span class="luxsum-restyle-row-value" id="val-motion-float">0%</span>
+              </div>
+              <div class="luxsum-restyle-row">
+                <span class="luxsum-restyle-row-label">Sway</span>
+                <input type="range" class="luxsum-slider" id="ctrl-motion-sway" min="0" max="100" value="0">
+                <span class="luxsum-restyle-row-value" id="val-motion-sway">0%</span>
+              </div>
+              <div class="luxsum-restyle-row">
+                <span class="luxsum-restyle-row-label">Pulse</span>
+                <input type="range" class="luxsum-slider" id="ctrl-motion-pulse" min="0" max="100" value="0">
+                <span class="luxsum-restyle-row-value" id="val-motion-pulse">0%</span>
+              </div>
+            </div>
+          </details>
+          <span class="luxsum-fleur"><svg><use href="#fleur-de-lis"/></svg></span>
+        </div>
+
+        <!-- Group 7: Naming -->
+        <div class="luxsum-restyle-group">
+          <h5 class="luxsum-restyle-group-title">Naming</h5>
+          <div class="luxsum-restyle-row" style="grid-template-columns: 90px 1fr;">
+            <span class="luxsum-restyle-row-label">Prefix</span>
+            <input type="text" class="luxsum-restyle-input" id="ctrl-name-prefix" value="Simulacrum of " placeholder="optional">
+          </div>
+          <div class="luxsum-restyle-row" style="grid-template-columns: 90px 1fr;">
+            <span class="luxsum-restyle-row-label">Suffix</span>
+            <input type="text" class="luxsum-restyle-input" id="ctrl-name-suffix" value="" placeholder="optional">
+          </div>
+          <span class="luxsum-fleur"><svg><use href="#fleur-de-lis"/></svg></span>
+        </div>
+
+        <!-- Group 8: Card -->
+        <div class="luxsum-restyle-group">
+          <h5 class="luxsum-restyle-group-title">Card</h5>
+          <div class="luxsum-restyle-row">
+            <span class="luxsum-restyle-row-label">Border</span>
+            <label class="luxsum-color-picker">
+              <div class="luxsum-color-swatch" id="swatch-card" style="--swatch-color:#88ccff"></div>
+              <input type="color" class="luxsum-color-input" id="ctrl-card-border" value="#88ccff">
+            </label>
+            <span class="luxsum-restyle-row-value"></span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <footer class="luxsum-restyle-footer">
+      <button class="luxsum-restyle-reset" id="btn-reset">Reset to template defaults</button>
+      <div class="luxsum-restyle-actions">
+        <button class="luxsum-restyle-btn luxsum-restyle-btn-cancel" id="btn-cancel">Cancel</button>
+        <button class="luxsum-restyle-btn luxsum-restyle-btn-save"   id="btn-save">Save</button>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<script src="restyle-preview.js"></script>
+</body>
+</html>
