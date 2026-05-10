@@ -46,7 +46,12 @@ Hooks.on("updateActor", (actor, changes) => {
 });
 
 Hooks.on("getSceneControlButtons", (controls) => {
-  const buttonConfig = {
+  // V14 scene controls require a hierarchical structure: each top-level
+  // control must have a `tools` collection. The launcher button itself goes
+  // INSIDE tools as a tool with `button: true`. Without that nesting,
+  // Foundry's #prepareControls does Object.entries(undefined) on the missing
+  // tools field and crashes the canvas + cascades into NotesLayer.
+  const tool = {
     name: MODULE_ID,
     title: "LUXSUM.SceneControl.Title",
     icon: "fa-solid fa-ghost",
@@ -55,9 +60,18 @@ Hooks.on("getSceneControlButtons", (controls) => {
     onClick: () => openManager(),
     onChange: () => openManager()       // V13 vs V14 differ in which fires
   };
+  const control = {
+    name: MODULE_ID,
+    title: "LUXSUM.SceneControl.Title",
+    icon: "fa-solid fa-ghost",
+    visible: true,
+    activeTool: MODULE_ID,
+    tools: { [MODULE_ID]: tool }        // V14: dict
+  };
   if (Array.isArray(controls)) {
-    controls.push(buttonConfig);                        // V13
+    control.tools = [tool];             // V13: array
+    controls.push(control);
   } else {
-    controls[MODULE_ID] = buttonConfig;                 // V14
+    controls[MODULE_ID] = control;
   }
 });
