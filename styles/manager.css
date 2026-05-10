@@ -1,9 +1,16 @@
 /* styles/manager.css — Companion Manager + Spawn dialog layout */
 
+.luxsum-manager-body {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
 .luxsum-tab-body {
   padding: 16px;
   overflow-y: auto;
-  height: calc(100% - 50px);
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .luxsum-companion-grid,

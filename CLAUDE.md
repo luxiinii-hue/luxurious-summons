@@ -14,7 +14,7 @@ When invoked with this dir as cwd, **the parent `Laps/CLAUDE.md` does NOT auto-l
 
 ## Status (as of 2026-05-10)
 
-**Plan 1 (Foundation + Simulacrum vertical slice) is functionally complete through v0.1.4.** Awaiting friend's live-Foundry verification.
+**Plan 1 (Foundation + Simulacrum vertical slice) is functionally complete through v0.1.5.** Awaiting friend's live-Foundry verification.
 
 | Version | What landed |
 |---|---|
@@ -23,6 +23,7 @@ When invoked with this dir as cwd, **the parent `Laps/CLAUDE.md` does NOT auto-l
 | 0.1.2 | Fix scene-control crash — V14 needs `tools` collection on every control |
 | 0.1.3 | Fix manager not opening — V14 ApplicationV2 needs `HandlebarsApplicationMixin` |
 | 0.1.4 | Cast Simulacrum spell auto-opens Spawn dialog (dnd5e.useItem hook + triggerSpell field) |
+| 0.1.5 | Fix manager not rendering — V14 PARTS require single root element. Wrap manager.hbs + spawn.hbs in single root div; switch manager body to flex layout (drops fragile `calc(100% - 50px)`) |
 
 **33 unit tests passing.** Distribution ZIPs in `../../dist/luxurious-summons-X.Y.Z.zip`.
 
@@ -84,6 +85,7 @@ The parent `Laps` workspace (one dir up: `../`) holds adjacent context that this
   const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
   export class MyApp extends HandlebarsApplicationMixin(ApplicationV2) { ... }
   ```
+- **Each PART template must render exactly ONE root HTML element** — paid for in v0.1.5. V14's `_parsePartHTML` throws `Template part "X" must render a single HTML element` if the template has multiple top-level siblings (e.g., `<nav>` + `<section>`), leading whitespace before the root, or a conditional that produces 0 / 2 roots. Fixes: wrap the whole template in one root `<div>`, OR split into multiple PARTS in `static PARTS = { tabs, body }` (the V14-canonical pattern when sections are conceptually independent and want selective re-render via `this.render({ parts: ["body"] })`). For a single visually-unified dialog, the wrapper div is right-sized.
 - **No nested `<form>` elements.** When `tag: "form"` is on the application, the template parts must be `<div>`s. A nested `<form>` corrupts Foundry's submit handling and visibly breaks the page layout after submit.
 - **Static private methods in `static DEFAULT_OPTIONS` work** — V8 installs methods before field initializers per ES2022 spec. Use `this.#methodName`.
 - **Lifecycle cleanup hook is `_onClose(options)`** — not `_close`. Call `super._onClose?.(options)`.
