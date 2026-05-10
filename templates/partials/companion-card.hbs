@@ -1,1 +1,16 @@
-<div class="luxsum-card">{{name}}</div>
+<div class="luxsum-card" data-actor-id="{{actorId}}" style="border-color: {{borderColor}}">
+  <div class="luxsum-card-thumbs">
+    <img class="luxsum-card-token" src="{{tokenImg}}" alt="{{name}}">
+    {{#if templateThumb}}<img class="luxsum-card-template" src="{{templateThumb}}" alt="{{templateName}}">{{/if}}
+  </div>
+  <h3 class="luxsum-card-name">{{name}}</h3>
+  <div class="luxsum-card-meta">HP {{hpValue}} / {{hpMax}}{{#if sceneName}} • Scene: {{sceneName}}{{/if}}</div>
+  <div class="luxsum-card-actions">
+    <span role="button" tabindex="0" data-action="dismiss" data-actor-id="{{actorId}}">{{localize "LUXSUM.Companion.Dismiss"}}</span>
+    {{#each extraActions}}
+      <span role="button" tabindex="0" data-action="extra" data-handler="{{handler}}" data-actor-id="{{../actorId}}">
+        <i class="{{icon}}"></i> {{label}}
+      </span>
+    {{/each}}
+  </div>
+</div>

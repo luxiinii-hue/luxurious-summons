@@ -1,1 +1,7 @@
-<div class="luxsum-template-card" data-template-id="{{id}}">{{name}}</div>
+<div class="luxsum-template-card" data-template-id="{{id}}">
+  <img class="luxsum-template-thumb" src="{{thumbnail}}" alt="{{name}}">
+  <h3 class="luxsum-template-name">{{name}}</h3>
+  <p class="luxsum-template-desc">{{description}}</p>
+  <div class="luxsum-template-meta">Active: {{activeCount}} / {{maxActive}}</div>
+  {{#if requiresApproval}}<div class="luxsum-template-warn">⚠ GM approval required</div>{{/if}}
+</div>

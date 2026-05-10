@@ -7,6 +7,7 @@ import { installSpawnBrokerHandler } from "./spawn-engine.js";
 import { applyFiltersToToken } from "./visual-filters.js";
 import { installLifecycleHooks, installDeleteHandling } from "./lifecycle.js";
 import { installDnd5eHooks } from "./dnd5e-mods.js";
+import "./handlers/simulacrum.js";   // self-registers Repair via registerHandler
 
 const MODULE_ID = "luxurious-summons";
 
