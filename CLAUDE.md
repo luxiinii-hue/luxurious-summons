@@ -4,7 +4,19 @@
 
 ## What this module is
 
-A Foundry VTT V14 module for D&D 5e companion-management. Players spawn and control "summon"-style companions (Simulacrum first; Mirror Image, Find Familiar, Echo Knight Echo, Beast Companion, Animate Dead, Mage Hand, Unseen Servant, etc. coming in Plan 3). Visual customization via PIXI filters + procedural motion. Per-template fancy death animations. Click-to-place placement overlay with occupancy detection. Per-master folder organization in the actor sidebar.
+A Foundry VTT module for D&D 5e companion-management, targeting Foundry V13 minimum / V14 verified. Players spawn and control "summon"-style companions (Simulacrum first; Mirror Image, Find Familiar, Echo Knight Echo, Beast Companion, Animate Dead, Mage Hand, Unseen Servant, etc. coming in Plan 3). Visual customization via PIXI filters + procedural motion. Per-template fancy death animations. Click-to-place placement overlay with occupancy detection. Per-master folder organization in the actor sidebar.
+
+## Foundry environment (where the friend tests)
+
+The friend who runs the live-Foundry verification hosts **Foundry V13 build 351** with **dnd5e v3.x**. V14 is the *verified target* per the manifest (`"minimum": "13", "verified": "14"`) but is NOT yet what the friend is running — they're holding on V13 because some of their other modules aren't yet V14-compatible.
+
+This is important when reading the "gotchas" section below: every issue listed there has been paid for on V13 (that's where the friend hit it), but the wording sometimes says "V14" because the parent-workspace CLAUDE.md framed them as V14 issues. **In practice, both V13 and V14 enforce the same `ApplicationV2` strictness** — single-root PARTS, `HandlebarsApplicationMixin` requirement, `loadTemplates()` pre-registration of partials, scene-control `tools` collection. The "V14" framing is the *documentation origin*, not the *failure surface*. The failure surface is V13 build 351 today.
+
+Implications:
+- All our V14-namespaced API access has V13 fallback (`foundry.applications?.handlebars?.loadTemplates ?? globalThis.loadTemplates`, `PIXI.filters?.OutlineFilter ?? PIXI.OutlineFilter`, etc.) — verified by code audit during the v0.1.6 fix session. Don't break the fallback chain when adding new code.
+- `ChatMessage.create({ style: 0 })` works on V13 — V13 ignores the unknown `style` field and defaults `type` to 0 (OTHER), which is the intended visual treatment. No `type: 0` fallback is needed.
+- The `renderChatMessage` (V13) → `renderChatMessageHTML` (V14) hook rename is the one place we register both for cross-version compat; matters when Plan 4's D-mode approval cards land.
+- dnd5e v3 returns Document instances from compendium indexes, v4 returns `_id` strings. Use `fromUuid("Compendium.dnd5e.monsters.Actor.<id>")` for compendium lookup — works on both, survives v4 compendium re-indexing. Plan 2's variant schema bakes this in (`variants[].compendiumEntry` is a UUID string).
 
 ## Repo arrangement
 
@@ -69,8 +81,8 @@ Captured during the user-feedback brainstorming and plan-mode planning session. 
 - **Quality over speed.** Verify outputs before claiming done. For UI work, build a standalone HTML preview using the actual CSS and iterate visually before porting changes back, when the user can't easily test in live Foundry. The user explicitly said: "please work slowly and check your work to make it work well and look great."
 - **Be genuinely critical.** Push back, don't glaze. Suggest better approaches. Go back and forth on design decisions rather than accepting the first one.
 - **Trust the user with the final call.** When asked "you decide," make the call decisively and proceed — don't bounce decisions back as questions when the user has explicitly delegated. Use the brainstorming skill as a structured-thinking framework but don't kick decisions back to the user after they've delegated.
-- **Verify in live Foundry.** Self-host or live-Foundry verification is on the user's friend (he hosts). Build verbose `[luxurious-summons]` `console.log` instrumentation into dialog-open / hook / socket / broker paths so the user can paste a clear log trail when something fails.
-- **System target:** D&D 5e (dnd5e v3+). Module logs warning + disables spawn on other systems.
+- **Verify in live Foundry.** Self-host or live-Foundry verification is on the user's friend (he hosts **Foundry V13 build 351 + dnd5e v3.x**). Build verbose `[luxurious-summons]` `console.log` instrumentation into dialog-open / hook / socket / broker paths so the user can paste a clear log trail when something fails. Note that the friend is intentionally on V13 (some of their other modules aren't V14-ready), so even though our manifest says `"verified": "14"`, V13 build 351 is the actual production runtime today.
+- **System target:** D&D 5e (dnd5e v3+; v3.x is the friend's current version, v4.x is the V14 upgrade path). Module logs warning + disables spawn on other systems.
 
 ## Module conventions
 
@@ -116,7 +128,9 @@ The parent `Laps` workspace (one dir up: `../`) holds adjacent context that this
 
 **Rule of thumb:** if asking yourself "is this part of luxurious-summons or the parent workspace?", check the path. Anything inside this repo's working tree is luxurious-summons; anything reachable via `../..` belongs to the parent workspace and is a context resource, not implementation territory.
 
-## Foundry V14 gotchas (paid for in bugs)
+## Foundry V13/V14 gotchas (paid for in bugs)
+
+The friend hits these on V13 build 351. The "V14" wording in individual bullets reflects where the gotcha was first documented (parent CLAUDE.md, before we knew the friend's actual build); both versions enforce the same constraints.
 
 ### ApplicationV2 / dialogs
 
@@ -201,10 +215,11 @@ The parent `Laps` workspace (one dir up: `../`) holds adjacent context that this
 - `scope: "client"` settings live in each user's localStorage — the GM CANNOT read them. If you need per-user state visible to the GM, use `user.flags["<module-id>"].field` instead.
 - `registerMenu`'s `restricted: true` is UI-only. Real gating comes from `scope: "world"`.
 
-### dnd5e compendium lookup (V13 vs V14)
+### dnd5e compendium lookup (V13 dnd5e v3 vs V14 dnd5e v4)
 
-- dnd5e v3 (V13) returned Document instances from compendium indexes; v4 (V14) returns `_id` strings.
-- Prefer **UUID-based lookup** via `fromUuid("Compendium.dnd5e.monsters.Actor.<id>")` — works on both versions and survives compendium re-indexing.
+- The friend's V13 build 351 ships with **dnd5e v3.x**. Future V14 upgrade will be paired with dnd5e v4.
+- dnd5e v3 returned Document instances from compendium indexes; v4 returns `_id` strings. Code that handles one and not the other breaks across the upgrade.
+- Prefer **UUID-based lookup** via `fromUuid("Compendium.dnd5e.monsters.Actor.<id>")` — works on both versions and survives v4's compendium re-indexing.
 - This is why the Plan 2 variant schema uses `compendiumEntry: <uuid-string>`, not a name lookup.
 
 ### Promise idempotence
