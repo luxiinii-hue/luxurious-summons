@@ -206,6 +206,15 @@ export function openManager() {
   _managerInstance.render({ force: true });
 }
 
+/**
+ * Get the currently-open Manager instance if it's rendered, else null.
+ * Used by spawn-flow to minimize the manager during placement so it doesn't
+ * occlude the canvas. Returns null if the manager isn't open.
+ */
+export function getActiveManager() {
+  return _managerInstance?.rendered ? _managerInstance : null;
+}
+
 // Re-render the manager when our user-flag activeCompanions changes
 // (signaled by broker confirm running refreshUserIndexes on the GM client)
 Hooks.on("updateUser", (user, changes) => {

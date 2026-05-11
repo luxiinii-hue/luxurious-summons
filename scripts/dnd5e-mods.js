@@ -44,45 +44,55 @@ export async function applyDnd5eMods(companion, master, template) {
 }
 
 /**
- * Wire the two dnd5e-specific hooks:
- *   - preUpdateActor: block HP increases on companions flagged blockNaturalRecovery
+ * Wire the dnd5e-specific hooks:
+ *   - preUpdateActor (HP): block HP increases on companions flagged blockNaturalRecovery
  *     (unless the update carries an `${MODULE_ID}.allowedHeal` option, set by Repair)
- *   - dnd5e.restCompleted: revert spell-slot recharge for companions flagged snapshotSpells
+ *   - preUpdateActor (spell slots): block any spell-slot-value increases on companions
+ *     flagged snapshotSpells. Mirror of the HP-block pattern. Replaces the old
+ *     restCompleted-revert approach which only fired on rest and let other slot-recovery
+ *     paths (potions, custom features) silently restore slots.
  */
 export function installDnd5eHooks() {
   Hooks.on("preUpdateActor", (actor, changes, options, _userId) => {
     if (!isCompanion(actor)) return;
     const flag = getCompanionFlag(actor);
-    if (!flag?.blockNaturalRecovery) return;
+    if (!flag) return;
 
-    const newHp = changes?.system?.attributes?.hp?.value;
-    if (newHp === undefined) return;
-    const currentHp = actor.system.attributes.hp.value;
-    const isIncrease = newHp > currentHp;
-    if (!isIncrease) return;     // damage / no-op: allowed
-
-    if (options?.[`${MODULE_ID}.allowedHeal`] === true) return;     // sanctioned
-
-    delete changes.system.attributes.hp.value;
-    ui.notifications?.info(`[${MODULE_ID}] ${actor.name} cannot regain HP through normal means. Use the Repair action.`);
-    console.log(`[${MODULE_ID}] blocked natural HP recovery on companion ${actor.id}`);
-  });
-
-  Hooks.on("dnd5e.restCompleted", async (actor, _result) => {
-    if (!isCompanion(actor)) return;
-    const flag = getCompanionFlag(actor);
-    if (!flag?.snapshotSpells) return;
-
-    const snapshot = flag?.spellSlotsSnapshot;
-    if (!snapshot) {
-      console.warn(`[${MODULE_ID}] snapshotSpells set but no spellSlotsSnapshot on ${actor.id}; can't restore`);
-      return;
+    // ── HP block ───
+    if (flag.blockNaturalRecovery) {
+      const newHp = changes?.system?.attributes?.hp?.value;
+      if (newHp !== undefined) {
+        const currentHp = actor.system.attributes.hp.value;
+        const isIncrease = newHp > currentHp;
+        if (isIncrease && options?.[`${MODULE_ID}.allowedHeal`] !== true) {
+          delete changes.system.attributes.hp.value;
+          ui.notifications?.info(`[${MODULE_ID}] ${actor.name} cannot regain HP through normal means. Use the Repair action.`);
+          console.log(`[${MODULE_ID}] blocked natural HP recovery on companion ${actor.id}`);
+        }
+      }
     }
-    const updates = {};
-    for (const [key, value] of Object.entries(snapshot)) {
-      updates[`system.spells.${key}.value`] = value;
+
+    // ── Spell slot block ───
+    if (flag.snapshotSpells) {
+      const spellChanges = changes?.system?.spells;
+      if (spellChanges) {
+        const blocked = [];
+        for (const [key, slotChange] of Object.entries(spellChanges)) {
+          const newValue = slotChange?.value;
+          if (newValue === undefined) continue;
+          const currentValue = actor.system.spells?.[key]?.value ?? 0;
+          if (newValue > currentValue) {
+            delete spellChanges[key].value;
+            // Clean up the now-empty per-slot change object so dnd5e doesn't churn on it.
+            if (Object.keys(spellChanges[key]).length === 0) delete spellChanges[key];
+            blocked.push(`${key} (${currentValue} → ${newValue})`);
+          }
+        }
+        if (blocked.length > 0) {
+          if (Object.keys(spellChanges).length === 0) delete changes.system.spells;
+          console.log(`[${MODULE_ID}] blocked spell-slot recharge on ${actor.id}: ${blocked.join(", ")}`);
+        }
+      }
     }
-    await actor.update(updates);
-    console.log(`[${MODULE_ID}] reverted spell-slot recharge on ${actor.id} after rest`);
   });
 }

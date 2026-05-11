@@ -4,20 +4,31 @@ import { registerHandler } from "./index.js";
 const MODULE_ID = "luxurious-summons";
 
 /**
- * Spawn-time hook: snapshot the master's current spell-slot values so the
- * lifecycle hook (dnd5e.restCompleted) can restore them after the companion
- * rests. Called from spawn-engine.js performSpawn after applyDnd5eMods.
+ * Spawn-time hook: reset the cloned companion's spell slots to FULL.
+ *
+ * The clone inherits the master's current spell-slot expenditure state, but RAW
+ * Simulacrum is a snapshot of the master at peak power — full slots regardless
+ * of how many the caster has used. After this reset, the `snapshotSpells` flag
+ * (set by applyDnd5eMods) tells preUpdateActor in dnd5e-mods.js to block any
+ * future slot-value increases, which is how we enforce RAW "Simulacrum doesn't
+ * recover hit points or spell slots through any means."
+ *
+ * Called from spawn-engine.js performSpawn after applyDnd5eMods.
  */
-export async function onAfterSpawn(companion, master) {
-  const snapshot = {};
-  const spells = master.system?.spells ?? {};
+export async function onAfterSpawn(companion, _master) {
+  const updates = {};
+  const spells = companion.system?.spells ?? {};
   for (const [key, val] of Object.entries(spells)) {
-    if (val && typeof val.value === "number" && typeof val.max === "number") {
-      snapshot[key] = val.value;     // freeze the current usable count
+    if (val && typeof val.max === "number" && typeof val.value === "number" && val.value < val.max) {
+      updates[`system.spells.${key}.value`] = val.max;
     }
   }
-  await companion.update({ [`flags.${MODULE_ID}.spellSlotsSnapshot`]: snapshot });
-  console.log(`[${MODULE_ID}] simulacrum spell-slot snapshot saved for ${companion.id}: ${Object.keys(snapshot).length} slot keys`);
+  if (Object.keys(updates).length > 0) {
+    await companion.update(updates);
+    console.log(`[${MODULE_ID}] reset ${Object.keys(updates).length} spell slot(s) to max on ${companion.id} (Simulacrum starts at peak power)`);
+  } else {
+    console.log(`[${MODULE_ID}] no spell slots needed reset on ${companion.id} (already at max or no spell list)`);
+  }
 }
 
 /**

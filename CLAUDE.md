@@ -8,7 +8,7 @@ A Foundry VTT module for D&D 5e companion-management, targeting Foundry V13 mini
 
 ## Foundry environment (where the friend tests)
 
-The friend who runs the live-Foundry verification hosts **Foundry V13 build 351** with **dnd5e v3.x**. V14 is the *verified target* per the manifest (`"minimum": "13", "verified": "14"`) but is NOT yet what the friend is running — they're holding on V13 because some of their other modules aren't yet V14-compatible.
+The friend who runs the live-Foundry verification hosts **Foundry V13 build 351** with **dnd5e v5.2.1**. V14 is the *verified target* per the manifest (`"minimum": "13", "verified": "14"`) but is NOT yet what the friend is running — they're holding on V13 because some of their other modules aren't yet V14-compatible.
 
 This is important when reading the "gotchas" section below: every issue listed there has been paid for on V13 (that's where the friend hit it), but the wording sometimes says "V14" because the parent-workspace CLAUDE.md framed them as V14 issues. **In practice, both V13 and V14 enforce the same `ApplicationV2` strictness** — single-root PARTS, `HandlebarsApplicationMixin` requirement, `loadTemplates()` pre-registration of partials, scene-control `tools` collection. The "V14" framing is the *documentation origin*, not the *failure surface*. The failure surface is V13 build 351 today.
 
@@ -16,7 +16,13 @@ Implications:
 - All our V14-namespaced API access has V13 fallback (`foundry.applications?.handlebars?.loadTemplates ?? globalThis.loadTemplates`, `PIXI.filters?.OutlineFilter ?? PIXI.OutlineFilter`, etc.) — verified by code audit during the v0.1.6 fix session. Don't break the fallback chain when adding new code.
 - `ChatMessage.create({ style: 0 })` works on V13 — V13 ignores the unknown `style` field and defaults `type` to 0 (OTHER), which is the intended visual treatment. No `type: 0` fallback is needed.
 - The `renderChatMessage` (V13) → `renderChatMessageHTML` (V14) hook rename is the one place we register both for cross-version compat; matters when Plan 4's D-mode approval cards land.
-- dnd5e v3 returns Document instances from compendium indexes, v4 returns `_id` strings. Use `fromUuid("Compendium.dnd5e.monsters.Actor.<id>")` for compendium lookup — works on both, survives v4 compendium re-indexing. Plan 2's variant schema bakes this in (`variants[].compendiumEntry` is a UUID string).
+- dnd5e v3 returns Document instances from compendium indexes, v4+ returns `_id` strings. Use `fromUuid("Compendium.dnd5e.monsters.Actor.<id>")` for compendium lookup — works on all versions, survives v4's compendium re-indexing. Plan 2's variant schema bakes this in (`variants[].compendiumEntry` is a UUID string).
+- **dnd5e spell-cast hook evolution** (verified via context7 against the official dnd5e wiki + paid for in v0.1.7):
+  - **v3:** `dnd5e.useItem(item, config, options)` — legacy, no longer fires in v4+.
+  - **v4:** `dnd5e.useActivity(activity, usage, config)` — refactor introduced the Activity system.
+  - **v4 / v5 canonical:** `dnd5e.postUseActivity(activity, usageConfig, results)` — fires after the activity is activated. `activity.item` is the spell/item Document.
+  - Register all three for defensive cross-version compat, then dedupe via a `WeakSet(item)` guard so a single use doesn't fire multiple times if a build emits more than one hook. See `scripts/spell-trigger.js`.
+  - For pre-cast intercept / cancellation: `dnd5e.preUseActivity` (return `false` to cancel).
 
 ## Repo arrangement
 
@@ -26,9 +32,9 @@ When invoked with this dir as cwd, **the parent `Laps/CLAUDE.md` does NOT auto-l
 
 ## Status (as of 2026-05-10)
 
-**Plan 1 (Foundation + Simulacrum vertical slice) is functionally complete through v0.1.6.** Awaiting friend's live-Foundry verification of the partial-registration fix.
+**Plan 1 (Foundation + Simulacrum vertical slice) is functionally complete through v0.1.7.** v0.1.6 was confirmed working by the friend (manager opens, tab switching works, Simulacrum spawns via the manager). v0.1.7 fixes three follow-up bugs from that test session: Simulacrum spawning with spent rather than full spell slots, the dnd5e.postUseActivity hook missing (so casting the Simulacrum spell didn't auto-open the spawn dialog on dnd5e 5.2.1), and the manager dialog occluding the canvas during placement.
 
-**Plan 2 (visual customization UI + motion system) is in preview-iteration phase.** Design doc finalized, HTML preview built and design-critique-revised, awaiting friend's v0.1.6 verification before any spec amendments commit or Foundry-coupled code lands. The preview is at `previews/restyle.html` — open in any modern browser, no server needed.
+**Plan 2 (visual customization UI + motion system) is in preview-iteration phase.** Design doc finalized, HTML preview built and design-critique-revised. v0.1.7 stabilized Plan 1 enough that Plan 2 implementation can now kick off — batched spec amendment on parent `main` is the next step, then Foundry-coupled integration of the Restyle dialog. The HTML preview is at `previews/restyle.html` — open in any modern browser, no server needed.
 
 | Version | What landed |
 |---|---|
@@ -39,6 +45,7 @@ When invoked with this dir as cwd, **the parent `Laps/CLAUDE.md` does NOT auto-l
 | 0.1.4 | Cast Simulacrum spell auto-opens Spawn dialog (dnd5e.useItem hook + triggerSpell field) |
 | 0.1.5 | Fix manager not rendering — V14 PARTS require single root element. Wrap manager.hbs + spawn.hbs in single root div; switch manager body to flex layout (drops fragile `calc(100% - 50px)`) |
 | 0.1.6 | Fix manager tab-switch crash — V14 requires Handlebars partials to be pre-registered via `loadTemplates()` before `{{> "modules/..."}}` references resolve. Initial open worked because user's My Companions tab was empty (else-branch never tried the partial); clicking Spawn New triggered the lookup and threw. |
+| 0.1.7 | Three bug fixes: (1) Simulacrum now spawns with full spell slots — `onAfterSpawn` resets clone's `system.spells.<key>.value` to `.max`; recovery still blocked via extended preUpdateActor mirroring the HP-block pattern. (2) `dnd5e.postUseActivity` hook registered for v5 alongside legacy v3/v4 hooks — Simulacrum spell-cast → auto-spawn now wires correctly on dnd5e 5.2.1. WeakSet guard prevents duplicate spawn-dialog opens if multiple hooks fire. (3) Manager dialog minimizes during placement so it doesn't occlude the canvas. |
 | **0.2.0** (pending) | Plan 2 visual customization UI + motion system + shimmer filter — ships once preview is approved, design doc amended, and live-Foundry integration completes |
 
 **42 unit tests passing.** Distribution ZIPs in `../../dist/luxurious-summons-X.Y.Z.zip`.
@@ -81,7 +88,7 @@ Captured during the user-feedback brainstorming and plan-mode planning session. 
 - **Quality over speed.** Verify outputs before claiming done. For UI work, build a standalone HTML preview using the actual CSS and iterate visually before porting changes back, when the user can't easily test in live Foundry. The user explicitly said: "please work slowly and check your work to make it work well and look great."
 - **Be genuinely critical.** Push back, don't glaze. Suggest better approaches. Go back and forth on design decisions rather than accepting the first one.
 - **Trust the user with the final call.** When asked "you decide," make the call decisively and proceed — don't bounce decisions back as questions when the user has explicitly delegated. Use the brainstorming skill as a structured-thinking framework but don't kick decisions back to the user after they've delegated.
-- **Verify in live Foundry.** Self-host or live-Foundry verification is on the user's friend (he hosts **Foundry V13 build 351 + dnd5e v3.x**). Build verbose `[luxurious-summons]` `console.log` instrumentation into dialog-open / hook / socket / broker paths so the user can paste a clear log trail when something fails. Note that the friend is intentionally on V13 (some of their other modules aren't V14-ready), so even though our manifest says `"verified": "14"`, V13 build 351 is the actual production runtime today.
+- **Verify in live Foundry.** Self-host or live-Foundry verification is on the user's friend (he hosts **Foundry V13 build 351 + dnd5e v5.2.1**). Build verbose `[luxurious-summons]` `console.log` instrumentation into dialog-open / hook / socket / broker paths so the user can paste a clear log trail when something fails. Note that the friend is intentionally on V13 (some of their other modules aren't V14-ready), so even though our manifest says `"verified": "14"`, V13 build 351 is the actual production runtime today.
 - **System target:** D&D 5e (dnd5e v3+; v3.x is the friend's current version, v4.x is the V14 upgrade path). Module logs warning + disables spawn on other systems.
 
 ## Module conventions
@@ -217,7 +224,7 @@ The friend hits these on V13 build 351. The "V14" wording in individual bullets 
 
 ### dnd5e compendium lookup (V13 dnd5e v3 vs V14 dnd5e v4)
 
-- The friend's V13 build 351 ships with **dnd5e v3.x**. Future V14 upgrade will be paired with dnd5e v4.
+- The friend's V13 build 351 ships with **dnd5e v5.2.1**. Future V14 upgrade will be paired with dnd5e v4.
 - dnd5e v3 returned Document instances from compendium indexes; v4 returns `_id` strings. Code that handles one and not the other breaks across the upgrade.
 - Prefer **UUID-based lookup** via `fromUuid("Compendium.dnd5e.monsters.Actor.<id>")` — works on both versions and survives v4's compendium re-indexing.
 - This is why the Plan 2 variant schema uses `compendiumEntry: <uuid-string>`, not a name lookup.

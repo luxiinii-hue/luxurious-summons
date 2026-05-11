@@ -12,6 +12,7 @@ import { openSpawnDialog } from "./spawn-app.js";
 import { activatePlacement } from "./placement-overlay.js";
 import { postBrokerRequest } from "./chat-broker.js";
 import { checkRestrictions } from "./spawn-engine.js";
+import { getActiveManager } from "./manager-app.js";
 import { s } from "./settings.js";
 
 const MODULE_ID = "luxurious-summons";
@@ -37,14 +38,31 @@ export function runSpawnFlow(template, defaultSourceActorId = null) {
         return;
       }
 
-      // Click-to-place overlay
-      const placements = await activatePlacement({
-        tokenWidth: canvas.grid.size,
-        tokenHeight: canvas.grid.size,
-        thumbnailSrc: tpl.thumbnail,
-        count: tpl.maxActive,
-        label: game.i18n.format("LUXSUM.Spawn.PlacementLabel", { templateName: tpl.name })
-      });
+      // The Manager (if open) sits over the canvas at 720 px wide and occludes the
+      // placement preview. Minimize it for the duration of the placement step and
+      // restore in finally so we always recover — even if placement throws.
+      const manager = getActiveManager();
+      if (manager) {
+        await manager.minimize();
+        console.log(`[${MODULE_ID}] minimized manager during placement`);
+      }
+
+      let placements;
+      try {
+        // Click-to-place overlay
+        placements = await activatePlacement({
+          tokenWidth: canvas.grid.size,
+          tokenHeight: canvas.grid.size,
+          thumbnailSrc: tpl.thumbnail,
+          count: tpl.maxActive,
+          label: game.i18n.format("LUXSUM.Spawn.PlacementLabel", { templateName: tpl.name })
+        });
+      } finally {
+        if (manager) {
+          await manager.maximize();
+          console.log(`[${MODULE_ID}] maximized manager after placement`);
+        }
+      }
       if (placements.length === 0) return;     // user cancelled (ESC)
 
       // Hand off to the primary GM client via chat-broker

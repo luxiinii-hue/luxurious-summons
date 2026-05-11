@@ -2,7 +2,7 @@
   "id": "luxurious-summons",
   "title": "Luxurious Summons",
   "description": "Polished companion-management for Foundry VTT D&D 5e — Simulacrum, Find Familiar, Echo Knight Echo, Beast Companion, Animate Dead, Mage Hand, Unseen Servant and more, with deep visual customization and per-template fancy death animations.",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "compatibility": { "minimum": "13", "verified": "14" },
   "esmodules": ["scripts/main.js"],
   "styles": ["styles/luxurious.css", "styles/manager.css"],
