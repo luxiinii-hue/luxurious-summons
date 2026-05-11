@@ -98,6 +98,7 @@ Captured during the user-feedback brainstorming and plan-mode planning session. 
 - **Companion record state** on `actor.flags["luxurious-summons"]` (canonical); `user.flags["luxurious-summons"].activeCompanions` is a fast index regenerated from authoritative state on world init.
 - **Chat-broker pattern** (chat messages with module flags) for player↔GM coordination — never `game.socket.emit` (drops messages silently in V14 with no error trace).
 - **HTML preview workflow** (Plan 2+): standalone HTML at `previews/<dialog>.html` using actual module CSS. Loads in any modern browser from `file://` — no module imports, no server, no Foundry. Mock data inline in the preview JS. Iterate aesthetic + interaction before porting to Handlebars + ApplicationV2.
+- **Cross-file dialog instance access**: export a `getActiveX()` getter from the app file (returns the instance if `.rendered`, else null). Don't import the singleton variable directly — getter centralizes the rendered-check and avoids stale references. Pattern: `manager-app.js getActiveManager()` consumed by `spawn-flow.js` for the minimize-during-placement flow. Same pattern applies to `restyle-app.js` once it ships.
 - **Distribution ZIP** via PowerShell. Exclude dev infrastructure (`.git/`, `.claude/`, `.gitignore`, `node_modules/`, `tests/`, `package.json`, `package-lock.json`, `CLAUDE.md`, `docs/`, `previews/`):
   ```powershell
   $src = "<repo>\modules\luxurious-summons"
@@ -205,6 +206,7 @@ The friend hits these on V13 build 351. The "V14" wording in individual bullets 
 - Texture loader: prefer `foundry.canvas.loadTexture`, fall back to global `loadTexture` for V13.
 - `canvas.interface` is the right layer for "above tokens, world-space" overlays.
 - Cleanup: `ticker.remove(tick); parent.removeChild(sprite); sprite.destroy({ children: true, texture: false })`. Pass `texture: false` so Foundry's loadTexture cache stays valid.
+- **Per-frame motion via PIXI ticker** (Plan 2 paid for in v0.2.0): snapshot the token's base transform on register, apply `profile(t, intensity)` delta per-frame, **skip while `token._animation` is set** (`if (token._animation) return`) so motion doesn't fight Foundry's token-drag / ruler tween for control of `mesh.position`. Cleanup via `Hooks.on("destroyToken", ...)` removes the ticker callback when tokens leave the canvas. Pattern in `visual-filters.js applyMotionToToken`.
 
 ### Cursor position for HTML overlays
 
@@ -222,11 +224,11 @@ The friend hits these on V13 build 351. The "V14" wording in individual bullets 
 - `scope: "client"` settings live in each user's localStorage — the GM CANNOT read them. If you need per-user state visible to the GM, use `user.flags["<module-id>"].field` instead.
 - `registerMenu`'s `restricted: true` is UI-only. Real gating comes from `scope: "world"`.
 
-### dnd5e compendium lookup (V13 dnd5e v3 vs V14 dnd5e v4)
+### dnd5e compendium lookup (v3 → v4+ shift)
 
-- The friend's V13 build 351 ships with **dnd5e v5.2.1**. Future V14 upgrade will be paired with dnd5e v4.
-- dnd5e v3 returned Document instances from compendium indexes; v4 returns `_id` strings. Code that handles one and not the other breaks across the upgrade.
-- Prefer **UUID-based lookup** via `fromUuid("Compendium.dnd5e.monsters.Actor.<id>")` — works on both versions and survives v4's compendium re-indexing.
+- The friend's V13 build 351 ships with **dnd5e v5.2.1**. Future V14 upgrade keeps dnd5e v5+ (no major system bump expected).
+- dnd5e v3 returned Document instances from compendium indexes; v4+ returns `_id` strings. Code that handles one and not the other breaks across the upgrade.
+- Prefer **UUID-based lookup** via `fromUuid("Compendium.dnd5e.monsters.Actor.<id>")` — works across all versions and survives v4's compendium re-indexing.
 - This is why the Plan 2 variant schema uses `compendiumEntry: <uuid-string>`, not a name lookup.
 
 ### Promise idempotence
