@@ -14,9 +14,9 @@ When invoked with this dir as cwd, **the parent `Laps/CLAUDE.md` does NOT auto-l
 
 ## Status (as of 2026-05-10)
 
-**Plan 1 (Foundation + Simulacrum vertical slice) is functionally complete through v0.1.5.** Awaiting friend's live-Foundry verification.
+**Plan 1 (Foundation + Simulacrum vertical slice) is functionally complete through v0.1.6.** Awaiting friend's live-Foundry verification of the partial-registration fix.
 
-**Plan 2 (visual customization UI + motion system) is in preview-iteration phase.** Design doc finalized, HTML preview built and design-critique-revised, awaiting friend's v0.1.5 verification before any spec amendments commit or Foundry-coupled code lands. The preview is at `previews/restyle.html` — open in any modern browser, no server needed.
+**Plan 2 (visual customization UI + motion system) is in preview-iteration phase.** Design doc finalized, HTML preview built and design-critique-revised, awaiting friend's v0.1.6 verification before any spec amendments commit or Foundry-coupled code lands. The preview is at `previews/restyle.html` — open in any modern browser, no server needed.
 
 | Version | What landed |
 |---|---|
@@ -26,6 +26,7 @@ When invoked with this dir as cwd, **the parent `Laps/CLAUDE.md` does NOT auto-l
 | 0.1.3 | Fix manager not opening — V14 ApplicationV2 needs `HandlebarsApplicationMixin` |
 | 0.1.4 | Cast Simulacrum spell auto-opens Spawn dialog (dnd5e.useItem hook + triggerSpell field) |
 | 0.1.5 | Fix manager not rendering — V14 PARTS require single root element. Wrap manager.hbs + spawn.hbs in single root div; switch manager body to flex layout (drops fragile `calc(100% - 50px)`) |
+| 0.1.6 | Fix manager tab-switch crash — V14 requires Handlebars partials to be pre-registered via `loadTemplates()` before `{{> "modules/..."}}` references resolve. Initial open worked because user's My Companions tab was empty (else-branch never tried the partial); clicking Spawn New triggered the lookup and threw. |
 | **0.2.0** (pending) | Plan 2 visual customization UI + motion system + shimmer filter — ships once preview is approved, design doc amended, and live-Foundry integration completes |
 
 **42 unit tests passing.** Distribution ZIPs in `../../dist/luxurious-summons-X.Y.Z.zip`.
@@ -138,6 +139,21 @@ The parent `Laps` workspace (one dir up: `../`) holds adjacent context that this
 ### Handlebars helpers (V14 ships fewer than V13)
 
 - **`add` is NOT shipped.** `eq` IS. When in doubt, **precompute values in `_prepareContext`** rather than relying on helpers.
+
+### Handlebars partials must be pre-registered (V14) — paid for in v0.1.6
+
+- V13 may have auto-loaded `{{> "modules/<id>/templates/partials/foo.hbs"}}` references by path. V14 is strict: each partial path must first be registered via `loadTemplates([...])` before it can be referenced. Otherwise rendering throws `Error: The partial <path> could not be found`.
+- API lookup is V13/V14 split:
+  ```js
+  const loader = foundry.applications?.handlebars?.loadTemplates ?? globalThis.loadTemplates;
+  await loader([
+    "modules/<id>/templates/partials/foo.hbs",
+    "modules/<id>/templates/partials/bar.hbs"
+  ]);
+  ```
+- Register during the `init` hook (the hook callback can be async).
+- Subtle failure mode: a partial reference inside `{{#each xs}}...{{else}}...{{/each}}` only triggers the error when `xs` is non-empty. If your initial test data happens to be empty, the bug only surfaces later when data appears. Always register every partial proactively at startup.
+- `static PARTS = { ... }` on the ApplicationV2 declares TOP-LEVEL template parts, NOT inner Handlebars partials. Don't confuse them — they're separate registries.
 
 ### Scene controls (`getSceneControlButtons` hook) — paid for in v0.1.2
 

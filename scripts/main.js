@@ -13,9 +13,26 @@ import { installSpellCastTrigger } from "./spell-trigger.js";
 
 const MODULE_ID = "luxurious-summons";
 
-Hooks.once("init", () => {
+Hooks.once("init", async () => {
   console.log(`[${MODULE_ID}] init — module loading`);
   registerSettings();
+
+  // V14: pre-register Handlebars partials. Without this, `{{> "modules/..."}}` references
+  // in templates throw at render time with "The partial <path> could not be found." V13
+  // may have auto-loaded partials by path; V14's HandlebarsApplicationMixin is strict and
+  // expects each partial path to be registered via loadTemplates() first. See module-local
+  // CLAUDE.md V14 gotchas — paid for in v0.1.6.
+  const loader =
+    foundry.applications?.handlebars?.loadTemplates ?? globalThis.loadTemplates;
+  if (loader) {
+    await loader([
+      "modules/luxurious-summons/templates/partials/companion-card.hbs",
+      "modules/luxurious-summons/templates/partials/template-card.hbs"
+    ]);
+    console.log(`[${MODULE_ID}] partials registered`);
+  } else {
+    console.warn(`[${MODULE_ID}] no loadTemplates API available — partials may not render`);
+  }
 });
 
 Hooks.once("ready", async () => {
