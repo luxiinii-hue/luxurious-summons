@@ -20,7 +20,7 @@ export function validateCompanionRecord(record) {
   return { ok: errors.length === 0, errors };
 }
 
-export function makeCompanionFlag({ templateId, sourceActorId, sourcePlayerId, sourceMode, visualDefaults }) {
+export function makeCompanionFlag({ templateId, sourceActorId, sourcePlayerId, sourceMode, visualDefaults, motionDefaults }) {
   return {
     isCompanion: true,
     templateId,
@@ -28,6 +28,7 @@ export function makeCompanionFlag({ templateId, sourceActorId, sourcePlayerId, s
     sourcePlayerId,
     sourceMode,
     visualOverrides: { ...visualDefaults },
+    motionOverrides: motionDefaults ? { ...motionDefaults } : { profile: "none", intensity: 0 },
     spawnedAt: Date.now(),
     notes: ""
   };

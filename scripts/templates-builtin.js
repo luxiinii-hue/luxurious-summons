@@ -8,7 +8,8 @@ export const templates = [
     name: "Simulacrum",
     description: "Illusory duplicate of the master. Half max HP, no spell-slot recovery on rest, no natural HP regain (Repair-only).",
     thumbnail: "modules/luxurious-summons/assets/templates-thumbs/simulacrum.svg",
-    triggerSpell: "Simulacrum",     // dnd5e.useItem with this name → auto-open spawn dialog
+    triggerSpell: "Simulacrum",     // matches dnd5e item name → auto-open spawn dialog (v3 useItem / v4 useActivity / v5 postUseActivity)
+    aestheticFamily: "hextech",     // cool/arcane palette per Plan 2 design doc §2.4
     source: {
       mode: "clone"
     },
@@ -33,7 +34,10 @@ export const templates = [
       shimmerIntensity: 0,
       namePrefix: "Simulacrum of ",
       nameSuffix: "",
-      borderColor: "#88ccff"
+      borderColor: "#88ccff",
+      // Motion defaults — subtle icy-crackle shimmer. Player can disable via Restyle when that ships.
+      motionProfile: "flame-flicker",
+      motionIntensity: 0.6
     },
     extraActions: [
       { id: "repair", label: "Repair", icon: "fa-solid fa-wrench", handler: "simulacrum.repair" }

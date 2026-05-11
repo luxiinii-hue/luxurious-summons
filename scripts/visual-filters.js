@@ -5,9 +5,13 @@
 // applyFiltersToToken attaches them to a token mesh (Task 14, manual smoke).
 
 import { isCompanion, getCompanionFlag } from "./data-model.js";
+import { getMotionProfile } from "./motion-profiles.js";
 import { s } from "./settings.js";
 
 const MODULE_ID = "luxurious-summons";
+
+// WeakMap of token → ticker callback ref so we can clean up old motion when overrides change.
+const _activeMotion = new WeakMap();
 
 /**
  * Pure-logic. Returns an ordered list of filter descriptors for the given
@@ -120,4 +124,85 @@ export function applyFiltersToToken(token) {
     const borderHex = parseInt(flag.visualOverrides.borderColor.replace("#", "0x"), 16);
     token.border.tint = borderHex;
   }
+
+  // Apply procedural motion if the token has motionOverrides configured.
+  applyMotionToToken(token);
+}
+
+/**
+ * Procedural motion via PIXI ticker. Registers a per-frame callback that adds
+ * transform deltas (computed by the named motion profile) on top of the
+ * token's base position / rotation / scale / alpha.
+ *
+ * Cleanup: any previously-registered callback is removed first, so this is
+ * safe to call repeatedly (e.g., from updateActor when motionOverrides change).
+ * Called automatically by applyFiltersToToken; explicit callers should be rare.
+ *
+ * Performance: respects `enablePIXIFilters` setting (filter-off implies
+ * motion-off — the user wants minimum overhead in both cases).
+ */
+export function applyMotionToToken(token) {
+  // Always clear existing motion first — safe to call when overrides change.
+  removeMotionFromToken(token);
+
+  if (!isCompanion(token.actor)) return;
+  if (!s("enablePIXIFilters")) return;     // escape hatch covers motion too
+
+  const flag = getCompanionFlag(token.actor);
+  const motion = flag?.motionOverrides;
+  if (!motion || motion.profile === "none" || !motion.intensity) return;
+
+  const profile = getMotionProfile(motion.profile);
+  if (!profile) return;
+  const intensity = motion.intensity ?? 1;
+
+  // Snapshot the token's base transform — motion is anchored to these values.
+  const mesh = token.mesh;
+  if (!mesh) return;
+  const base = {
+    x: mesh.position.x,
+    y: mesh.position.y,
+    rotation: mesh.rotation ?? 0,
+    scaleX: mesh.scale?.x ?? 1,
+    scaleY: mesh.scale?.y ?? 1,
+    alpha: mesh.alpha ?? 1
+  };
+  const startedAt = performance.now() / 1000;
+
+  const tickerCallback = () => {
+    // Skip applying while Foundry is animating the token (e.g., ruler-driven move
+    // or token-drag tween). Avoids fighting Foundry's render loop for control
+    // of mesh.position. The animation finishes in <1 s and motion resumes cleanly.
+    if (token._animation) return;
+    const t = (performance.now() / 1000) - startedAt;
+    const delta = profile(t, intensity);
+    mesh.position.set(base.x + delta.dx, base.y + delta.dy);
+    mesh.rotation = base.rotation + delta.dRotation;
+    mesh.scale.set(base.scaleX + delta.dScale, base.scaleY + delta.dScale);
+    mesh.alpha = Math.max(0, Math.min(1, base.alpha + delta.dAlpha));
+  };
+
+  const ticker = canvas?.app?.ticker;
+  if (!ticker) {
+    console.warn(`[${MODULE_ID}] no canvas ticker available; motion skipped on ${token.id}`);
+    return;
+  }
+  ticker.add(tickerCallback);
+  _activeMotion.set(token, tickerCallback);
+  console.log(`[${MODULE_ID}] motion attached to ${token.id}: ${motion.profile} @ ${intensity}`);
+}
+
+/**
+ * Tear down the motion ticker callback for a token. Called by applyMotionToToken
+ * (to clear before re-attaching) and from the deleteToken hook in main.js.
+ */
+export function removeMotionFromToken(token) {
+  const callback = _activeMotion.get(token);
+  if (!callback) return;
+  canvas?.app?.ticker?.remove(callback);
+  _activeMotion.delete(token);
+
+  // Restore the mesh to its base orientation so the token doesn't stay frozen
+  // mid-wobble when motion is disabled. The next render will set canonical values.
+  // (We trust Foundry's own refresh to overwrite our last-frame deltas.)
 }

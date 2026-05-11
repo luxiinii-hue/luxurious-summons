@@ -90,13 +90,17 @@ export async function performSpawn(payload) {
     const prefix = visualOverrides?.namePrefix ?? template.defaults?.namePrefix ?? "";
     const suffix = visualOverrides?.nameSuffix ?? template.defaults?.nameSuffix ?? "";
     sourceData.name = `${prefix}${masterName}${suffix}`;
+    const motionDefaults = (template.defaults?.motionProfile && template.defaults?.motionIntensity !== undefined)
+      ? { profile: template.defaults.motionProfile, intensity: template.defaults.motionIntensity }
+      : null;
     sourceData.flags = { ...sourceData.flags,
       [MODULE_ID]: makeCompanionFlag({
         templateId,
         sourceActorId,
         sourcePlayerId,
         sourceMode: template.syncMode,
-        visualDefaults: { ...template.defaults, ...(visualOverrides ?? {}) }
+        visualDefaults: { ...template.defaults, ...(visualOverrides ?? {}) },
+        motionDefaults
       })
     };
     // 2. Ownership transfer — requester gets OWNER (3), default permission is NONE (0)

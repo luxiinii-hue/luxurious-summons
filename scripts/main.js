@@ -4,7 +4,7 @@ import { refreshUserIndexes } from "./data-model.js";
 import { openManager } from "./manager-app.js";
 import { installBrokerHook } from "./chat-broker.js";
 import { installSpawnBrokerHandler } from "./spawn-engine.js";
-import { applyFiltersToToken } from "./visual-filters.js";
+import { applyFiltersToToken, removeMotionFromToken } from "./visual-filters.js";
 import { installLifecycleHooks, installDeleteHandling } from "./lifecycle.js";
 import { installDnd5eHooks } from "./dnd5e-mods.js";
 import "./handlers/simulacrum.js";   // self-registers Repair via registerHandler
@@ -59,9 +59,15 @@ Hooks.on("drawToken", (token) => {
   applyFiltersToToken(token);
 });
 Hooks.on("updateActor", (actor, changes) => {
-  if (changes.flags?.[MODULE_ID]?.visualOverrides) {
+  const moduleChanges = changes.flags?.[MODULE_ID];
+  if (moduleChanges?.visualOverrides || moduleChanges?.motionOverrides) {
     for (const t of actor.getActiveTokens()) applyFiltersToToken(t);
   }
+});
+// Tear down motion ticker callbacks when a token is removed from the canvas
+// (token deletion, scene change, etc.) so we don't leak per-frame work.
+Hooks.on("destroyToken", (token) => {
+  removeMotionFromToken(token);
 });
 
 Hooks.on("getSceneControlButtons", (controls) => {
