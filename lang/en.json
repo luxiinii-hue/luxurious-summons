@@ -52,8 +52,8 @@
   "LUXSUM.Restyle.Card": "Card",
   "LUXSUM.Restyle.Border": "Border",
   "LUXSUM.Restyle.Reset": "Reset to template defaults",
-  "LUXSUM.Restyle.Cancel": "Cancel",
-  "LUXSUM.Restyle.Save": "Save",
+  "LUXSUM.Restyle.Revert": "Revert changes",
+  "LUXSUM.Restyle.AutoApplyHint": "Changes apply automatically",
   "LUXSUM.Restyle.OptionalPlaceholder": "optional",
   "LUXSUM.SummonDetails.OpenSheet": "Open Foundry Sheet",
   "LUXSUM.SummonDetails.OpenSheetTooltip": "Open the companion's full character sheet for detailed editing."

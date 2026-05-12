@@ -105,6 +105,13 @@ export function applyFiltersToToken(token) {
   if (!isCompanion(token.actor)) return;
   const flag = getCompanionFlag(token.actor);
   if (!flag?.visualOverrides) return;
+  // Diagnostic: log mesh + override state on each hook-driven apply (NOT slider-driven —
+  // see applyOverridesToToken which gets called rapidly during drag). Helps diagnose
+  // invisible-token / texture-not-ready races. Gated on verboseLogging to keep noise down.
+  if (s("verboseLogging")) {
+    const v = flag.visualOverrides;
+    console.log(`[${MODULE_ID}] applyFiltersToToken on ${token.id} (${token.name}): mesh=${!!token.mesh}, textureValid=${!!token.mesh?.texture?.valid}, alpha=${v.alpha}, outline=${v.outlineThickness}, hueIntensity=${v.hueIntensity}`);
+  }
   applyOverridesToToken(token, flag.visualOverrides, flag.motionOverrides);
 }
 
@@ -129,6 +136,8 @@ export function applyOverridesToToken(token, visualOverrides, motionOverrides) {
   const filters = buildFilters(descriptors);
   if (token.mesh) {
     token.mesh.filters = filters.length > 0 ? filters : null;
+  } else {
+    console.warn(`[${MODULE_ID}] applyOverridesToToken on ${token.id}: token.mesh not ready — skipping filter apply (will re-apply on next refresh hook)`);
   }
 
   // Border color (Foundry's own border, separate from PIXI filters)

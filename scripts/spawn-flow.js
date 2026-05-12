@@ -22,8 +22,16 @@ export function runSpawnFlow(template, defaultSourceActorId = null) {
     template,
     defaultSourceActorId,
     onPlace: async ({ template: tpl, sourceActorId }) => {
-      // Restrictions pre-check (broker re-checks authoritatively on the GM client)
-      const activeCompanions = game.user.flags?.[MODULE_ID]?.activeCompanions ?? [];
+      // Restrictions pre-check (broker re-checks authoritatively on the GM client).
+      // Defensive: filter out stale entries (actor no longer exists in game.actors).
+      // The user-flag index *should* be kept in sync by refreshUserIndexes after every
+      // delete, but a missed refresh would leave a ghost entry that blocks resummoning.
+      // Filtering at check time keeps the player unblocked even if the index drifts.
+      const rawActiveCompanions = game.user.flags?.[MODULE_ID]?.activeCompanions ?? [];
+      const activeCompanions = rawActiveCompanions.filter(entry => game.actors.get(entry.actorId));
+      if (activeCompanions.length !== rawActiveCompanions.length) {
+        console.warn(`[${MODULE_ID}] activeCompanions index had ${rawActiveCompanions.length - activeCompanions.length} stale entr${rawActiveCompanions.length - activeCompanions.length === 1 ? "y" : "ies"} (actor deleted but flag not refreshed); filtered for restriction check`);
+      }
       const recentSpawnTimestamps = game.user.flags?.[MODULE_ID]?.recentSpawnTimestamps ?? [];
       const config = {
         globalCap: s("globalActiveCapPerPlayer"),

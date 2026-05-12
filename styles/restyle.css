@@ -638,7 +638,7 @@
 }
 
 .luxsum-restyle-reset {
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   font-size: 11px;
   color: var(--luxsum-text-mute);
   background: transparent;
@@ -649,6 +649,17 @@
   text-underline-offset: 3px;
   transition: color 150ms ease-out;
   font-family: inherit;
+}
+
+.luxsum-restyle-auto-hint {
+  flex: 1 1 auto;
+  text-align: center;
+  font-size: 10px;
+  font-style: italic;
+  letter-spacing: 0.3px;
+  color: var(--luxsum-text-mute);
+  user-select: none;
+  /* Subtle pulsing glow when the debounced write fires would be nice polish — defer. */
 }
 
 .luxsum-restyle-reset:hover {

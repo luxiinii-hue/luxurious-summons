@@ -88,11 +88,18 @@ function buildSummonDetails(actor, template) {
   };
 }
 
+// Debounce window between the user's last change and the flag write that persists it.
+// Long enough to bundle a slider drag into a single update; short enough that closing the
+// dialog mid-drag still commits naturally.
+const AUTO_APPLY_DEBOUNCE_MS = 350;
+
 export class RestyleApp extends HandlebarsApplicationMixin(ApplicationV2) {
   #actor = null;
   #originalFlag = null;
   #draft = null;
   #template = null;
+  #writeTimer = null;
+  #dirty = false;          // true if any change happened since open (skip the no-op flush)
 
   static DEFAULT_OPTIONS = {
     id: "luxsum-restyle",
@@ -186,8 +193,7 @@ export class RestyleApp extends HandlebarsApplicationMixin(ApplicationV2) {
     });
 
     // Footer buttons.
-    this.element.querySelector('[data-action="save"]')?.addEventListener("click", () => this.#onSave());
-    this.element.querySelector('[data-action="cancel"]')?.addEventListener("click", () => this.#onCancel());
+    this.element.querySelector('[data-action="revert"]')?.addEventListener("click", () => this.#onRevert());
     this.element.querySelector('[data-action="reset-defaults"]')?.addEventListener("click", () => this.#onReset());
 
     // Open Foundry Sheet button (in the summon-details card).
@@ -262,28 +268,47 @@ export class RestyleApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   #applyDraft() {
+    // Live canvas update — imperative, no flag write yet.
     const tokens = this.#actor.getActiveTokens();
     for (const t of tokens) {
       applyOverridesToToken(t, this.#draft.visualOverrides, this.#draft.motionOverrides);
     }
+    // Schedule debounced flag write so the change persists across reload + multi-client sync.
+    this.#scheduleFlagWrite();
   }
 
-  async #onSave() {
+  #scheduleFlagWrite() {
+    this.#dirty = true;
+    if (this.#writeTimer) clearTimeout(this.#writeTimer);
+    this.#writeTimer = setTimeout(() => this.#flushFlagWrite(), AUTO_APPLY_DEBOUNCE_MS);
+  }
+
+  async #flushFlagWrite() {
+    if (this.#writeTimer) {
+      clearTimeout(this.#writeTimer);
+      this.#writeTimer = null;
+    }
+    if (!this.#dirty) return;
+    this.#dirty = false;
     await this.#actor.update({
       [`flags.${MODULE_ID}.visualOverrides`]: this.#draft.visualOverrides,
       [`flags.${MODULE_ID}.motionOverrides`]: this.#draft.motionOverrides
     });
-    console.log(`[${MODULE_ID}] Restyle saved for ${this.#actor.name}`);
-    await this.close();
+    console.log(`[${MODULE_ID}] Restyle auto-applied for ${this.#actor.name}`);
   }
 
-  async #onCancel() {
-    // Revert canvas to original state before closing.
-    const tokens = this.#actor.getActiveTokens();
-    for (const t of tokens) {
-      applyOverridesToToken(t, this.#originalFlag.visualOverrides, this.#originalFlag.motionOverrides);
+  async #onRevert() {
+    // Discard any pending write and roll the flag back to its state when the dialog opened.
+    if (this.#writeTimer) {
+      clearTimeout(this.#writeTimer);
+      this.#writeTimer = null;
     }
-    console.log(`[${MODULE_ID}] Restyle cancelled for ${this.#actor.name}; canvas reverted`);
+    this.#dirty = false;
+    await this.#actor.update({
+      [`flags.${MODULE_ID}.visualOverrides`]: this.#originalFlag.visualOverrides,
+      [`flags.${MODULE_ID}.motionOverrides`]: this.#originalFlag.motionOverrides
+    });
+    console.log(`[${MODULE_ID}] Restyle reverted for ${this.#actor.name}`);
     await this.close();
   }
 
@@ -304,6 +329,9 @@ export class RestyleApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   async _onClose(options) {
+    // Flush any pending debounced write so closing via the X always commits current state
+    // (mid-drag close shouldn't lose the last change).
+    await this.#flushFlagWrite();
     await super._onClose?.(options);
     _activeRestyle = null;
   }
