@@ -5,7 +5,7 @@ import { openManager } from "./manager-app.js";
 import { installBrokerHook } from "./chat-broker.js";
 import { installSpawnBrokerHandler } from "./spawn-engine.js";
 import { applyFiltersToToken, removeMotionFromToken } from "./visual-filters.js";
-import { installLifecycleHooks, installDeleteHandling } from "./lifecycle.js";
+import { installLifecycleHooks, installDeleteHandling, installDismissBrokerHandler } from "./lifecycle.js";
 import { installDnd5eHooks } from "./dnd5e-mods.js";
 import "./handlers/simulacrum.js";   // self-registers Repair via registerHandler
 import { installSheetDecorator } from "./sheet-decorator.js";
@@ -46,6 +46,7 @@ Hooks.once("ready", async () => {
   installSpawnBrokerHandler();
   installLifecycleHooks();
   installDeleteHandling();
+  installDismissBrokerHandler();
   installDnd5eHooks();
   installSheetDecorator();
   installSpellCastTrigger();

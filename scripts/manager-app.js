@@ -190,13 +190,22 @@ export class ManagerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       rejectClose: false
     });
     if (!proceed) return;
-    // Manual dismiss → softFade animation (NOT the per-template death animation;
-    // those fire only on HP=0 to keep the visual language distinct: "killed in
-    // combat" vs "user dismissed").
+    // Manual dismiss → softFade animation on the requester's client (so they see the
+    // fade locally; other clients see the token vanish via the deleteToken sync).
     const { deathAnimations } = await import("./death-animations.js");
     const tokens = actor.getActiveTokens();
     await Promise.all(tokens.map(t => deathAnimations.softFade?.(t) ?? Promise.resolve()));
-    await actor.delete();
+    // Actor.delete() requires GM permission even for OWNER-permission actors (Foundry's
+    // world-actor delete is GM-gated). Route through the chat-broker so the primary-GM
+    // client performs the actual delete.
+    if (game.user.isGM) {
+      await actor.delete();
+      console.log(`[${MODULE_ID}] dismissed companion ${actor.id} (GM direct-delete)`);
+    } else {
+      const { postBrokerRequest } = await import("./chat-broker.js");
+      await postBrokerRequest("dismiss", { actorId });
+      console.log(`[${MODULE_ID}] dismiss broker request posted for ${actor.id}`);
+    }
   }
 }
 
@@ -216,9 +225,12 @@ export function getActiveManager() {
 }
 
 // Re-render the manager when our user-flag activeCompanions changes
-// (signaled by broker confirm running refreshUserIndexes on the GM client)
+// (signaled by the GM client running refreshUserIndexes after spawn/dismiss/delete).
 Hooks.on("updateUser", (user, changes) => {
   if (user.id !== game.user.id) return;
-  if (!changes.flags?.[MODULE_ID]?.activeCompanions) return;
+  const hasFlagChange = changes.flags?.[MODULE_ID]?.activeCompanions !== undefined;
+  if (!hasFlagChange) return;
+  const newCount = changes.flags[MODULE_ID].activeCompanions.length;
+  console.log(`[${MODULE_ID}] manager: own activeCompanions flag changed (now ${newCount} entr${newCount === 1 ? "y" : "ies"}); rendered=${_managerInstance?.rendered}`);
   if (_managerInstance?.rendered) _managerInstance.render({ force: true });
 });

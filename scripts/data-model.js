@@ -81,7 +81,10 @@ export function regenerateUserIndex(actors, sceneOf) {
  * non-GM clients. Idempotent — safe to call multiple times.
  */
 export async function refreshUserIndexes() {
-  if (!game.user.isGM) return;
+  if (!game.user.isGM) {
+    console.log(`[${MODULE_ID}] refreshUserIndexes skipped — current client (${game.user.name}) is not GM`);
+    return;
+  }
   const sceneOf = (actor) => {
     for (const scene of game.scenes) {
       if (scene.tokens.find(t => t.actorId === actor.id)) return scene.id;
@@ -89,9 +92,10 @@ export async function refreshUserIndexes() {
     return null;
   };
   const index = regenerateUserIndex(game.actors.contents, sceneOf);
+  console.log(`[${MODULE_ID}] refreshUserIndexes: scanned ${game.actors.contents.length} actor(s); ${index.size} user(s) own companions`);
   for (const user of game.users) {
     const slice = index.get(user.id) ?? [];
     await user.update({ [`flags.${MODULE_ID}.activeCompanions`]: slice });
+    console.log(`[${MODULE_ID}]   wrote activeCompanions for ${user.name} (${user.id}): ${slice.length} entr${slice.length === 1 ? "y" : "ies"}`);
   }
-  console.log(`[${MODULE_ID}] user-flag indexes refreshed for ${index.size} user(s)`);
 }

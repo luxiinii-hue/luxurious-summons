@@ -5,6 +5,7 @@
 // installDeleteHandling wires deleteActor cleanup + master-deletion prompt (Task 16).
 
 import { isCompanion, refreshUserIndexes } from "./data-model.js";
+import { registerBrokerHandler } from "./chat-broker.js";
 
 const MODULE_ID = "luxurious-summons";
 
@@ -59,15 +60,42 @@ export function installLifecycleHooks() {
 }
 
 /**
+ * Broker handler for player-initiated dismiss. Players can't `actor.delete()` world
+ * actors even with OWNER permission — that's GM-gated in Foundry. So the player posts
+ * a "dismiss" broker request and the primary GM client performs the delete.
+ *
+ * The death animation runs on the requester's client BEFORE the broker post (in
+ * manager-app.js #onDismiss) so the requester sees the fade locally; other clients
+ * see the token vanish via Foundry's delete sync.
+ */
+export function installDismissBrokerHandler() {
+  registerBrokerHandler("dismiss", async ({ actorId }) => {
+    const actor = game.actors.get(actorId);
+    if (!actor) {
+      console.warn(`[${MODULE_ID}] dismiss broker: actor ${actorId} not found`);
+      return { error: "actor-not-found" };
+    }
+    if (!isCompanion(actor)) {
+      console.warn(`[${MODULE_ID}] dismiss broker: actor ${actorId} (${actor.name}) is not a companion — refusing`);
+      return { error: "not-companion" };
+    }
+    await actor.delete();
+    console.log(`[${MODULE_ID}] dismiss broker: deleted companion ${actor.name} (${actorId})`);
+    return { ok: true };
+  });
+}
+
+/**
  * On any actor delete:
  *   - If it was a companion, refresh the user-flag indexes.
  *   - If it was a master with linked companions, prompt the GM to dismiss them.
  */
 export function installDeleteHandling() {
   Hooks.on("deleteActor", async (actor) => {
+    console.log(`[${MODULE_ID}] deleteActor hook fired for "${actor.name}" (${actor.id}), isCompanion=${isCompanion(actor)}, currentUser.isGM=${game.user.isGM}`);
     if (isCompanion(actor)) {
       await refreshUserIndexes();
-      console.log(`[${MODULE_ID}] companion ${actor.id} deleted — user indexes refreshed`);
+      console.log(`[${MODULE_ID}] companion ${actor.id} deleted — user indexes refresh attempted`);
       return;
     }
     const linkedCompanions = game.actors.filter(a =>
