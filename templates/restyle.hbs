@@ -1,0 +1,150 @@
+<div class="luxsum-restyle-body">
+  <!-- Left column: summon details info card -->
+  {{> "modules/luxurious-summons/templates/partials/summon-details.hbs"}}
+
+  <!-- Right column: customization controls -->
+  <div class="luxsum-restyle-controls">
+
+    <!-- Group 1: Color -->
+    <div class="luxsum-restyle-group">
+      <h5 class="luxsum-restyle-group-title">{{localize "LUXSUM.Restyle.Color"}}</h5>
+      <div class="luxsum-restyle-row">
+        <span class="luxsum-restyle-row-label">{{localize "LUXSUM.Restyle.Tint"}}</span>
+        <label class="luxsum-color-picker">
+          <div class="luxsum-color-swatch" data-swatch="hueColor" style="--swatch-color:{{draft.hueColor}}"></div>
+          <input type="color" class="luxsum-color-input" data-bind="hueColor" value="{{draft.hueColor}}">
+        </label>
+        <span class="luxsum-restyle-row-value"></span>
+      </div>
+      <div class="luxsum-restyle-row">
+        <span class="luxsum-restyle-row-label">{{localize "LUXSUM.Restyle.Strength"}}</span>
+        <input type="range" class="luxsum-slider" data-bind="hueIntensity" min="0" max="100" value="{{display.hueIntensityPct}}">
+        <span class="luxsum-restyle-row-value" data-value-for="hueIntensity">{{display.hueIntensityPct}}%</span>
+      </div>
+      <span class="luxsum-fleur"><svg viewBox="0 0 24 24"><use href="#luxsum-fleur"/></svg></span>
+    </div>
+
+    <!-- Group 2: Tone -->
+    <div class="luxsum-restyle-group">
+      <h5 class="luxsum-restyle-group-title">{{localize "LUXSUM.Restyle.Tone"}}</h5>
+      <div class="luxsum-restyle-row">
+        <span class="luxsum-restyle-row-label">{{localize "LUXSUM.Restyle.Brightness"}}</span>
+        <input type="range" class="luxsum-slider" data-bind="brightness" min="0" max="200" value="{{display.brightnessPct}}">
+        <span class="luxsum-restyle-row-value" data-value-for="brightness">{{display.brightnessFmt}}</span>
+      </div>
+      <div class="luxsum-restyle-row">
+        <span class="luxsum-restyle-row-label">{{localize "LUXSUM.Restyle.Vibrance"}}</span>
+        <input type="range" class="luxsum-slider" data-bind="saturation" min="0" max="200" value="{{display.saturationPct}}">
+        <span class="luxsum-restyle-row-value" data-value-for="saturation">{{display.saturationFmt}}</span>
+      </div>
+      <span class="luxsum-fleur"><svg viewBox="0 0 24 24"><use href="#luxsum-fleur"/></svg></span>
+    </div>
+
+    <!-- Group 3: Visibility -->
+    <div class="luxsum-restyle-group">
+      <h5 class="luxsum-restyle-group-title">{{localize "LUXSUM.Restyle.Visibility"}}</h5>
+      <div class="luxsum-restyle-row">
+        <span class="luxsum-restyle-row-label">{{localize "LUXSUM.Restyle.Transparency"}}</span>
+        <input type="range" class="luxsum-slider" data-bind="alpha" min="0" max="100" value="{{display.alphaPct}}">
+        <span class="luxsum-restyle-row-value" data-value-for="alpha">{{display.alphaPct}}%</span>
+      </div>
+      <span class="luxsum-fleur"><svg viewBox="0 0 24 24"><use href="#luxsum-fleur"/></svg></span>
+    </div>
+
+    <!-- Group 4: Outline -->
+    <div class="luxsum-restyle-group">
+      <h5 class="luxsum-restyle-group-title">{{localize "LUXSUM.Restyle.Outline"}}</h5>
+      <label class="luxsum-toggle">
+        <input type="checkbox" class="luxsum-toggle-input" data-bind="outlineEnabled" {{#if draft.outlineEnabled}}checked{{/if}}>
+        <span class="luxsum-toggle-track"><span class="luxsum-toggle-lever"></span></span>
+        <span class="luxsum-toggle-label">{{localize "LUXSUM.Restyle.OutlineEnabled"}}</span>
+      </label>
+      <div class="luxsum-restyle-outline-body" {{#unless draft.outlineEnabled}}style="display:none"{{/unless}}>
+        <div class="luxsum-restyle-row">
+          <span class="luxsum-restyle-row-label">{{localize "LUXSUM.Restyle.Color"}}</span>
+          <label class="luxsum-color-picker">
+            <div class="luxsum-color-swatch" data-swatch="outlineColor" style="--swatch-color:{{draft.outlineColor}}"></div>
+            <input type="color" class="luxsum-color-input" data-bind="outlineColor" value="{{draft.outlineColor}}">
+          </label>
+          <span class="luxsum-restyle-row-value"></span>
+        </div>
+        <div class="luxsum-restyle-row">
+          <span class="luxsum-restyle-row-label">{{localize "LUXSUM.Restyle.Thickness"}}</span>
+          <input type="range" class="luxsum-slider" data-bind="outlineThickness" min="0" max="8" step="1" value="{{draft.outlineThickness}}">
+          <span class="luxsum-restyle-row-value" data-value-for="outlineThickness">{{draft.outlineThickness}} px</span>
+        </div>
+      </div>
+      <span class="luxsum-fleur"><svg viewBox="0 0 24 24"><use href="#luxsum-fleur"/></svg></span>
+    </div>
+
+    <!-- Group 5: Shimmer -->
+    <div class="luxsum-restyle-group">
+      <h5 class="luxsum-restyle-group-title">{{localize "LUXSUM.Restyle.Shimmer"}}</h5>
+      <label class="luxsum-toggle">
+        <input type="checkbox" class="luxsum-toggle-input" data-bind="shimmer" {{#if draft.shimmer}}checked{{/if}}>
+        <span class="luxsum-toggle-track"><span class="luxsum-toggle-lever"></span></span>
+        <span class="luxsum-toggle-label">{{localize "LUXSUM.Restyle.ShimmerEnabled"}}</span>
+      </label>
+      <div class="luxsum-restyle-shimmer-body" {{#unless draft.shimmer}}style="display:none"{{/unless}}>
+        <div class="luxsum-restyle-row">
+          <span class="luxsum-restyle-row-label">{{localize "LUXSUM.Restyle.Strength"}}</span>
+          <input type="range" class="luxsum-slider" data-bind="shimmerIntensity" min="0" max="100" value="{{display.shimmerIntensityPct}}">
+          <span class="luxsum-restyle-row-value" data-value-for="shimmerIntensity">{{display.shimmerIntensityPct}}%</span>
+        </div>
+      </div>
+      <span class="luxsum-fleur"><svg viewBox="0 0 24 24"><use href="#luxsum-fleur"/></svg></span>
+    </div>
+
+    <!-- Group 6: Motion -->
+    <div class="luxsum-restyle-group">
+      <h5 class="luxsum-restyle-group-title">{{localize "LUXSUM.Restyle.Motion"}}</h5>
+      <div class="luxsum-motion-presets" role="radiogroup">
+        <input type="radio" name="motion-preset" id="luxsum-motion-off"     value="off"     {{#if (eq draft.motionPreset "off")}}checked{{/if}}>
+        <label for="luxsum-motion-off" class="luxsum-motion-preset-label">{{localize "LUXSUM.Restyle.MotionOff"}}</label>
+        <input type="radio" name="motion-preset" id="luxsum-motion-subtle"  value="subtle"  {{#if (eq draft.motionPreset "subtle")}}checked{{/if}}>
+        <label for="luxsum-motion-subtle" class="luxsum-motion-preset-label">{{localize "LUXSUM.Restyle.MotionSubtle"}}</label>
+        <input type="radio" name="motion-preset" id="luxsum-motion-default" value="default" {{#if (eq draft.motionPreset "default")}}checked{{/if}}>
+        <label for="luxsum-motion-default" class="luxsum-motion-preset-label">{{localize "LUXSUM.Restyle.MotionDefault"}}</label>
+        <input type="radio" name="motion-preset" id="luxsum-motion-lively"  value="lively"  {{#if (eq draft.motionPreset "lively")}}checked{{/if}}>
+        <label for="luxsum-motion-lively" class="luxsum-motion-preset-label">{{localize "LUXSUM.Restyle.MotionLively"}}</label>
+      </div>
+      <span class="luxsum-fleur"><svg viewBox="0 0 24 24"><use href="#luxsum-fleur"/></svg></span>
+    </div>
+
+    <!-- Group 7: Naming -->
+    <div class="luxsum-restyle-group">
+      <h5 class="luxsum-restyle-group-title">{{localize "LUXSUM.Restyle.Naming"}}</h5>
+      <div class="luxsum-restyle-row" style="grid-template-columns: 90px 1fr;">
+        <span class="luxsum-restyle-row-label">{{localize "LUXSUM.Restyle.Prefix"}}</span>
+        <input type="text" class="luxsum-restyle-input" data-bind="namePrefix" value="{{draft.namePrefix}}" placeholder="{{localize 'LUXSUM.Restyle.OptionalPlaceholder'}}">
+      </div>
+      <div class="luxsum-restyle-row" style="grid-template-columns: 90px 1fr;">
+        <span class="luxsum-restyle-row-label">{{localize "LUXSUM.Restyle.Suffix"}}</span>
+        <input type="text" class="luxsum-restyle-input" data-bind="nameSuffix" value="{{draft.nameSuffix}}" placeholder="{{localize 'LUXSUM.Restyle.OptionalPlaceholder'}}">
+      </div>
+      <span class="luxsum-fleur"><svg viewBox="0 0 24 24"><use href="#luxsum-fleur"/></svg></span>
+    </div>
+
+    <!-- Group 8: Card -->
+    <div class="luxsum-restyle-group">
+      <h5 class="luxsum-restyle-group-title">{{localize "LUXSUM.Restyle.Card"}}</h5>
+      <div class="luxsum-restyle-row">
+        <span class="luxsum-restyle-row-label">{{localize "LUXSUM.Restyle.Border"}}</span>
+        <label class="luxsum-color-picker">
+          <div class="luxsum-color-swatch" data-swatch="borderColor" style="--swatch-color:{{draft.borderColor}}"></div>
+          <input type="color" class="luxsum-color-input" data-bind="borderColor" value="{{draft.borderColor}}">
+        </label>
+        <span class="luxsum-restyle-row-value"></span>
+      </div>
+    </div>
+
+  </div><!-- /.luxsum-restyle-controls -->
+
+  <footer class="luxsum-restyle-footer" style="grid-column: 1 / -1;">
+    <button type="button" class="luxsum-restyle-reset" data-action="reset-defaults">{{localize "LUXSUM.Restyle.Reset"}}</button>
+    <div class="luxsum-restyle-actions">
+      <button type="button" class="luxsum-restyle-btn luxsum-restyle-btn-cancel" data-action="cancel">{{localize "LUXSUM.Restyle.Cancel"}}</button>
+      <button type="button" class="luxsum-restyle-btn luxsum-restyle-btn-save"   data-action="save">{{localize "LUXSUM.Restyle.Save"}}</button>
+    </div>
+  </footer>
+</div>

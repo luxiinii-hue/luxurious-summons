@@ -11,6 +11,7 @@
     <span role="button" tabindex="0" data-action="toggle-combat" data-actor-id="{{actorId}}" title="Add to (or remove from) the active combat tracker"><i class="fa-solid fa-swords"></i> {{localize "LUXSUM.Companion.ToggleCombat"}}</span>
   </div>
   <div class="luxsum-card-actions" data-stop-propagation>
+    <span role="button" tabindex="0" data-action="restyle" data-actor-id="{{actorId}}" title="{{localize 'LUXSUM.Companion.RestyleTooltip'}}"><i class="fa-solid fa-palette"></i> {{localize "LUXSUM.Companion.Restyle"}}</span>
     <span role="button" tabindex="0" data-action="dismiss" data-actor-id="{{actorId}}">{{localize "LUXSUM.Companion.Dismiss"}}</span>
     {{#each extraActions}}
       <span role="button" tabindex="0" data-action="extra" data-handler="{{handler}}" data-actor-id="{{../actorId}}">

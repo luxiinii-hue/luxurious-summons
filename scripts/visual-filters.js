@@ -98,35 +98,47 @@ export function buildFilters(descriptors) {
 
 /**
  * Apply the visual filter chain to a companion token, plus border tint.
- * Called from drawToken hook + updateActor (visualOverrides change).
+ * Reads `visualOverrides` and `motionOverrides` from the actor's flag.
+ * Called from drawToken hook + updateActor (override change).
  */
 export function applyFiltersToToken(token) {
   if (!isCompanion(token.actor)) return;
   const flag = getCompanionFlag(token.actor);
   if (!flag?.visualOverrides) return;
+  applyOverridesToToken(token, flag.visualOverrides, flag.motionOverrides);
+}
+
+/**
+ * Core apply path that takes overrides directly (not from the actor flag).
+ *
+ * Used by the Restyle dialog to apply DRAFT overrides live as the user drags
+ * sliders, without persisting to the flag until Save. Same logic as
+ * applyFiltersToToken but parameterized.
+ */
+export function applyOverridesToToken(token, visualOverrides, motionOverrides) {
+  if (!visualOverrides) return;
 
   if (!s("enablePIXIFilters")) {
     // Performance escape hatch — apply only basic tint
-    const tintHex = parseInt((flag.visualOverrides.hueColor ?? "#ffffff").replace("#", "0x"), 16);
+    const tintHex = parseInt((visualOverrides.hueColor ?? "#ffffff").replace("#", "0x"), 16);
     if (token.mesh) token.mesh.tint = tintHex;
     return;
   }
 
-  const descriptors = describeFilters(flag.visualOverrides);
+  const descriptors = describeFilters(visualOverrides);
   const filters = buildFilters(descriptors);
   if (token.mesh) {
     token.mesh.filters = filters.length > 0 ? filters : null;
-    console.log(`[${MODULE_ID}] applied ${filters.length} filter(s) to token ${token.id}`);
   }
 
   // Border color (Foundry's own border, separate from PIXI filters)
-  if (flag.visualOverrides.borderColor && token.border) {
-    const borderHex = parseInt(flag.visualOverrides.borderColor.replace("#", "0x"), 16);
+  if (visualOverrides.borderColor && token.border) {
+    const borderHex = parseInt(visualOverrides.borderColor.replace("#", "0x"), 16);
     token.border.tint = borderHex;
   }
 
-  // Apply procedural motion if the token has motionOverrides configured.
-  applyMotionToToken(token);
+  // Apply procedural motion if motionOverrides are configured.
+  applyMotionToTokenWith(token, motionOverrides);
 }
 
 /**
@@ -136,20 +148,26 @@ export function applyFiltersToToken(token) {
  *
  * Cleanup: any previously-registered callback is removed first, so this is
  * safe to call repeatedly (e.g., from updateActor when motionOverrides change).
- * Called automatically by applyFiltersToToken; explicit callers should be rare.
  *
  * Performance: respects `enablePIXIFilters` setting (filter-off implies
  * motion-off — the user wants minimum overhead in both cases).
  */
 export function applyMotionToToken(token) {
+  // Reads from the actor flag — the canonical entry point.
+  if (!isCompanion(token.actor)) return;
+  const motion = getCompanionFlag(token.actor)?.motionOverrides;
+  applyMotionToTokenWith(token, motion);
+}
+
+/**
+ * Core motion application path. Takes the motionOverrides object directly so
+ * the Restyle dialog can drive live motion changes from its draft state.
+ */
+function applyMotionToTokenWith(token, motion) {
   // Always clear existing motion first — safe to call when overrides change.
   removeMotionFromToken(token);
 
-  if (!isCompanion(token.actor)) return;
   if (!s("enablePIXIFilters")) return;     // escape hatch covers motion too
-
-  const flag = getCompanionFlag(token.actor);
-  const motion = flag?.motionOverrides;
   if (!motion || motion.profile === "none" || !motion.intensity) return;
 
   const profile = getMotionProfile(motion.profile);

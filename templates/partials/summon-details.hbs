@@ -1,0 +1,46 @@
+<section class="luxsum-summon-details {{#if details.descriptionOnly}}description-only{{/if}}">
+  <header class="luxsum-summon-details-header">
+    <h3 class="luxsum-summon-details-name">{{details.name}}</h3>
+    <span class="luxsum-summon-details-type">{{details.type}}</span>
+  </header>
+
+  {{#if details.flavor}}<p class="luxsum-summon-details-flavor">{{details.flavor}}</p>{{/if}}
+
+  <div class="luxsum-summon-details-vitals">
+    <div class="luxsum-vital">
+      <span class="luxsum-vital-label">HP</span>
+      <span class="luxsum-vital-value">{{details.hp}}</span>
+    </div>
+    <div class="luxsum-vital">
+      <span class="luxsum-vital-label">AC</span>
+      <span class="luxsum-vital-value">{{details.ac}}</span>
+    </div>
+    <div class="luxsum-vital">
+      <span class="luxsum-vital-label">Speed</span>
+      <span class="luxsum-vital-value">{{details.speed}}</span>
+    </div>
+  </div>
+
+  <div class="luxsum-summon-details-abilities">
+    {{#each details.abilities}}
+      <div class="luxsum-ability {{#if save}}has-save-prof{{/if}}">
+        <span class="luxsum-ability-name">{{name}}</span>
+        <span class="luxsum-ability-score">{{score}}</span>
+        <span class="luxsum-ability-mod">{{mod}}</span>
+      </div>
+    {{/each}}
+  </div>
+
+  {{#if details.saves.length}}
+  <div class="luxsum-summon-details-saves">
+    <span class="luxsum-summon-details-saves-label">Saves</span>
+    {{#each details.saves}}
+      <span class="luxsum-save-prof">{{ability}} {{modifier}}</span>
+    {{/each}}
+  </div>
+  {{/if}}
+
+  <button type="button" class="luxsum-open-sheet-btn" data-action="open-foundry-sheet" data-actor-id="{{details.actorId}}" title="{{localize 'LUXSUM.SummonDetails.OpenSheetTooltip'}}">
+    {{localize "LUXSUM.SummonDetails.OpenSheet"}}
+  </button>
+</section>

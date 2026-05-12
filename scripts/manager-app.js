@@ -109,6 +109,17 @@ export class ManagerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       });
     });
 
+    // Restyle button
+    this.element.querySelectorAll('[data-action="restyle"]').forEach(el => {
+      el.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        const actor = game.actors.get(e.currentTarget.dataset.actorId);
+        if (!actor) return;
+        const { openRestyleApp } = await import("./restyle-app.js");
+        openRestyleApp(actor);
+      });
+    });
+
     // Dismiss button
     this.element.querySelectorAll('[data-action="dismiss"]').forEach(el => {
       el.addEventListener("click", (e) => {
