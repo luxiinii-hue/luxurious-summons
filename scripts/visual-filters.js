@@ -5,7 +5,7 @@
 // applyFiltersToToken attaches them to a token mesh (Task 14, manual smoke).
 
 import { isCompanion, getCompanionFlag } from "./data-model.js";
-import { getMotionProfile } from "./motion-profiles.js";
+import { getMotionProfile, motionProfileBounds } from "./motion-profiles.js";
 import { s } from "./settings.js";
 
 const MODULE_ID = "luxurious-summons";
@@ -183,30 +183,44 @@ function applyMotionToTokenWith(token, motion) {
   if (!profile) return;
   const intensity = motion.intensity ?? 1;
 
-  // Snapshot the token's base transform — motion is anchored to these values.
   const mesh = token.mesh;
   if (!mesh) return;
-  const base = {
-    x: mesh.position.x,
-    y: mesh.position.y,
-    rotation: mesh.rotation ?? 0,
-    scaleX: mesh.scale?.x ?? 1,
-    scaleY: mesh.scale?.y ?? 1,
-    alpha: mesh.alpha ?? 1
-  };
+
+  // Inspect the profile's bounds: if a dimension's max delta is 0, the profile
+  // never animates it, so the ticker must NOT write that dimension at all —
+  // writing even a stable "base + 0" would fight Foundry's continuous refresh
+  // and on V13 can pin the mesh at a half-initialised transform (mesh becomes
+  // invisible while the border keeps drawing at the correct world position).
+  const bounds = motionProfileBounds[motion.profile] ?? motionProfileBounds.none;
+  const animatesPosition = bounds.dx > 0 || bounds.dy > 0;
+  const animatesRotation = bounds.dRotation > 0;
+  const animatesScale = bounds.dScale > 0;
+  const animatesAlpha = bounds.dAlpha > 0;
+
+  // Lazy base snapshot — captured on the first tick once Foundry's refresh has
+  // populated canonical position / scale / alpha. Snapshotting at attach time
+  // races the draw chain on V13 and could capture zeros.
+  let base = null;
   const startedAt = performance.now() / 1000;
 
   const tickerCallback = () => {
-    // Skip applying while Foundry is animating the token (e.g., ruler-driven move
-    // or token-drag tween). Avoids fighting Foundry's render loop for control
-    // of mesh.position. The animation finishes in <1 s and motion resumes cleanly.
     if (token._animation) return;
+    if (!base) {
+      base = {
+        x: mesh.position.x,
+        y: mesh.position.y,
+        rotation: mesh.rotation ?? 0,
+        scaleX: mesh.scale?.x ?? 1,
+        scaleY: mesh.scale?.y ?? 1,
+        alpha: mesh.alpha ?? 1
+      };
+    }
     const t = (performance.now() / 1000) - startedAt;
     const delta = profile(t, intensity);
-    mesh.position.set(base.x + delta.dx, base.y + delta.dy);
-    mesh.rotation = base.rotation + delta.dRotation;
-    mesh.scale.set(base.scaleX + delta.dScale, base.scaleY + delta.dScale);
-    mesh.alpha = Math.max(0, Math.min(1, base.alpha + delta.dAlpha));
+    if (animatesPosition) mesh.position.set(base.x + delta.dx, base.y + delta.dy);
+    if (animatesRotation) mesh.rotation = base.rotation + delta.dRotation;
+    if (animatesScale) mesh.scale.set(base.scaleX + delta.dScale, base.scaleY + delta.dScale);
+    if (animatesAlpha) mesh.alpha = Math.max(0, Math.min(1, base.alpha + delta.dAlpha));
   };
 
   const ticker = canvas?.app?.ticker;
