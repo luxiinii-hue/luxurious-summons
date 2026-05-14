@@ -5,7 +5,7 @@ import { openManager } from "./manager-app.js";
 import { installBrokerHook } from "./chat-broker.js";
 import { installSpawnBrokerHandler } from "./spawn-engine.js";
 import { applyFiltersToToken, removeMotionFromToken } from "./visual-filters.js";
-import { installLifecycleHooks, installDeleteHandling, installDismissBrokerHandler } from "./lifecycle.js";
+import { installLifecycleHooks, installDeleteHandling, installDismissBrokerHandler, cleanupOrphanedCompanionTokens } from "./lifecycle.js";
 import { installDnd5eHooks } from "./dnd5e-mods.js";
 import "./handlers/simulacrum.js";   // self-registers Repair via registerHandler
 import { installSheetDecorator } from "./sheet-decorator.js";
@@ -66,6 +66,9 @@ Hooks.once("ready", async () => {
   installDnd5eHooks();
   installSheetDecorator();
   installSpellCastTrigger();
+  // Sweep up ghost tokens from prior sessions (companion tokens whose actor was deleted
+  // without the token also being deleted — paid for in v0.3.3). GM-only by gate inside.
+  await cleanupOrphanedCompanionTokens();
   if (s("verboseLogging")) {
     console.log(`[${MODULE_ID}] verbose logging enabled — full diagnostic trail will print`);
   }

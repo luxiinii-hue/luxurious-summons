@@ -201,18 +201,23 @@ export class ManagerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       rejectClose: false
     });
     if (!proceed) return;
-    // Manual dismiss → softFade animation on the requester's client (so they see the
-    // fade locally; other clients see the token vanish via the deleteToken sync).
-    const { deathAnimations } = await import("./death-animations.js");
-    const tokens = actor.getActiveTokens();
-    await Promise.all(tokens.map(t => deathAnimations.softFade?.(t) ?? Promise.resolve()));
-    // Actor.delete() requires GM permission even for OWNER-permission actors (Foundry's
-    // world-actor delete is GM-gated). Route through the chat-broker so the primary-GM
-    // client performs the actual delete.
+    // Manual dismiss flow:
+    //   - GM path: runDeathAndCleanup runs softFade + token delete + actor delete in
+    //     the right order (animation first so the GM sees the fade, then tokens, then
+    //     actor). Paid for in v0.3.3 — previous code deleted the actor without
+    //     touching the token documents, leaving ghost tokens that couldn't be selected
+    //     but stayed visible.
+    //   - Player path: softFade runs locally so the requester sees the fade, then
+    //     broker the privileged cleanup to the GM. Player can't delete world actors
+    //     or scene tokens even with OWNER on the actor.
     if (game.user.isGM) {
-      await actor.delete();
-      console.log(`[${MODULE_ID}] dismissed companion ${actor.id} (GM direct-delete)`);
+      const { runDeathAndCleanup } = await import("./lifecycle.js");
+      await runDeathAndCleanup(actor);
+      console.log(`[${MODULE_ID}] dismissed companion ${actor.id} (GM direct)`);
     } else {
+      const { deathAnimations } = await import("./death-animations.js");
+      const tokens = actor.getActiveTokens();
+      await Promise.all(tokens.map(t => deathAnimations.softFade?.(t) ?? Promise.resolve()));
       const { postBrokerRequest } = await import("./chat-broker.js");
       await postBrokerRequest("dismiss", { actorId });
       console.log(`[${MODULE_ID}] dismiss broker request posted for ${actor.id}`);

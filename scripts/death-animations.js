@@ -15,7 +15,17 @@ function tweenWithTicker(durationMs, onTick) {
     const tick = () => {
       const elapsed = performance.now() - start;
       const t = Math.min(1, elapsed / durationMs);
-      onTick(t);
+      try {
+        onTick(t);
+      } catch (err) {
+        // The target was likely destroyed mid-animation (e.g., a synced token delete
+        // arrived from the GM while we were animating). Bail cleanly rather than
+        // spamming the console with errors per frame.
+        console.log(`[${MODULE_ID}] tween aborted: ${err.message ?? err}`);
+        PIXI.Ticker.shared.remove(tick);
+        resolve();
+        return;
+      }
       if (t >= 1) {
         PIXI.Ticker.shared.remove(tick);
         resolve();

@@ -122,6 +122,9 @@ export async function performSpawn(payload) {
     // 6. Place token at the requested grid cell
     const scene = game.scenes.get(placement.sceneId) ?? game.scenes.current;
     const tokenData = (await newActor.getTokenDocument({ x: placement.x, y: placement.y })).toObject();
+    // Tag the token so we can identify orphaned summon tokens later (cleanup pass at ready).
+    // Pre-v0.3.3 tokens lack this flag — they have to be cleaned up manually one time.
+    tokenData.flags = { ...(tokenData.flags ?? {}), [MODULE_ID]: { isCompanionToken: true, sourcePlayerId } };
     await scene.createEmbeddedDocuments("Token", [tokenData]);
   }
 
