@@ -52,8 +52,9 @@ When invoked with this dir as cwd, **the parent `Laps/CLAUDE.md` does NOT auto-l
 | **0.3.1** | Restyle dialog: auto-apply via debounced flag writes (350 ms after last change). Save button removed; Cancel renamed "Revert changes" (rolls flag back to state on open). Closing the X commits current state. Defensive fix: `spawn-flow.js` now filters out stale `activeCompanions` entries (actor deleted but user-flag not refreshed) before checking restrictions — unblocks resummon-after-dismiss even if the index drifts. Diagnostic logging added to `applyFiltersToToken` (mesh + texture-valid state, gated on verboseLogging) to surface the rare invisible-token race. |
 | **0.3.2** | Fix invisible-token bug introduced by v0.2.0 motion. Root cause: `applyMotionToTokenWith` snapshotted `mesh.position`/`scale`/`alpha` at attach time (mid-`drawToken` hook, before Foundry's draw chain has set canonical values on V13) and wrote ALL transform dimensions every tick — even ones the profile didn't animate. The flame-flicker profile only changes alpha, but the ticker was still pinning `mesh.position` and `mesh.scale` to pre-init zeros, making the sprite invisible while the border kept rendering at the correct world position. Fix: (1) inspect `motionProfileBounds` and only write dimensions whose max delta > 0 (flame-flicker now only touches alpha); (2) lazy base snapshot on first tick once Foundry's refresh has populated the mesh. |
 | **0.3.3** | Fix ghost-token bug — dismissing a companion deleted the actor but never deleted the token documents. Image still rendered (`token.texture.src` lives on the document), but selection broke (no actor = no ownership). Both the GM-direct path (`manager-app.js #onDismiss`) and the player-broker path (`installDismissBrokerHandler`) now route through a single `runDeathAndCleanup(actor, { skipAnimation? })` that orders animation → `deleteAllTokensFor(actor)` (`scene.deleteEmbeddedDocuments("Token", ...)` across every scene) → `actor.delete()`. Tokens spawned from v0.3.3 onward carry `flags.luxsum.isCompanionToken = true` so a `ready`-hook sweep (`cleanupOrphanedCompanionTokens`) clears tagged orphans that survive a reload. Pre-v0.3.3 ghosts are untagged — GM right-clicks each one time. Defensive try/catch in `death-animations.js tweenWithTicker` swallows mid-animation mesh-destroyed errors. |
+| **0.4.0** | Plan 3 roster expansion (Simulacrum + 7 new templates), spawn-effect audiovisual layer, flat-gallery + variant-picker UX. New source modes: `compendium` (Find Familiar, Pact of the Chain, Animate Dead — UUID lookup; UUIDs are `*-uuid-tbd` placeholders until verified live in dnd5e 5.2.1), `inline-synthesized` (Mage Hand, Unseen Servant, Echo Knight Echo — fully self-contained), `compendium-scaled` (Summon Dragon — 5 damage variants × 4 spell-slot tiers with HP scaling). Unified `effects: { motion, spawn, death }` template descriptor (legacy `defaults.motionProfile` + `deathAnimation` fields stay readable via `readEffects()` migration helper). 6 new spawn animations (`belleBloom`, `hexCrystalForm`, `mageHandSparks`, `infernalBloom`, `boneRise`, `echoStep`) and 6 new death animations (`belleFade`, `hexShatter`, `mageHandDissolve`, `echoCollapse`, `infernalFade`, `boneCollapse`) sharing 2 core implementations (`particleBloom`, `crystalForm`) via parameter-driven variants. Shared `tween.js` helper + `effect-textures.js` PIXI texture registry. Variant eligibility gating (`variant.requires.{class,subclass,classLevel,spellSlotLevel}`) — Pact of the Chain options surface only for warlocks with the boon. Multi-spawn UX for Animate Dead (per-variant stepper + total ≤ 4 + sequential placement loop). Spawn-flow + spawn-engine refactor: signature is now `runSpawnFlow(ctx)` with `{template, variantId, castSlotLevel, sourcePlayerId, sourceActor}`; spawn-engine routes through source-modes, mirrors Echo Knight Echo's AC from caster, tags spawned actor with `spawnState: "pending-spawn"` for one-shot animation playback in the `drawToken` hook. Spell-trigger generalized — supports `trigger: { type: "spell" \| "feature", name }` (Echo Knight's Manifest Echo feature triggers correctly) and extracts `castSlotLevel` from `usageConfig` for compendium-scaled templates. Manager + spell-trigger now route through `VariantPickerApp` instead of direct spawn; legacy `spawn-app.js` + `spawn.hbs` removed. **Tests: 42 → 80** (new suites for `effects-fallback`, `variant-eligibility`, `source-modes`, `multi-spawn-counter`). Asset gen deferred to a follow-up run via asset-planner. |
 
-**42 unit tests passing.** Distribution ZIPs in `../../dist/luxurious-summons-X.Y.Z.zip`.
+**80 unit tests passing.** Distribution ZIPs in `../../dist/luxurious-summons-X.Y.Z.zip`.
 
 ### What's actively in flight
 
@@ -248,46 +249,64 @@ The friend hits these on V13 build 351. The "V14" wording in individual bullets 
 
 ```
 scripts/
-├── main.js              ← module entry, hook registration
-├── settings.js          ← 8 world + 4 client settings
-├── data-model.js        ← companion record schema, validators, flag helpers, user-flag index regen
-├── chat-broker.js       ← player↔GM coordination via chat-message flags + electPrimaryGM
-├── spawn-engine.js      ← checkRestrictions (pure) + performSpawn (broker handler) + ensureMasterFolder
-├── spawn-flow.js        ← runSpawnFlow shared by Manager + spell-trigger
-├── lifecycle.js         ← detectHpDeath (pure) + HP=0 hooks + master-deletion prompt + runDeathAndCleanup
-├── visual-filters.js    ← describeFilters (pure) + buildFilters (PIXI) + applyFiltersToToken
-├── placement-overlay.js ← isCellBlocked (pure) + activatePlacement (PIXI ghost preview)
-├── death-animations.js  ← icyShatter, softFade (more in Plan 3)
-├── dnd5e-mods.js        ← computeModUpdates (pure) + applyDnd5eMods + installDnd5eHooks
-├── spell-trigger.js     ← dnd5e.useItem hook → runSpawnFlow
-├── sheet-decorator.js   ← renderActorSheet hook → Luxurious banner + .luxsum-companion-sheet class
-├── manager-app.js       ← Manager dialog (5 tabs, role-gated)
-├── spawn-app.js         ← Spawn Dialog (modal — minimal, will be replaced in Plan 2 implementation)
-├── templates-builtin.js ← Simulacrum template (other 11 in Plan 3)
-├── motion-profiles.js   ← Plan 2: 6 named motion profiles (none, floating-hand, ethereal-drift, mirror-wobble, idle-breathing, flame-flicker) + getMotionProfile fallback. Pure functions (t, intensity) → transform deltas.
+├── main.js                  ← module entry, hook registration, effect-texture preload (v0.4.0)
+├── settings.js              ← 8 world + 4 client settings
+├── data-model.js            ← companion record schema, validators, flag helpers, user-flag index regen, readEffects() migration helper
+├── chat-broker.js           ← player↔GM coordination via chat-message flags + electPrimaryGM
+├── spawn-engine.js          ← checkRestrictions (pure) + performSpawn (routes through source-modes, v0.4.0)
+├── spawn-flow.js            ← runSpawnFlow(ctx) — restrictions + placement + broker post (v0.4.0 signature change)
+├── spawn-gallery-app.js     ← v0.4.0: Spawn-dialog gallery (ApplicationV2)
+├── variant-picker-app.js    ← v0.4.0: Variant-picker modal — surgical class-toggle selection, multi-spawn, cast-level
+├── source-modes.js          ← v0.4.0: actor-data resolution (clone / compendium / inline-synth / compendium-scaled) + scaling-tier helpers
+├── variant-eligibility.js   ← v0.4.0: pure-logic variant filtering by caster class/subclass/level
+├── multi-spawn-counter.js   ← v0.4.0: pure-logic per-variant counter for Animate Dead's up-to-4 flow
+├── lifecycle.js             ← detectHpDeath (pure) + HP=0 hooks + master-deletion prompt + runDeathAndCleanup + orphan-token sweep
+├── visual-filters.js        ← describeFilters (pure) + buildFilters (PIXI) + applyFiltersToToken / applyOverridesToToken
+├── placement-overlay.js     ← isCellBlocked (pure) + activatePlacement (PIXI ghost preview)
+├── death-animations.js      ← icyShatter, softFade + 6 new (belleFade, hexShatter, mageHandDissolve, echoCollapse, infernalFade, boneCollapse)
+├── spawn-animations.js      ← v0.4.0: 2 core animations (particleBloom, crystalForm) + 4 variants (mageHandSparks, infernalBloom, boneRise, echoStep)
+├── spawn-trigger-anim.js    ← v0.4.0: drawToken hook handler that plays the spawn animation once
+├── tween.js                 ← v0.4.0: shared PIXI ticker-based tween helper (with mid-anim mesh-destroyed guard)
+├── effect-textures.js       ← v0.4.0: PIXI texture registry for spawn/death effect SVG assets
+├── dnd5e-mods.js            ← computeModUpdates (pure) + applyDnd5eMods + installDnd5eHooks
+├── spell-trigger.js         ← postUseActivity hook → openVariantPicker (supports spell + feature triggers as of v0.4.0)
+├── sheet-decorator.js       ← renderActorSheet hook → Luxurious banner + .luxsum-companion-sheet class
+├── manager-app.js           ← Manager dialog (5 tabs, role-gated)
+├── restyle-app.js           ← Plan 2 Restyle dialog
+├── templates-builtin.js     ← 8 templates: Simulacrum + Find Familiar + Pact + Animate Dead + Mage Hand + Unseen Servant + Echo Knight Echo + Summon Dragon (v0.4.0)
+├── motion-profiles.js       ← Plan 2: 6 named motion profiles + getMotionProfile fallback. Pure functions (t, intensity) → transform deltas.
 └── handlers/
-    ├── index.js         ← handler registry + callHandler
-    └── simulacrum.js    ← Repair action + onAfterSpawn (spell-slot snapshot)
+    ├── index.js             ← handler registry + callHandler
+    └── simulacrum.js        ← Repair action + onAfterSpawn (spell-slot snapshot)
 
 styles/
-├── luxurious.css        ← Base palette (wine + gold + hextech reserved tokens) + theme rules
-├── manager.css          ← Companion Manager dialog layout
-├── restyle.css          ← Plan 2: Restyle dialog steampunk-luxury controls — sliders (hex thumbs), toggles, color pickers, motion radio, fleur-de-lis dividers, shimmer keyframe approximation
-└── summon-details.css   ← Plan 2: summon info card chrome (gilded plaque feel, ability score grid, save-prof pips, Open Foundry Sheet CTA)
+├── luxurious.css            ← Base palette (wine + gold + hextech reserved tokens) + theme rules
+├── manager.css              ← Companion Manager dialog layout
+├── restyle.css              ← Plan 2 Restyle dialog
+├── summon-details.css       ← Plan 2 summon info card chrome
+├── spawn-gallery.css        ← v0.4.0: Spawn-dialog gallery — 3-col grid, family-stripe edge, hover lift
+└── variant-picker.css       ← v0.4.0: Variant-picker modal — 2-column, stepper, cast-level selector, multi-spawn total
 
 templates/
-├── manager.hbs          ← Manager dialog (5 tabs)
-├── spawn.hbs            ← Spawn dialog (will be amended in Plan 2 implementation to use the info card + drop the per-spawn customize expander)
+├── manager.hbs              ← Manager dialog (5 tabs)
+├── spawn-gallery.hbs        ← v0.4.0: gallery dialog
+├── variant-picker.hbs       ← v0.4.0: variant picker modal
+├── restyle.hbs              ← Plan 2 Restyle dialog
 └── partials/
-    ├── companion-card.hbs ← Manager My-Companions card
-    └── template-card.hbs  ← Manager Spawn-New gallery card
+    ├── companion-card.hbs   ← Manager My-Companions card
+    ├── template-card.hbs    ← legacy partial (still used by Manager → Spawn New tab)
+    ├── template-gallery-card.hbs ← v0.4.0: gallery dialog card
+    ├── variant-card.hbs     ← v0.4.0: variant grid card with optional stepper
+    └── summon-details.hbs   ← Plan 2 summon info card (reused by variant picker)
 
 assets/
-├── icons/                ← Module icons
-├── templates-thumbs/     ← Template gallery thumbnails (Simulacrum SVG placeholder ships today; Plan 3 generates the rest via Replicate)
-├── tokens/               ← Per-template token assets (Plan 3 — Mage Hand, Unseen Servant, etc.; transparent backgrounds, isolated subjects only)
+├── icons/                   ← Module icons
+├── templates-thumbs/        ← Template gallery thumbnails (Simulacrum SVG; PNG generation deferred to asset-planner agent)
+├── variants/                ← Per-variant thumbnails (v0.4.0; generation deferred to asset-planner)
+├── tokens/                  ← Per-template token sprites for inline-synthesized templates (deferred to asset-planner)
+├── effects/                 ← v0.4.0 hand-authored: hex-shard.svg, gold-mote.svg, ember.svg, bone-mote.svg
 └── ui/
-    └── fleur-de-lis.svg  ← Plan 2: divider ornament, used between control groups in the Restyle dialog
+    └── fleur-de-lis.svg     ← Plan 2 divider ornament
 
 previews/                  (NOT shipped in dist ZIP)
 ├── restyle.html          ← Plan 2: standalone HTML preview of the Restyle dialog. Three template flavors, hex thumbs, full control set, summon details card, mock motion via CSS keyframes.

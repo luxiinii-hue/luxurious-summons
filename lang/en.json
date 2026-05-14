@@ -56,5 +56,14 @@
   "LUXSUM.Restyle.AutoApplyHint": "Changes apply automatically",
   "LUXSUM.Restyle.OptionalPlaceholder": "optional",
   "LUXSUM.SummonDetails.OpenSheet": "Open Foundry Sheet",
-  "LUXSUM.SummonDetails.OpenSheetTooltip": "Open the companion's full character sheet for detailed editing."
+  "LUXSUM.SummonDetails.OpenSheetTooltip": "Open the companion's full character sheet for detailed editing.",
+  "LUXSUM.SpawnGallery.Title": "Spawn New Companion",
+  "LUXSUM.VariantPicker.Title": "Pick a Variant",
+  "LUXSUM.VariantPicker.PickVariant": "Pick a variant",
+  "LUXSUM.VariantPicker.CastLevel": "Cast level",
+  "LUXSUM.VariantPicker.Place": "Place",
+  "LUXSUM.VariantPicker.PlaceN": "Place {count} tokens",
+  "LUXSUM.VariantPicker.MultispawnTotal": "Total",
+  "LUXSUM.Common.Cancel": "Cancel",
+  "LUXSUM.Spawn.NoSourceActor": "No source actor — assign a character to your user first."
 }
