@@ -1,6 +1,8 @@
 // scripts/manager-app.js — Companion Manager dialog (5 tabs, role-gated)
 import { templates as builtinTemplates } from "./templates-builtin.js";
-import { runSpawnFlow } from "./spawn-flow.js";
+// Plan 3: spawn flow now goes Manager → VariantPickerApp → runSpawnFlow(ctx).
+// The variant picker is the universal entry point; manager-app + spell-trigger
+// open the picker which in turn calls runSpawnFlow internally.
 import { runDeathAndCleanup } from "./lifecycle.js";
 import { callHandler } from "./handlers/index.js";
 
@@ -183,10 +185,14 @@ export class ManagerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
   }
 
-  #onTemplateCardClick(templateId) {
+  async #onTemplateCardClick(templateId) {
     const tpl = builtinTemplates.find(t => t.id === templateId);
     if (!tpl) return;
-    runSpawnFlow(tpl);     // shared with the dnd5e spell-cast trigger
+    // Plan 3: open the variant picker instead of going straight to placement.
+    // Single-variant templates open with N=1 pre-selected — same dialog
+    // treatment as multi-variant, just N=1, for consistency.
+    const { openVariantPicker } = await import("./variant-picker-app.js");
+    openVariantPicker(tpl, { sourceActor: game.user.character });
   }
 
   async #onDismiss(actorId) {
