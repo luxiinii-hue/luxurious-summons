@@ -1,0 +1,14 @@
+<div class="luxsum-variant-card{{#if selected}} selected{{/if}}{{#if ineligible}} ineligible{{/if}}{{#if showStepper}} multispawn{{/if}}"
+     data-variant-id="{{variant.id}}"
+     {{#if ineligible}}title="{{ineligibilityReason}}"{{/if}}>
+  <img class="luxsum-variant-thumb" src="{{variant.thumbnail}}" alt="{{variant.name}}" draggable="false" />
+  <div class="luxsum-variant-name">{{variant.name}}</div>
+  {{#if ineligible}}<i class="fa-solid fa-lock luxsum-variant-lock"></i>{{/if}}
+  {{#if showStepper}}
+    <div class="luxsum-variant-stepper">
+      <button type="button" data-action="dec" data-variant-id="{{variant.id}}">−</button>
+      <span class="luxsum-variant-count">{{count}}</span>
+      <button type="button" data-action="inc" data-variant-id="{{variant.id}}">+</button>
+    </div>
+  {{/if}}
+</div>

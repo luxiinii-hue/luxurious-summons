@@ -1,0 +1,44 @@
+<div class="luxsum-variant-picker">
+  <header class="luxsum-variant-picker-header">
+    <h2>{{template.name}} — {{localize "LUXSUM.VariantPicker.PickVariant"}}</h2>
+  </header>
+  <div class="luxsum-variant-picker-body">
+    <div class="luxsum-variant-picker-left">
+      <div class="luxsum-variant-grid">
+        {{#each variants as |v|}}
+          {{> "modules/luxurious-summons/templates/partials/variant-card.hbs"
+              variant=v
+              selected=(eq v.id ../selectedVariantId)
+              ineligible=v._ineligible
+              ineligibilityReason=v._reason
+              showStepper=../multiSpawn
+              count=v._count}}
+        {{/each}}
+      </div>
+      {{#if multiSpawn}}
+        <div class="luxsum-multispawn-total">
+          {{localize "LUXSUM.VariantPicker.MultispawnTotal"}}: <span data-multispawn-total>{{multispawnTotal}}</span> / {{multispawnMax}}
+        </div>
+      {{/if}}
+      {{#if showCastLevelSelector}}
+        <div class="luxsum-cast-level-row">
+          <label>{{localize "LUXSUM.VariantPicker.CastLevel"}}:</label>
+          <select class="luxsum-cast-level-select">
+            {{#each castLevelOptions as |opt|}}
+              <option value="{{opt.level}}" {{#if (eq opt.level ../selectedCastSlotLevel)}}selected{{/if}}>{{opt.label}}</option>
+            {{/each}}
+          </select>
+        </div>
+      {{/if}}
+    </div>
+    <div class="luxsum-variant-picker-right" data-info-card>
+      {{> "modules/luxurious-summons/templates/partials/summon-details.hbs" details=selectedDetails}}
+    </div>
+  </div>
+  <footer class="luxsum-variant-picker-footer">
+    <button type="button" data-action="cancel" class="luxsum-btn-outline">{{localize "LUXSUM.Common.Cancel"}}</button>
+    <button type="button" data-action="place"  class="luxsum-btn-primary" {{#unless canPlace}}disabled{{/unless}}>
+      {{#if multiSpawn}}{{localize "LUXSUM.VariantPicker.PlaceN" count=multispawnTotal}}{{else}}{{localize "LUXSUM.VariantPicker.Place"}}{{/if}}
+    </button>
+  </footer>
+</div>

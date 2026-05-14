@@ -1,0 +1,166 @@
+/* styles/variant-picker.css — Plan 3 Variant Picker modal */
+
+.luxsum-variant-picker {
+  width: 720px;
+  min-height: 500px;
+  background: var(--luxsum-bg);
+  color: var(--luxsum-text);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.luxsum-variant-picker-header h2 {
+  font-family: "Cinzel", serif;
+  color: var(--luxsum-accent);
+  margin: 0 0 16px;
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.luxsum-variant-picker-body {
+  display: flex;
+  gap: 24px;
+  flex: 1;
+}
+
+.luxsum-variant-picker-left {
+  width: 320px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.luxsum-variant-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  align-content: start;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.luxsum-variant-card {
+  position: relative;
+  height: 88px;
+  background: var(--luxsum-bg-elev);
+  border: 1px solid var(--luxsum-border);
+  border-radius: 4px;
+  padding: 6px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.luxsum-variant-card.multispawn { height: 108px; }
+.luxsum-variant-card:hover { box-shadow: 0 0 0 2px var(--luxsum-glow); }
+.luxsum-variant-card.selected { box-shadow: 0 0 0 2px var(--luxsum-accent-hi); }
+.luxsum-variant-card.ineligible { opacity: 0.4; cursor: not-allowed; }
+
+.luxsum-variant-thumb {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.luxsum-variant-name {
+  font-size: 11px;
+  color: var(--luxsum-text);
+  text-align: center;
+}
+
+.luxsum-variant-lock {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 10px;
+  color: var(--luxsum-danger);
+}
+
+.luxsum-variant-stepper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--luxsum-accent);
+  margin-top: auto;
+}
+.luxsum-variant-stepper button {
+  background: transparent;
+  border: 1px solid var(--luxsum-accent);
+  color: var(--luxsum-accent);
+  width: 16px;
+  height: 16px;
+  font-size: 10px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+.luxsum-variant-stepper button:hover { background: var(--luxsum-accent); color: var(--luxsum-bg); }
+.luxsum-variant-count { min-width: 14px; text-align: center; }
+
+.luxsum-multispawn-total {
+  margin-top: 8px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--luxsum-accent);
+}
+
+.luxsum-cast-level-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 12px;
+}
+.luxsum-cast-level-row label { color: var(--luxsum-accent); }
+.luxsum-cast-level-select {
+  background: var(--luxsum-bg);
+  color: var(--luxsum-text);
+  border: 1px solid var(--luxsum-accent);
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 3px;
+}
+
+.luxsum-variant-picker-right {
+  flex: 1;
+  background: var(--luxsum-bg-elev);
+  border: 1px solid var(--luxsum-accent);
+  padding: 16px;
+  border-radius: 4px;
+}
+
+.luxsum-variant-picker-footer {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  border-top: 1px solid var(--luxsum-accent);
+  padding-top: 12px;
+}
+
+.luxsum-btn-outline {
+  background: transparent;
+  border: 1px solid var(--luxsum-accent);
+  color: var(--luxsum-accent);
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 12px;
+  letter-spacing: 0.3px;
+}
+.luxsum-btn-outline:hover { background: var(--luxsum-accent); color: var(--luxsum-bg); }
+.luxsum-btn-primary {
+  background: var(--luxsum-accent);
+  border: 1px solid var(--luxsum-accent);
+  color: var(--luxsum-bg);
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+.luxsum-btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }

@@ -33,7 +33,8 @@ Hooks.once("init", async () => {
       "modules/luxurious-summons/templates/partials/companion-card.hbs",
       "modules/luxurious-summons/templates/partials/template-card.hbs",
       "modules/luxurious-summons/templates/partials/summon-details.hbs",
-      "modules/luxurious-summons/templates/partials/template-gallery-card.hbs"
+      "modules/luxurious-summons/templates/partials/template-gallery-card.hbs",
+      "modules/luxurious-summons/templates/partials/variant-card.hbs"
     ]);
     console.log(`[${MODULE_ID}] partials registered`);
   } else {
