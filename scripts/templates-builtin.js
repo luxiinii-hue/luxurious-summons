@@ -1,6 +1,9 @@
 // scripts/templates-builtin.js — built-in shipped template definitions
 //
-// Plan 1 ships only Simulacrum. Plan 3 adds the remaining 12 templates.
+// Plan 3 introduced the unified `source` + `effects` shape. Legacy fields
+// (`triggerSpell`, `defaults.motionProfile`, `defaults.motionIntensity`,
+// `deathAnimation`) stay readable as fallbacks during the migration window —
+// the spawn engine + visual-filters use `readEffects(template)` from data-model.
 
 export const templates = [
   {
@@ -8,20 +11,29 @@ export const templates = [
     name: "Simulacrum",
     description: "Illusory duplicate of the master. Half max HP, no spell-slot recovery on rest, no natural HP regain (Repair-only).",
     thumbnail: "modules/luxurious-summons/assets/templates-thumbs/simulacrum.svg",
-    triggerSpell: "Simulacrum",     // matches dnd5e item name → auto-open spawn dialog (v3 useItem / v4 useActivity / v5 postUseActivity)
-    aestheticFamily: "hextech",     // cool/arcane palette per Plan 2 design doc §2.4
-    source: {
-      mode: "clone"
-    },
+    aestheticFamily: "hextech",
+
+    trigger: { type: "spell", name: "Simulacrum" },
+    triggerSpell: "Simulacrum",                 // legacy alias — kept readable during migration
+
+    source: { mode: "clone" },
     syncMode: "snapshot",
     maxActive: 1,
     requiresApproval: false,
+
     dnd5eMods: {
       halveMaxHp: true,
       blockNaturalRecovery: true,
       snapshotSpellSlots: true,
       repairAction: { cost: 100, healFormula: "4d6+24", timeRequired: "1 hour" }
     },
+
+    effects: {
+      motion: { profile: "flame-flicker", intensity: 0.6 },
+      spawn:  "hexCrystalForm",                 // hextech family default
+      death:  "icyShatter"                      // signature override
+    },
+
     defaults: {
       hueColor: "#88ccff",
       hueIntensity: 0.15,
@@ -35,13 +47,14 @@ export const templates = [
       namePrefix: "Simulacrum of ",
       nameSuffix: "",
       borderColor: "#88ccff",
-      // Motion defaults — subtle icy-crackle shimmer. Player can disable via Restyle when that ships.
-      motionProfile: "flame-flicker",
+      motionProfile: "flame-flicker",           // legacy aliases — Restyle / Plan-2 motion ticker read these
       motionIntensity: 0.6
     },
+
     extraActions: [
       { id: "repair", label: "Repair", icon: "fa-solid fa-wrench", handler: "simulacrum.repair" }
     ],
-    deathAnimation: "icyShatter"
+
+    deathAnimation: "icyShatter"                // legacy alias
   }
 ];
