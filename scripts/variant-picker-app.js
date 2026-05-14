@@ -66,6 +66,19 @@ export class VariantPickerApp extends HandlebarsApplicationMixin(ApplicationV2) 
       ...v,
       _count: this.counter?.counts?.[v.id] ?? 0
     }));
+    const sourceMode = this.template.source?.mode;
+    const showCastLevelSelector = sourceMode === "compendium-scaled";
+    const castLevelOptions = showCastLevelSelector
+      ? (this.template.source.scalingTable ?? []).map(row => ({
+          level: row.slotLevel,
+          label: this.#formatOrdinal(row.slotLevel) + " level"
+        }))
+      : [];
+    // Default cast level to the cast's own slot level (set via spell-trigger ctx)
+    // or the spell's base level (first row of scaling table).
+    if (showCastLevelSelector && this.selectedCastSlotLevel == null) {
+      this.selectedCastSlotLevel = castLevelOptions[0]?.level ?? null;
+    }
     return {
       template: this.template,
       variants: variantsForRender,
@@ -77,16 +90,39 @@ export class VariantPickerApp extends HandlebarsApplicationMixin(ApplicationV2) 
       multiSpawn: this.multiSpawn,
       multispawnTotal: this.multiSpawn ? totalCount(this.counter) : 0,
       multispawnMax: this.template.maxActive,
-      showCastLevelSelector: false,    // task 25 will flip this on for compendium-scaled
-      castLevelOptions: [],
+      showCastLevelSelector,
+      castLevelOptions,
       selectedCastSlotLevel: this.selectedCastSlotLevel
     };
+  }
+
+  #formatOrdinal(n) {
+    const v = n % 100;
+    if (v >= 11 && v <= 13) return n + "th";
+    switch (n % 10) {
+      case 1:  return n + "st";
+      case 2:  return n + "nd";
+      case 3:  return n + "rd";
+      default: return n + "th";
+    }
   }
 
   _onRender(context, options) {
     super._onRender?.(context, options);
     this.#wireVariantCardClicks();
     this.#wireStepperClicks();
+    this.#wireCastLevelSelector();
+  }
+
+  #wireCastLevelSelector() {
+    const select = this.element.querySelector(".luxsum-cast-level-select");
+    if (!select) return;
+    select.addEventListener("change", async (e) => {
+      this.selectedCastSlotLevel = parseInt(e.target.value, 10);
+      // Cast level affects info-card stats (Summon Dragon's HP scales per tier).
+      // Refresh the info card surgically — don't full-render or the grid scroll resets.
+      await this.#refreshInfoCard();
+    });
   }
 
   /**
@@ -178,23 +214,89 @@ export class VariantPickerApp extends HandlebarsApplicationMixin(ApplicationV2) 
   }
 
   /**
-   * Build the data shape consumed by summon-details.hbs. For Plan 3 task 24
-   * this is a placeholder — task 26 plugs in real actor-data resolution.
+   * Build the data shape consumed by summon-details.hbs. Resolves actor data
+   * per the template's source mode so the info card shows real stats.
+   *
+   * Failure modes (e.g., compendium UUID placeholder) are handled gracefully
+   * — the card falls back to template description + dashes for stats.
    */
   async #buildDetailsCard(variant) {
-    if (!variant) {
-      return { name: "—", type: "", flavor: "(select a variant)", hp: "—", ac: "—", speed: "—", abilities: [], saves: [], actorId: null };
-    }
-    return {
-      name:    variant.name,
-      type:    "",
-      flavor:  this.template.description,
-      hp:      "—",
-      ac:      "—",
-      speed:   "—",
+    const emptyDetails = (name, flavor) => ({
+      name: name ?? "—",
+      type: "",
+      flavor: flavor ?? "",
+      hp: "—", ac: "—", speed: "—",
       abilities: [],
-      saves:   [],
+      saves: [],
       actorId: null
+    });
+
+    if (!variant) return emptyDetails("—", "(select a variant)");
+
+    const sourceMode = this.template.source?.mode;
+    let actorData = null;
+    try {
+      if (sourceMode === "compendium" || sourceMode === "compendium-scaled") {
+        const { resolveCompendiumData, resolveCompendiumScaledData } = await import("./source-modes.js");
+        actorData = sourceMode === "compendium-scaled"
+          ? await resolveCompendiumScaledData(this.template, variant, {
+              name: variant.name,
+              castSlotLevel: this.selectedCastSlotLevel
+            })
+          : await resolveCompendiumData(this.template, variant, { name: variant.name });
+      } else if (sourceMode === "inline-synthesized") {
+        const { resolveInlineData } = await import("./source-modes.js");
+        actorData = resolveInlineData(this.template, { name: variant.name ?? this.template.name });
+      } else if (sourceMode === "clone") {
+        const source = this.ctx.sourceActor ?? game.user.character;
+        if (source) {
+          const { resolveCloneData } = await import("./source-modes.js");
+          actorData = resolveCloneData(source, {
+            prefix: this.template.defaults?.namePrefix ?? "",
+            suffix: this.template.defaults?.nameSuffix ?? ""
+          });
+        }
+      }
+    } catch (e) {
+      console.warn(`[${MODULE_ID}] info-card resolution failed for variant "${variant.id}":`, e.message);
+    }
+
+    if (!actorData) return emptyDetails(variant.name, this.template.description);
+
+    const sys = actorData.system ?? {};
+    const mv = sys.attributes?.movement ?? {};
+    const speedParts = [];
+    if (mv.walk)  speedParts.push(`Walk ${mv.walk}`);
+    if (mv.fly)   speedParts.push(`Fly ${mv.fly}`);
+    if (mv.swim)  speedParts.push(`Swim ${mv.swim}`);
+    if (mv.climb) speedParts.push(`Climb ${mv.climb}`);
+
+    // dnd5e ability score → modifier helper
+    const abilityMod = (score) => {
+      const m = Math.floor(((score ?? 10) - 10) / 2);
+      return (m >= 0 ? "+" : "") + m;
+    };
+    const abilityNames = ["str", "dex", "con", "int", "wis", "cha"];
+    const abilities = abilityNames.map(key => {
+      const ab = sys.abilities?.[key] ?? {};
+      return {
+        name:  key.toUpperCase(),
+        score: ab.value ?? "—",
+        mod:   ab.value !== undefined ? abilityMod(ab.value) : "—",
+        save:  ab.save?.proficient === 1 || ab.proficient === 1
+      };
+    });
+
+    return {
+      name:    variant.name ?? this.template.name,
+      type:    sys.details?.type?.value ?? "",
+      flavor:  this.template.description,
+      ac:      sys.attributes?.ac?.flat ?? sys.attributes?.ac?.value ?? "—",
+      hp:      sys.attributes?.hp ? `${sys.attributes.hp.value ?? "—"} / ${sys.attributes.hp.max ?? "—"}` : "—",
+      speed:   speedParts.length ? speedParts.join(" • ") : "—",
+      abilities,
+      saves:   [],         // detailed save breakdown is left to the actor sheet for v0.4.0
+      actorId: null        // no live actor yet — info card is preview-only
     };
   }
 
