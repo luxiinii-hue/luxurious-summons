@@ -73,6 +73,27 @@ export function regenerateUserIndex(actors, sceneOf) {
 }
 
 /**
+ * Read a template's audiovisual effects descriptor. Plan 3 introduced the
+ * unified `template.effects = { motion, spawn, death }` shape; legacy
+ * (Plan 1 / Plan 2) templates have the same data scattered across
+ * `defaults.motionProfile`, `defaults.motionIntensity`, and `deathAnimation`.
+ *
+ * Returns the new shape always — callers don't need to handle either.
+ */
+export function readEffects(template) {
+  if (template?.effects) return template.effects;
+  const defaults = template?.defaults ?? {};
+  const motion = (defaults.motionProfile && defaults.motionIntensity !== undefined)
+    ? { profile: defaults.motionProfile, intensity: defaults.motionIntensity }
+    : { profile: "none", intensity: 0 };
+  return {
+    motion,
+    spawn: null,    // legacy templates have no spawn layer
+    death: template?.deathAnimation ?? "softFade"
+  };
+}
+
+/**
  * Foundry-side wrapper. Walks live game state, builds the index via
  * regenerateUserIndex, and writes each user's slice to
  * user.flags[MODULE_ID].activeCompanions.
