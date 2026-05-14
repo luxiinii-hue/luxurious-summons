@@ -102,6 +102,12 @@ function renderVariantPicker(mount, opts) {
   const counts = {};
 
   const refresh = () => {
+    // Preserve scroll position of the variant grid across re-renders.
+    // The real ApplicationV2 impl in Phase 4 should prefer surgical class-
+    // toggle on selection (instead of wholesale re-render) so the user's
+    // scroll stays fluent during variant selection.
+    const prevGrid = mount.querySelector(".luxsum-variant-grid");
+    const prevScrollTop = prevGrid ? prevGrid.scrollTop : 0;
     const selected = list.find(v => v.id === selectedId);
     const extra = (templateId === "summon-dragon" && selected)
       ? dragonScalingPreview[castLevel]
@@ -114,7 +120,7 @@ function renderVariantPicker(mount, opts) {
           <div class="luxsum-variant-picker-left">
             <div class="luxsum-variant-grid">
               ${list.map(v => `
-                <div class="luxsum-variant-card ${v.id === selectedId ? "selected" : ""}" data-variant-id="${v.id}">
+                <div class="luxsum-variant-card ${v.id === selectedId ? "selected" : ""} ${multispawn ? "multispawn" : ""}" data-variant-id="${v.id}">
                   ${variantThumb(v.glyph)}
                   <div class="luxsum-variant-name">${v.name}</div>
                   ${multispawn ? `
@@ -149,6 +155,9 @@ function renderVariantPicker(mount, opts) {
         </footer>
       </div>
     `;
+    // Restore the scroll position so clicking a variant doesn't yank the user back to the top.
+    const newGrid = mount.querySelector(".luxsum-variant-grid");
+    if (newGrid) newGrid.scrollTop = prevScrollTop;
     mount.querySelectorAll(".luxsum-variant-card").forEach(el => {
       el.addEventListener("click", (e) => {
         if (e.target.closest(".luxsum-variant-stepper")) return;

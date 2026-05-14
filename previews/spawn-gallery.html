@@ -190,7 +190,11 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      gap: 4px;
     }
+    /* In multi-spawn mode the card grows to give the stepper its own row,
+       otherwise the absolutely-positioned stepper collides with the name. */
+    .luxsum-variant-card.multispawn { height: 108px; }
     .luxsum-variant-card:hover { box-shadow: 0 0 0 2px var(--luxsum-glow); }
     .luxsum-variant-card.selected { box-shadow: 0 0 0 2px var(--luxsum-accent-hi); }
     .luxsum-variant-card.ineligible { opacity: 0.4; cursor: not-allowed; }
@@ -205,7 +209,7 @@
       color: var(--luxsum-text-mute);
       font-family: "Cinzel", serif;
       font-size: 18px;
-      margin-bottom: 4px;
+      flex-shrink: 0;
     }
     .luxsum-variant-name {
       font-size: 11px;
@@ -213,16 +217,13 @@
       text-align: center;
     }
     .luxsum-variant-stepper {
-      position: absolute;
-      bottom: 2px;
-      left: 0;
-      right: 0;
       display: flex;
       justify-content: center;
       align-items: center;
       gap: 4px;
       font-size: 10px;
       color: var(--luxsum-accent);
+      margin-top: auto;
     }
     .luxsum-variant-stepper button {
       background: transparent;
