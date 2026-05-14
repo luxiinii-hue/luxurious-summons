@@ -203,13 +203,19 @@ export class VariantPickerApp extends HandlebarsApplicationMixin(ApplicationV2) 
 
   /**
    * Surgically replace the info-card DOM with fresh content for the current selection.
+   *
+   * V13/V14 fallback: V14 namespaces `renderTemplate` under
+   * `foundry.applications.handlebars`; V13 still exposes it as a global.
+   * Reading the global on V13+ emits a deprecation warning, so probe the
+   * namespaced API first.
    */
   async #refreshInfoCard() {
     const selected = this._eligibleVariants.find(v => v.id === this.selectedVariantId);
     const details = await this.#buildDetailsCard(selected);
     const mount = this.element.querySelector("[data-info-card]");
     if (!mount) return;
-    const html = await renderTemplate("modules/luxurious-summons/templates/partials/summon-details.hbs", { details });
+    const renderTpl = foundry.applications?.handlebars?.renderTemplate ?? globalThis.renderTemplate;
+    const html = await renderTpl("modules/luxurious-summons/templates/partials/summon-details.hbs", { details });
     mount.innerHTML = html;
   }
 
