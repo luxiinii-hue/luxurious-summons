@@ -1,0 +1,13 @@
+<div class="luxsum-spawn-gallery">
+  <header class="luxsum-spawn-gallery-header">
+    <h2>{{localize "LUXSUM.SpawnGallery.Title"}}</h2>
+  </header>
+  <div class="luxsum-spawn-gallery-grid">
+    {{#each templates as |t|}}
+      {{> "modules/luxurious-summons/templates/partials/template-gallery-card.hbs" template=t}}
+    {{/each}}
+  </div>
+  <footer class="luxsum-spawn-gallery-footer">
+    <button type="button" data-action="cancel" class="luxsum-btn-outline">{{localize "LUXSUM.Common.Cancel"}}</button>
+  </footer>
+</div>

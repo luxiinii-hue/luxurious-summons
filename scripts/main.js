@@ -17,6 +17,10 @@ Hooks.once("init", async () => {
   console.log(`[${MODULE_ID}] init — module loading`);
   registerSettings();
 
+  // V14 ships fewer Handlebars helpers than V13. We need `gt` for variant-count
+  // comparisons in template-gallery-card.hbs ("show variant badge if > 1").
+  Handlebars.registerHelper("gt", (a, b) => Number(a) > Number(b));
+
   // V14: pre-register Handlebars partials. Without this, `{{> "modules/..."}}` references
   // in templates throw at render time with "The partial <path> could not be found." V13
   // may have auto-loaded partials by path; V14's HandlebarsApplicationMixin is strict and
@@ -28,7 +32,8 @@ Hooks.once("init", async () => {
     await loader([
       "modules/luxurious-summons/templates/partials/companion-card.hbs",
       "modules/luxurious-summons/templates/partials/template-card.hbs",
-      "modules/luxurious-summons/templates/partials/summon-details.hbs"
+      "modules/luxurious-summons/templates/partials/summon-details.hbs",
+      "modules/luxurious-summons/templates/partials/template-gallery-card.hbs"
     ]);
     console.log(`[${MODULE_ID}] partials registered`);
   } else {

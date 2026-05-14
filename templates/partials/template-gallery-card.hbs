@@ -1,0 +1,8 @@
+<div class="luxsum-template-card" data-template-id="{{template.id}}" data-family="{{template.aestheticFamily}}">
+  <img class="luxsum-template-thumb" src="{{template.thumbnail}}" alt="{{template.name}}" draggable="false" />
+  <div class="luxsum-template-name">{{template.name}}</div>
+  <div class="luxsum-template-tagline">{{template.description}}</div>
+  {{#if (gt template.variants.length 1)}}
+    <div class="luxsum-template-variant-badge">{{template.variants.length}}</div>
+  {{/if}}
+</div>
