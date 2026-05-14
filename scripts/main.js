@@ -63,6 +63,23 @@ Hooks.once("ready", async () => {
     ui.notifications?.warn(`[${MODULE_ID}] requires the dnd5e system; spawn features disabled on system "${game.system.id}".`);
     return;
   }
+  // Plan 3: preload effect SVG textures used by spawn + death animations.
+  // Failure is non-fatal — animations check for texture presence and skip
+  // gracefully if not loaded.
+  try {
+    const { setEffectTextures } = await import("./effect-textures.js");
+    const textures = {
+      hexShard: await PIXI.Assets.load("modules/luxurious-summons/assets/effects/hex-shard.svg"),
+      goldMote: await PIXI.Assets.load("modules/luxurious-summons/assets/effects/gold-mote.svg"),
+      ember:    await PIXI.Assets.load("modules/luxurious-summons/assets/effects/ember.svg"),
+      boneMote: await PIXI.Assets.load("modules/luxurious-summons/assets/effects/bone-mote.svg")
+    };
+    setEffectTextures(textures);
+    console.log(`[${MODULE_ID}] preloaded 4 effect textures`);
+  } catch (e) {
+    console.warn(`[${MODULE_ID}] effect-texture preload failed:`, e);
+  }
+
   await refreshUserIndexes();
   installBrokerHook();
   installSpawnBrokerHandler();
@@ -81,8 +98,13 @@ Hooks.once("ready", async () => {
 });
 
 // Apply visual filters when a companion token is drawn / its overrides change
-Hooks.on("drawToken", (token) => {
+Hooks.on("drawToken", async (token) => {
   applyFiltersToToken(token);
+  // Plan 3: play a one-shot spawn animation if the actor is freshly spawned.
+  // Reads the actor's spawnState flag (set by performSpawn) — clears it after
+  // play so subsequent drawToken events don't re-trigger.
+  const { maybeRunSpawnAnimation } = await import("./spawn-trigger-anim.js");
+  await maybeRunSpawnAnimation(token);
 });
 Hooks.on("updateActor", (actor, changes) => {
   const moduleChanges = changes.flags?.[MODULE_ID];
