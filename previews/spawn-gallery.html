@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Luxurious Summons — Spawn Gallery Preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap">
+  <link rel="stylesheet" href="../styles/luxurious.css">
+  <style>
+    /* Base — these CSS variables are normally injected by Foundry's stylesheet load.
+       For the standalone preview, we reproduce the palette here so the file works
+       without Foundry. */
+    :root {
+      --luxsum-bg:           #1c0e1a;
+      --luxsum-bg-elev:      #2a1828;
+      --luxsum-accent:       #c9a14b;
+      --luxsum-accent-hi:    #f0c97a;
+      --luxsum-text:         #f5e9d8;
+      --luxsum-text-mute:    #b6a890;
+      --luxsum-border:       #c9a14b;
+      --luxsum-danger:       #ff6b6b;
+      --luxsum-success:      #7ad17a;
+      --luxsum-glow:         rgba(240, 201, 122, 0.35);
+      --luxsum-hex-accent:   #5cd3e8;
+      --luxsum-hex-accent-hi:#9eecf5;
+    }
+    body {
+      background: #0a0508;
+      padding: 40px;
+      font-family: system-ui, -apple-system, sans-serif;
+      color: #f5e9d8;
+      margin: 0;
+    }
+    h1 {
+      color: var(--luxsum-accent);
+      font-family: "Cinzel", serif;
+      margin: 0 0 32px;
+      font-weight: 500;
+      letter-spacing: 1px;
+    }
+    .preview-frame {
+      display: flex;
+      gap: 40px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+    .frame-label {
+      display: block;
+      margin-bottom: 12px;
+      font-size: 12px;
+      color: var(--luxsum-accent);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    section { max-width: 760px; }
+
+    /* Gallery dialog — inline previewed copy of styles/spawn-gallery.css */
+    .luxsum-spawn-gallery {
+      width: 640px;
+      background: var(--luxsum-bg);
+      color: var(--luxsum-text);
+      padding: 20px;
+      border: 2px solid var(--luxsum-accent);
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      font-family: system-ui, sans-serif;
+    }
+    .luxsum-spawn-gallery h2 {
+      font-family: "Cinzel", serif;
+      color: var(--luxsum-accent);
+      margin: 0 0 16px;
+      font-size: 20px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+    }
+    .luxsum-spawn-gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .luxsum-template-card {
+      position: relative;
+      height: 180px;
+      background: var(--luxsum-bg-elev);
+      border: 1px solid var(--luxsum-border);
+      border-left-width: 4px;
+      border-radius: 4px;
+      padding: 12px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: transform 120ms ease, box-shadow 120ms ease;
+    }
+    .luxsum-template-card[data-family="hextech"]     { border-left-color: var(--luxsum-hex-accent); }
+    .luxsum-template-card[data-family="belle-epoque"] { border-left-color: var(--luxsum-accent); }
+    .luxsum-template-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.45);
+    }
+    .luxsum-template-thumb {
+      width: 96px;
+      height: 96px;
+      object-fit: contain;
+      margin-bottom: 8px;
+      background: #1a0a16;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--luxsum-text-mute);
+      font-family: "Cinzel", serif;
+      font-size: 28px;
+    }
+    .luxsum-template-name {
+      font-family: "Cinzel", serif;
+      color: var(--luxsum-accent);
+      font-size: 14px;
+      text-align: center;
+      letter-spacing: 0.3px;
+    }
+    .luxsum-template-tagline {
+      font-size: 11px;
+      font-style: italic;
+      color: var(--luxsum-text-mute);
+      text-align: center;
+      margin-top: 4px;
+      line-height: 1.3;
+    }
+    .luxsum-template-variant-badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: var(--luxsum-accent);
+      color: var(--luxsum-bg);
+      font-size: 10px;
+      font-weight: bold;
+      padding: 2px 6px;
+      border-radius: 10px;
+    }
+    .luxsum-spawn-gallery footer {
+      margin-top: 16px;
+      display: flex;
+      justify-content: flex-end;
+      border-top: 1px solid var(--luxsum-accent);
+      padding-top: 12px;
+    }
+
+    /* Variant picker */
+    .luxsum-variant-picker {
+      width: 720px;
+      background: var(--luxsum-bg);
+      color: var(--luxsum-text);
+      padding: 20px;
+      border: 2px solid var(--luxsum-accent);
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      font-family: system-ui, sans-serif;
+    }
+    .luxsum-variant-picker h2 {
+      font-family: "Cinzel", serif;
+      color: var(--luxsum-accent);
+      margin: 0 0 16px;
+      font-size: 20px;
+      font-weight: 500;
+    }
+    .luxsum-variant-picker-body {
+      display: flex;
+      gap: 24px;
+    }
+    .luxsum-variant-picker-left { width: 320px; flex-shrink: 0; }
+    .luxsum-variant-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      max-height: 360px;
+      overflow-y: auto;
+    }
+    .luxsum-variant-card {
+      position: relative;
+      height: 88px;
+      background: var(--luxsum-bg-elev);
+      border: 1px solid var(--luxsum-border);
+      border-radius: 4px;
+      padding: 6px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .luxsum-variant-card:hover { box-shadow: 0 0 0 2px var(--luxsum-glow); }
+    .luxsum-variant-card.selected { box-shadow: 0 0 0 2px var(--luxsum-accent-hi); }
+    .luxsum-variant-card.ineligible { opacity: 0.4; cursor: not-allowed; }
+    .luxsum-variant-thumb {
+      width: 64px;
+      height: 64px;
+      background: #1a0a16;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--luxsum-text-mute);
+      font-family: "Cinzel", serif;
+      font-size: 18px;
+      margin-bottom: 4px;
+    }
+    .luxsum-variant-name {
+      font-size: 11px;
+      color: var(--luxsum-text);
+      text-align: center;
+    }
+    .luxsum-variant-stepper {
+      position: absolute;
+      bottom: 2px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      color: var(--luxsum-accent);
+    }
+    .luxsum-variant-stepper button {
+      background: transparent;
+      border: 1px solid var(--luxsum-accent);
+      color: var(--luxsum-accent);
+      width: 16px;
+      height: 16px;
+      font-size: 10px;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+    }
+    .luxsum-variant-stepper button:hover { background: var(--luxsum-accent); color: var(--luxsum-bg); }
+    .luxsum-multispawn-total {
+      margin-top: 8px;
+      text-align: right;
+      font-size: 12px;
+      color: var(--luxsum-accent);
+    }
+    .luxsum-cast-level-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+      font-size: 12px;
+    }
+    .luxsum-cast-level-row label { color: var(--luxsum-accent); }
+    .luxsum-cast-level-select {
+      background: var(--luxsum-bg);
+      color: var(--luxsum-text);
+      border: 1px solid var(--luxsum-accent);
+      padding: 4px 8px;
+      font-size: 12px;
+      border-radius: 3px;
+    }
+    .luxsum-variant-picker-right {
+      flex: 1;
+      background: var(--luxsum-bg-elev);
+      border: 1px solid var(--luxsum-accent);
+      padding: 16px;
+      border-radius: 4px;
+    }
+    .luxsum-variant-picker-right h3 {
+      font-family: "Cinzel", serif;
+      color: var(--luxsum-accent);
+      margin: 0 0 12px;
+      font-size: 16px;
+    }
+    .luxsum-info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 12px;
+      font-size: 12px;
+    }
+    .luxsum-info-grid dt { color: var(--luxsum-text-mute); }
+    .luxsum-info-grid dd { margin: 0; color: var(--luxsum-text); }
+    .luxsum-tagline {
+      margin-top: 12px;
+      font-size: 12px;
+      line-height: 1.5;
+      font-style: italic;
+      color: var(--luxsum-text-mute);
+    }
+    .luxsum-open-sheet {
+      margin-top: 16px;
+      background: transparent;
+      border: 1px solid var(--luxsum-accent);
+      color: var(--luxsum-accent);
+      padding: 6px 12px;
+      cursor: pointer;
+      font-size: 12px;
+      letter-spacing: 0.3px;
+    }
+    .luxsum-open-sheet:hover { background: var(--luxsum-accent); color: var(--luxsum-bg); }
+    .luxsum-variant-picker footer {
+      margin-top: 16px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      border-top: 1px solid var(--luxsum-accent);
+      padding-top: 12px;
+    }
+    .luxsum-btn-outline {
+      background: transparent;
+      border: 1px solid var(--luxsum-accent);
+      color: var(--luxsum-accent);
+      padding: 8px 16px;
+      cursor: pointer;
+      font-size: 12px;
+      letter-spacing: 0.3px;
+    }
+    .luxsum-btn-primary {
+      background: var(--luxsum-accent);
+      border: 1px solid var(--luxsum-accent);
+      color: var(--luxsum-bg);
+      padding: 8px 16px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+    .luxsum-btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+    .luxsum-btn-outline:hover { background: var(--luxsum-accent); color: var(--luxsum-bg); }
+  </style>
+</head>
+<body>
+  <h1>Spawn Gallery — Plan 3 Preview</h1>
+  <div class="preview-frame">
+    <section>
+      <span class="frame-label">Gallery (640 × auto)</span>
+      <div id="gallery-mount"></div>
+    </section>
+    <section>
+      <span class="frame-label">Variant picker — Find Familiar (720 × auto)</span>
+      <div id="picker-mount"></div>
+    </section>
+    <section>
+      <span class="frame-label">Variant picker — Summon Dragon (cast-level selector)</span>
+      <div id="picker-dragon-mount"></div>
+    </section>
+    <section>
+      <span class="frame-label">Variant picker — Animate Dead (multi-spawn)</span>
+      <div id="multispawn-mount"></div>
+    </section>
+  </div>
+  <script type="module" src="./spawn-gallery-preview.js"></script>
+</body>
+</html>
