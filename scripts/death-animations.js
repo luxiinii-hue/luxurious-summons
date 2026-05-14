@@ -7,35 +7,9 @@
 // when the animation completes. Cleanup contract: do NOT delete the token —
 // that's the lifecycle hook's job. Just animate.
 
+import { tweenWithTicker, easeOutCubic } from "./tween.js";
+
 const MODULE_ID = "luxurious-summons";
-
-function tweenWithTicker(durationMs, onTick) {
-  return new Promise((resolve) => {
-    const start = performance.now();
-    const tick = () => {
-      const elapsed = performance.now() - start;
-      const t = Math.min(1, elapsed / durationMs);
-      try {
-        onTick(t);
-      } catch (err) {
-        // The target was likely destroyed mid-animation (e.g., a synced token delete
-        // arrived from the GM while we were animating). Bail cleanly rather than
-        // spamming the console with errors per frame.
-        console.log(`[${MODULE_ID}] tween aborted: ${err.message ?? err}`);
-        PIXI.Ticker.shared.remove(tick);
-        resolve();
-        return;
-      }
-      if (t >= 1) {
-        PIXI.Ticker.shared.remove(tick);
-        resolve();
-      }
-    };
-    PIXI.Ticker.shared.add(tick);
-  });
-}
-
-function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
 
 export const deathAnimations = {
   /**
