@@ -56,6 +56,8 @@ When invoked with this dir as cwd, **the parent `Laps/CLAUDE.md` does NOT auto-l
 
 | **0.4.1** | Fix V13 `renderTemplate` deprecation in `variant-picker-app.js #refreshInfoCard`. Now uses the namespaced `foundry.applications.handlebars.renderTemplate` with the V13 global as fallback. Harmless on V13 build 351 (just spammed a deprecation warning every variant click), but would break in V15 when the global is actually removed. |
 
+| **0.4.2** | Two placement-flow QoL fixes. (1) `placement-overlay.js` probes the thumbnail URL with `fetch(url, { method: "HEAD" })` before handing to `PIXI.Sprite.from` — on 404, falls back to a gold-tinted rectangle ghost instead of letting PIXI fire an uncaught promise rejection. Removes the spam in the console while asset gen is still pending. (2) `spawn-flow.js` now minimizes the caster's character sheet AND any open caster-item sheets during placement (in addition to the Manager). Restored on placement complete or cancel. Resolves the occlusion problem where the spellbook stays open over the canvas after a cast-driven spawn. |
+
 **80 unit tests passing.** Distribution ZIPs in `../../dist/luxurious-summons-X.Y.Z.zip`.
 
 ### What's actively in flight

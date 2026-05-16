@@ -33,17 +33,43 @@ export async function activatePlacement(opts) {
   if (_activeOverlay) {
     _activeOverlay.cancel();
   }
+  // Probe the thumbnail URL before handing it to PIXI. PIXI.Sprite.from(url)
+  // triggers an internal texture fetch that, on 404, fires an uncaught
+  // promise rejection on the texture's error event. Resolving the existence
+  // up front lets us pick a graceful fallback (gold-tinted rectangle) without
+  // the console spam — paid for in v0.4.2 when asset thumbnails were still placeholders.
+  let thumbExists = false;
+  if (opts.thumbnailSrc) {
+    try {
+      const resp = await fetch(opts.thumbnailSrc, { method: "HEAD" });
+      thumbExists = resp.ok;
+    } catch {
+      thumbExists = false;
+    }
+  }
   return new Promise((resolve) => {
     const placements = [];
     const scene = canvas.scene;
     const grid = canvas.grid;
     const layer = canvas.interface;
 
-    const sprite = PIXI.Sprite.from(opts.thumbnailSrc);
+    let sprite;
+    if (thumbExists) {
+      sprite = PIXI.Sprite.from(opts.thumbnailSrc);
+      sprite.width = opts.tokenWidth;
+      sprite.height = opts.tokenHeight;
+      sprite.tint = 0xffffff;
+    } else {
+      // Neutral placeholder — token-sized gold-tinted rectangle.
+      const g = new PIXI.Graphics();
+      g.beginFill(0xc9a14b, 0.4);
+      g.drawRect(0, 0, opts.tokenWidth, opts.tokenHeight);
+      g.endFill();
+      g.lineStyle(2, 0xc9a14b, 0.8);
+      g.drawRect(0, 0, opts.tokenWidth, opts.tokenHeight);
+      sprite = g;
+    }
     sprite.alpha = 0.6;
-    sprite.width = opts.tokenWidth;
-    sprite.height = opts.tokenHeight;
-    sprite.tint = 0xffffff;
     layer.addChild(sprite);
 
     const indicator = new PIXI.Graphics();

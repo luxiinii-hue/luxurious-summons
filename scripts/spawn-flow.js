@@ -57,13 +57,29 @@ export async function runSpawnFlow(ctx) {
     return;
   }
 
-  // The Manager (if open) sits over the canvas and occludes the placement preview.
-  // Minimize it for the duration of the placement step and restore in finally so we
+  // Minimize any windows that sit over the canvas and occlude the placement preview:
+  //   - the Manager (existing pattern from v0.1.7)
+  //   - the caster's character sheet (paid for in v0.4.2 — cast-driven flow
+  //     leaves the spellbook open in front of the canvas)
+  //   - any item sheets owned by the caster (the spell item itself, if open)
+  // We collect them up front, minimize all, and restore in finally so we
   // always recover even if placement throws.
+  const toMinimize = [];
   const manager = getActiveManager();
-  if (manager) {
-    await manager.minimize();
-    console.log(`[${MODULE_ID}] minimized manager during placement`);
+  if (manager) toMinimize.push(manager);
+  if (sourceActor?.sheet?.rendered) toMinimize.push(sourceActor.sheet);
+  if (sourceActor?.items) {
+    for (const item of sourceActor.items) {
+      if (item.sheet?.rendered && !toMinimize.includes(item.sheet)) toMinimize.push(item.sheet);
+    }
+  }
+  for (const app of toMinimize) {
+    try { await app.minimize(); } catch (e) {
+      console.log(`[${MODULE_ID}] minimize ${app.constructor?.name} during placement failed: ${e.message}`);
+    }
+  }
+  if (toMinimize.length > 0) {
+    console.log(`[${MODULE_ID}] minimized ${toMinimize.length} window(s) during placement: ${toMinimize.map(a => a.constructor?.name).join(", ")}`);
   }
 
   let placements;
@@ -76,9 +92,10 @@ export async function runSpawnFlow(ctx) {
       label: game.i18n.format("LUXSUM.Spawn.PlacementLabel", { templateName: template.name })
     });
   } finally {
-    if (manager) {
-      await manager.maximize();
-      console.log(`[${MODULE_ID}] maximized manager after placement`);
+    for (const app of toMinimize) {
+      try { await app.maximize(); } catch (e) {
+        console.log(`[${MODULE_ID}] maximize ${app.constructor?.name} after placement failed: ${e.message}`);
+      }
     }
   }
   if (!placements || placements.length === 0) return;     // user cancelled (ESC)
