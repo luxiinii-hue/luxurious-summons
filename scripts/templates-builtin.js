@@ -345,7 +345,7 @@ export const templates = [
     id: "echo-knight-echo",
     name: "Echo Knight Echo",
     description: "A translucent armored echo of yourself. Mirrors your AC; 1 HP; can be swapped with via class action.",
-    thumbnail: "icons/magic/control/debuff-energy-hold-levitate-pink.webp",
+    thumbnail: "icons/equipment/chest/breastplate-cuirass-steel-grey.webp",
     aestheticFamily: "hextech",
 
     trigger: { type: "feature", name: "Manifest Echo" },
@@ -354,7 +354,7 @@ export const templates = [
       mode: "inline-synthesized",
       inline: {
         type: "npc",
-        img:  "icons/magic/control/debuff-energy-hold-levitate-pink.webp",
+        img:  "icons/equipment/chest/breastplate-cuirass-steel-grey.webp",
         system: {
           abilities: { str: { value: 10 }, dex: { value: 10 }, con: { value: 10 }, int: { value: 10 }, wis: { value: 10 }, cha: { value: 10 } },
           attributes: {
@@ -400,7 +400,7 @@ export const templates = [
     id: "summon-dragon",
     name: "Summon Dragon",
     description: "Summon a draconic spirit. Pick a damage type and the spell-slot level.",
-    thumbnail: "icons/magic/control/energy-stream-link-spiral-orange.webp",
+    thumbnail: "icons/creatures/abilities/dragon-fire-breath-orange.webp",
     aestheticFamily: "hextech",
 
     trigger: { type: "spell", name: "Summon Draconic Spirit" },

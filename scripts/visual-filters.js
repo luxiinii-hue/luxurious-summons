@@ -200,11 +200,26 @@ function applyMotionToTokenWith(token, motion) {
   // Lazy base snapshot — captured on the first tick once Foundry's refresh has
   // populated canonical position / scale / alpha. Snapshotting at attach time
   // races the draw chain on V13 and could capture zeros.
+  //
+  // The base must be RE-CAPTURED whenever Foundry moves the token; otherwise
+  // the ticker keeps writing `oldBase + delta` and the mesh visually snaps
+  // back to the spawn position. Triggers for re-capture:
+  //   (a) `token._animation` was set last frame and is now clear — Foundry's
+  //       drag/ruler tween just finished, mesh.position is canonical at the
+  //       new spot. Paid for in v0.4.4: floating-hand Mage Hand wouldn't
+  //       follow when dragged.
+  //   (b) The mesh has drifted significantly from our last write — instant
+  //       snap via token-config dialog or programmatic update without a tween.
   let base = null;
+  let wasAnimating = false;
+  let lastWrite = null;
   const startedAt = performance.now() / 1000;
 
   const tickerCallback = () => {
-    if (token._animation) return;
+    if (token._animation) {
+      wasAnimating = true;
+      return;
+    }
     if (!base) {
       base = {
         x: mesh.position.x,
@@ -214,10 +229,33 @@ function applyMotionToTokenWith(token, motion) {
         scaleY: mesh.scale?.y ?? 1,
         alpha: mesh.alpha ?? 1
       };
+      wasAnimating = false;
+    } else if (wasAnimating) {
+      // Foundry just finished a tween — mesh.position is canonical at the new
+      // location. Re-capture only the position dimensions (drag/ruler don't
+      // touch scale/rotation/alpha; re-capturing those would compound our own
+      // last-applied delta into the base).
+      base.x = mesh.position.x;
+      base.y = mesh.position.y;
+      wasAnimating = false;
+    } else if (lastWrite && animatesPosition) {
+      // Catch non-tweened snaps (token-config x/y edit, scripted moves).
+      // Threshold of 2 px allows for float-precision noise.
+      const dx = Math.abs(mesh.position.x - lastWrite.x);
+      const dy = Math.abs(mesh.position.y - lastWrite.y);
+      if (dx > 2 || dy > 2) {
+        base.x = mesh.position.x;
+        base.y = mesh.position.y;
+      }
     }
     const t = (performance.now() / 1000) - startedAt;
     const delta = profile(t, intensity);
-    if (animatesPosition) mesh.position.set(base.x + delta.dx, base.y + delta.dy);
+    if (animatesPosition) {
+      const nx = base.x + delta.dx;
+      const ny = base.y + delta.dy;
+      mesh.position.set(nx, ny);
+      lastWrite = { x: nx, y: ny };
+    }
     if (animatesRotation) mesh.rotation = base.rotation + delta.dRotation;
     if (animatesScale) mesh.scale.set(base.scaleX + delta.dScale, base.scaleY + delta.dScale);
     if (animatesAlpha) mesh.alpha = Math.max(0, Math.min(1, base.alpha + delta.dAlpha));
