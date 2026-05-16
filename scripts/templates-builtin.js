@@ -5,9 +5,13 @@
 // `deathAnimation`) stay readable as fallbacks during the migration window —
 // the spawn engine + visual-filters use `readEffects(template)` from data-model.
 //
-// Compendium UUIDs marked `*-uuid-tbd` MUST be replaced with real dnd5e 5.2.1
-// compendium UUIDs before live testing. Inline-synthesized templates
-// (Mage Hand / Unseen Servant / Echo Knight Echo) work without UUIDs.
+// Compendium UUIDs verified against dnd5e 5.2.1 `dnd5e.monsters` pack via
+// v0.4.5's `find-and-replace` pass. The Draconic Spirit UUID
+// (`draconic-spirit-uuid-tbd`) remains placeholder — Summon Draconic Spirit
+// is Tasha's content and lives in a different pack (likely `dnd5e.monsters24`
+// or `dnd5e.summons`). Run the v0.4.6 discovery snippet to locate.
+// Inline-synthesized templates (Mage Hand / Unseen Servant / Echo Knight Echo)
+// work without UUIDs.
 
 export const templates = [
   {
@@ -103,21 +107,21 @@ export const templates = [
     },
 
     variants: [
-      { id: "bat",      name: "Bat",            thumbnail: "modules/luxurious-summons/assets/variants/bat.png",      source: { baseUuid: "Compendium.dnd5e.monsters.Actor.bat-uuid-tbd" } },
-      { id: "cat",      name: "Cat",            thumbnail: "modules/luxurious-summons/assets/variants/cat.png",      source: { baseUuid: "Compendium.dnd5e.monsters.Actor.cat-uuid-tbd" } },
-      { id: "crab",     name: "Crab",           thumbnail: "modules/luxurious-summons/assets/variants/crab.png",     source: { baseUuid: "Compendium.dnd5e.monsters.Actor.crab-uuid-tbd" } },
-      { id: "frog",     name: "Frog",           thumbnail: "modules/luxurious-summons/assets/variants/frog.png",     source: { baseUuid: "Compendium.dnd5e.monsters.Actor.frog-uuid-tbd" } },
-      { id: "hawk",     name: "Hawk",           thumbnail: "modules/luxurious-summons/assets/variants/hawk.png",     source: { baseUuid: "Compendium.dnd5e.monsters.Actor.hawk-uuid-tbd" } },
-      { id: "lizard",   name: "Lizard",         thumbnail: "modules/luxurious-summons/assets/variants/lizard.png",   source: { baseUuid: "Compendium.dnd5e.monsters.Actor.lizard-uuid-tbd" } },
-      { id: "octopus",  name: "Octopus",        thumbnail: "modules/luxurious-summons/assets/variants/octopus.png",  source: { baseUuid: "Compendium.dnd5e.monsters.Actor.octopus-uuid-tbd" } },
-      { id: "owl",      name: "Owl",            thumbnail: "modules/luxurious-summons/assets/variants/owl.png",      source: { baseUuid: "Compendium.dnd5e.monsters.Actor.owl-uuid-tbd" } },
-      { id: "snake",    name: "Poisonous Snake",thumbnail: "modules/luxurious-summons/assets/variants/snake.png",    source: { baseUuid: "Compendium.dnd5e.monsters.Actor.snake-uuid-tbd" } },
-      { id: "quipper",  name: "Quipper",        thumbnail: "modules/luxurious-summons/assets/variants/quipper.png",  source: { baseUuid: "Compendium.dnd5e.monsters.Actor.quipper-uuid-tbd" } },
-      { id: "rat",      name: "Rat",            thumbnail: "modules/luxurious-summons/assets/variants/rat.png",      source: { baseUuid: "Compendium.dnd5e.monsters.Actor.rat-uuid-tbd" } },
-      { id: "raven",    name: "Raven",          thumbnail: "modules/luxurious-summons/assets/variants/raven.png",    source: { baseUuid: "Compendium.dnd5e.monsters.Actor.raven-uuid-tbd" } },
-      { id: "seahorse", name: "Sea Horse",      thumbnail: "modules/luxurious-summons/assets/variants/seahorse.png", source: { baseUuid: "Compendium.dnd5e.monsters.Actor.seahorse-uuid-tbd" } },
-      { id: "spider",   name: "Spider",         thumbnail: "modules/luxurious-summons/assets/variants/spider.png",   source: { baseUuid: "Compendium.dnd5e.monsters.Actor.spider-uuid-tbd" } },
-      { id: "weasel",   name: "Weasel",         thumbnail: "modules/luxurious-summons/assets/variants/weasel.png",   source: { baseUuid: "Compendium.dnd5e.monsters.Actor.weasel-uuid-tbd" } }
+      { id: "bat",      name: "Bat",            thumbnail: "modules/luxurious-summons/assets/variants/bat.png",      source: { baseUuid: "Compendium.dnd5e.monsters.Actor.qav2dvMIUiMQCCsy" } },
+      { id: "cat",      name: "Cat",            thumbnail: "modules/luxurious-summons/assets/variants/cat.png",      source: { baseUuid: "Compendium.dnd5e.monsters.Actor.hIf83RD3ZVW4Egfi" } },
+      { id: "crab",     name: "Crab",           thumbnail: "modules/luxurious-summons/assets/variants/crab.png",     source: { baseUuid: "Compendium.dnd5e.monsters.Actor.8RgUhb31VvjUNZU1" } },
+      { id: "frog",     name: "Frog",           thumbnail: "modules/luxurious-summons/assets/variants/frog.png",     source: { baseUuid: "Compendium.dnd5e.monsters.Actor.EZgiprHXA2D7Uyb3" } },
+      { id: "hawk",     name: "Hawk",           thumbnail: "modules/luxurious-summons/assets/variants/hawk.png",     source: { baseUuid: "Compendium.dnd5e.monsters.Actor.fnkPNfIpS62LqOu4" } },
+      { id: "lizard",   name: "Lizard",         thumbnail: "modules/luxurious-summons/assets/variants/lizard.png",   source: { baseUuid: "Compendium.dnd5e.monsters.Actor.I2x01hzOjVN4NUjf" } },
+      { id: "octopus",  name: "Octopus",        thumbnail: "modules/luxurious-summons/assets/variants/octopus.png",  source: { baseUuid: "Compendium.dnd5e.monsters.Actor.3UUNbGiG2Yf1ZPxM" } },
+      { id: "owl",      name: "Owl",            thumbnail: "modules/luxurious-summons/assets/variants/owl.png",      source: { baseUuid: "Compendium.dnd5e.monsters.Actor.d0prpsGSAorDadec" } },
+      { id: "snake",    name: "Poisonous Snake",thumbnail: "modules/luxurious-summons/assets/variants/snake.png",    source: { baseUuid: "Compendium.dnd5e.monsters.Actor.D5rwVIxmfFrdyyxT" } },
+      { id: "quipper",  name: "Quipper",        thumbnail: "modules/luxurious-summons/assets/variants/quipper.png",  source: { baseUuid: "Compendium.dnd5e.monsters.Actor.nkyCGJ9wXeAZkyyz" } },
+      { id: "rat",      name: "Rat",            thumbnail: "modules/luxurious-summons/assets/variants/rat.png",      source: { baseUuid: "Compendium.dnd5e.monsters.Actor.pozQUPTnLZW8epox" } },
+      { id: "raven",    name: "Raven",          thumbnail: "modules/luxurious-summons/assets/variants/raven.png",    source: { baseUuid: "Compendium.dnd5e.monsters.Actor.LPdX5YLlwci0NDZx" } },
+      { id: "seahorse", name: "Sea Horse",      thumbnail: "modules/luxurious-summons/assets/variants/seahorse.png", source: { baseUuid: "Compendium.dnd5e.monsters.Actor.FWSDiq9SZsdiBAa8" } },
+      { id: "spider",   name: "Spider",         thumbnail: "modules/luxurious-summons/assets/variants/spider.png",   source: { baseUuid: "Compendium.dnd5e.monsters.Actor.28gU50HtG8Kp7uIz" } },
+      { id: "weasel",   name: "Weasel",         thumbnail: "modules/luxurious-summons/assets/variants/weasel.png",   source: { baseUuid: "Compendium.dnd5e.monsters.Actor.WOdeacKCYVhgLDuN" } }
     ],
 
     deathAnimation: "belleFade"
@@ -161,20 +165,20 @@ export const templates = [
 
     variants: [
       { id: "imp",          name: "Imp",          thumbnail: "modules/luxurious-summons/assets/variants/imp.png",
-        source: { baseUuid: "Compendium.dnd5e.monsters.Actor.imp-uuid-tbd" },
+        source: { baseUuid: "Compendium.dnd5e.monsters.Actor.dLQiESMsfsXijD5c" },
         requires: { class: "warlock", subclass: "pact-of-the-chain" },
         spawnEffectOverride: "infernalBloom",
         deathEffectOverride: "infernalFade" },
       { id: "pseudodragon", name: "Pseudodragon", thumbnail: "modules/luxurious-summons/assets/variants/pseudodragon.png",
-        source: { baseUuid: "Compendium.dnd5e.monsters.Actor.pseudodragon-uuid-tbd" },
+        source: { baseUuid: "Compendium.dnd5e.monsters.Actor.fkCNtbvPOMd7mipF" },
         requires: { class: "warlock", subclass: "pact-of-the-chain" } },
       { id: "quasit",       name: "Quasit",       thumbnail: "modules/luxurious-summons/assets/variants/quasit.png",
-        source: { baseUuid: "Compendium.dnd5e.monsters.Actor.quasit-uuid-tbd" },
+        source: { baseUuid: "Compendium.dnd5e.monsters.Actor.bwtkdzavdNHISgp4" },
         requires: { class: "warlock", subclass: "pact-of-the-chain" },
         spawnEffectOverride: "infernalBloom",
         deathEffectOverride: "infernalFade" },
       { id: "sprite",       name: "Sprite",       thumbnail: "modules/luxurious-summons/assets/variants/sprite.png",
-        source: { baseUuid: "Compendium.dnd5e.monsters.Actor.sprite-uuid-tbd" },
+        source: { baseUuid: "Compendium.dnd5e.monsters.Actor.MUpBNDoJEr09bLaO" },
         requires: { class: "warlock", subclass: "pact-of-the-chain" } }
     ],
 
@@ -219,9 +223,9 @@ export const templates = [
 
     variants: [
       { id: "skeleton", name: "Skeleton", thumbnail: "modules/luxurious-summons/assets/variants/skeleton.png",
-        source: { baseUuid: "Compendium.dnd5e.monsters.Actor.skeleton-uuid-tbd" } },
+        source: { baseUuid: "Compendium.dnd5e.monsters.Actor.nU8GN8La8DCt8SDb" } },
       { id: "zombie",   name: "Zombie",   thumbnail: "modules/luxurious-summons/assets/variants/zombie.png",
-        source: { baseUuid: "Compendium.dnd5e.monsters.Actor.zombie-uuid-tbd" } }
+        source: { baseUuid: "Compendium.dnd5e.monsters.Actor.NAISFPoNNgUCsEyW" } }
     ],
 
     deathAnimation: "boneCollapse"
