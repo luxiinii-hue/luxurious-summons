@@ -70,7 +70,7 @@ export const templates = [
     id: "find-familiar",
     name: "Find Familiar",
     description: "Bind a tiny spirit-creature as your familiar.",
-    thumbnail: "modules/luxurious-summons/assets/templates-thumbs/find-familiar.png",
+    thumbnail: "icons/creatures/birds/corvid-flying-wings-purple.webp",
     aestheticFamily: "belle-epoque",
 
     trigger: { type: "spell", name: "Find Familiar" },
@@ -127,7 +127,7 @@ export const templates = [
     id: "pact-of-the-chain",
     name: "Pact of the Chain",
     description: "Warlocks with the Pact of the Chain boon bind a fey or fiendish familiar.",
-    thumbnail: "modules/luxurious-summons/assets/templates-thumbs/pact-of-the-chain.png",
+    thumbnail: "icons/creatures/birds/corvid-flying-wings-purple.webp",
     aestheticFamily: "belle-epoque",
 
     trigger: { type: "spell", name: "Find Familiar" },  // shares Find Familiar's trigger spell
@@ -185,7 +185,7 @@ export const templates = [
     id: "animate-dead",
     name: "Animate Dead",
     description: "Raise corpses as undead servants. Up to 4 at a time; requires re-bind every 24 hours.",
-    thumbnail: "modules/luxurious-summons/assets/templates-thumbs/animate-dead.png",
+    thumbnail: "icons/magic/control/fear-fright-monster-red.webp",
     aestheticFamily: "belle-epoque",
 
     trigger: { type: "spell", name: "Animate Dead" },
@@ -231,7 +231,7 @@ export const templates = [
     id: "mage-hand",
     name: "Mage Hand",
     description: "A spectral, floating hand. Carries up to 10 lb; no attacks.",
-    thumbnail: "modules/luxurious-summons/assets/templates-thumbs/mage-hand.png",
+    thumbnail: "icons/magic/unholy/strike-hand-glow-pink.webp",
     aestheticFamily: "hextech",
 
     trigger: { type: "spell", name: "Mage Hand" },
@@ -241,7 +241,7 @@ export const templates = [
       mode: "inline-synthesized",
       inline: {
         type: "npc",
-        img:  "modules/luxurious-summons/assets/tokens/mage-hand.png",
+        img:  "icons/magic/unholy/strike-hand-glow-pink.webp",
         system: {
           abilities: { str: { value: 1 }, dex: { value: 10 }, con: { value: 10 }, int: { value: 10 }, wis: { value: 10 }, cha: { value: 1 } },
           attributes: {
@@ -290,7 +290,7 @@ export const templates = [
     id: "unseen-servant",
     name: "Unseen Servant",
     description: "An invisible, mindless servant performs simple manual tasks within 60 ft.",
-    thumbnail: "modules/luxurious-summons/assets/templates-thumbs/unseen-servant.png",
+    thumbnail: "icons/creatures/magical/spirit-undead-masked-blue.webp",
     aestheticFamily: "hextech",
 
     trigger: { type: "spell", name: "Unseen Servant" },
@@ -300,7 +300,7 @@ export const templates = [
       mode: "inline-synthesized",
       inline: {
         type: "npc",
-        img:  "modules/luxurious-summons/assets/tokens/unseen-servant.png",
+        img:  "icons/creatures/magical/spirit-undead-masked-blue.webp",
         system: {
           abilities: { str: { value: 2 }, dex: { value: 6 }, con: { value: 10 }, int: { value: 1 }, wis: { value: 1 }, cha: { value: 1 } },
           attributes: {
@@ -345,7 +345,7 @@ export const templates = [
     id: "echo-knight-echo",
     name: "Echo Knight Echo",
     description: "A translucent armored echo of yourself. Mirrors your AC; 1 HP; can be swapped with via class action.",
-    thumbnail: "modules/luxurious-summons/assets/templates-thumbs/echo-knight-echo.png",
+    thumbnail: "icons/magic/control/debuff-energy-hold-levitate-pink.webp",
     aestheticFamily: "hextech",
 
     trigger: { type: "feature", name: "Manifest Echo" },
@@ -354,7 +354,7 @@ export const templates = [
       mode: "inline-synthesized",
       inline: {
         type: "npc",
-        img:  "modules/luxurious-summons/assets/tokens/echo-knight-echo.png",
+        img:  "icons/magic/control/debuff-energy-hold-levitate-pink.webp",
         system: {
           abilities: { str: { value: 10 }, dex: { value: 10 }, con: { value: 10 }, int: { value: 10 }, wis: { value: 10 }, cha: { value: 10 } },
           attributes: {
@@ -400,7 +400,7 @@ export const templates = [
     id: "summon-dragon",
     name: "Summon Dragon",
     description: "Summon a draconic spirit. Pick a damage type and the spell-slot level.",
-    thumbnail: "modules/luxurious-summons/assets/templates-thumbs/summon-dragon.png",
+    thumbnail: "icons/magic/control/energy-stream-link-spiral-orange.webp",
     aestheticFamily: "hextech",
 
     trigger: { type: "spell", name: "Summon Draconic Spirit" },
