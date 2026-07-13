@@ -128,7 +128,18 @@ export async function performSpawn(payload) {
     } else if (mode === "compendium-scaled") {
       actorData = await resolveCompendiumScaledData(template, variant, { name: synthName, folderId: folder.id, castSlotLevel });
     } else if (mode === "inline-synthesized") {
-      actorData = resolveInlineData(template, { name: synthName, folderId: folder.id });
+      // v0.4.7 FIX 4: Mage Hand's fallback art is a washed-out square spell icon;
+      // let a GM point it at a custom static image or animated .webm via the
+      // mageHandTokenPath world setting. Injected as a param (not read inside
+      // resolveInlineData) so that function stays pure-logic and unit-testable.
+      let overrideArtPath;
+      if (templateId === "mage-hand") {
+        overrideArtPath = game.settings.get(MODULE_ID, "mageHandTokenPath") || undefined;
+        if (overrideArtPath) {
+          console.log(`[${MODULE_ID}] performSpawn: using custom mageHandTokenPath "${overrideArtPath}" for Mage Hand art`);
+        }
+      }
+      actorData = resolveInlineData(template, { name: synthName, folderId: folder.id, overrideArtPath });
     } else {
       throw new Error(`unknown source.mode "${mode}" on template "${template.id}"`);
     }

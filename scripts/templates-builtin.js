@@ -269,7 +269,12 @@ export const templates = [
         prototypeToken: {
           name: "Mage Hand",
           actorLink: false,
-          sight: { enabled: false }
+          sight: { enabled: false },
+          // v0.4.7 FIX 4: the fallback token art is a square spell ICON, not an
+          // isolated-subject token — scaling it down keeps it from wall-to-wall
+          // filling the grid cell even before any custom art is configured via
+          // the mageHandTokenPath world setting.
+          texture: { scaleX: 0.8, scaleY: 0.8 }
         }
       }
     },
@@ -283,12 +288,17 @@ export const templates = [
       death:  "mageHandDissolve"
     },
 
+    // v0.4.7 FIX 4: brightness 1.2 -> 1.0 and hueIntensity 0.30 -> 0.10. The old
+    // defaults were tuned assuming a smaller isolated-subject sprite; against the
+    // actual fallback (a square spell icon filling the whole cell) they produced
+    // a washed-out pale square. alpha stays 0.85 and the cyan outline is kept —
+    // the outline renders once the FIX 3 vendored fallback shader lands.
     defaults: {
       hueColor: "#c9a14b",
-      hueIntensity: 0.30,
+      hueIntensity: 0.10,
       alpha: 0.85,
       saturation: 1.0,
-      brightness: 1.2,
+      brightness: 1.0,
       outlineColor: "#5cd3e8",
       outlineThickness: 2,
       namePrefix: "",

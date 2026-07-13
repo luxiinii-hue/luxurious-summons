@@ -8,6 +8,7 @@ import { isCompanion, getCompanionFlag } from "./data-model.js";
 import { getMotionProfile, motionProfileBounds } from "./motion-profiles.js";
 import { s } from "./settings.js";
 import { isAnimating } from "./anim-state.js";
+import { getLuxOutlineFilterClass } from "./outline-filter.js";
 
 const MODULE_ID = "luxurious-summons";
 
@@ -78,12 +79,31 @@ export function buildFilters(descriptors) {
         break;
       }
       case "outline": {
-        const Outline = PIXI.filters?.OutlineFilter ?? PIXI.OutlineFilter;
-        if (Outline) {
+        // v0.4.7 FIX 3: the friend's V13 build 351 ships a PIXI build with
+        // NEITHER PIXI.filters.OutlineFilter NOR PIXI.OutlineFilter — every
+        // outline control silently did nothing on the production runtime.
+        // LuxOutlineFilter is our vendored 8-direction alpha-sampling shader,
+        // last resort in the lookup chain. Whichever implementation is picked,
+        // construction is wrapped in try/catch — a shader-compile failure on
+        // some exotic renderer must skip only the outline entry, never break
+        // the rest of the filter chain.
+        const implName = PIXI.filters?.OutlineFilter ? "PIXI.filters.OutlineFilter"
+                        : PIXI.OutlineFilter ? "PIXI.OutlineFilter"
+                        : "LuxOutlineFilter (vendored fallback)";
+        try {
+          // getLuxOutlineFilterClass() itself can throw (e.g. if PIXI.Filter
+          // is somehow unavailable too) — deliberately resolved INSIDE the
+          // try so that failure is caught by the same handler as a
+          // shader-compile failure, never escaping to break the rest of the
+          // filter chain.
+          const Outline = PIXI.filters?.OutlineFilter ?? PIXI.OutlineFilter ?? getLuxOutlineFilterClass();
           const f = new Outline(d.thickness, parseInt(d.color.replace("#", "0x"), 16));
           filters.push(f);
-        } else {
-          console.warn(`[${MODULE_ID}] OutlineFilter unavailable in this PIXI build`);
+          if (s("verboseLogging")) {
+            console.log(`[${MODULE_ID}] outline filter using ${implName}`);
+          }
+        } catch (e) {
+          console.warn(`[${MODULE_ID}] outline filter construction failed (${implName}); skipping outline entry:`, e);
         }
         break;
       }

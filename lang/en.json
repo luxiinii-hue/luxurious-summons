@@ -66,5 +66,7 @@
   "LUXSUM.VariantPicker.MultispawnTotal": "Total",
   "LUXSUM.VariantPicker.MultiSpawnCancelled": "Placement cancelled — {placed} of {total} placed.",
   "LUXSUM.Common.Cancel": "Cancel",
-  "LUXSUM.Spawn.NoSourceActor": "No source actor — assign a character to your user first."
+  "LUXSUM.Spawn.NoSourceActor": "No source actor — assign a character to your user first.",
+  "LUXSUM.Settings.MageHandTokenPath.Name": "Mage Hand token art",
+  "LUXSUM.Settings.MageHandTokenPath.Hint": "Optional custom art for Mage Hand's token and portrait. Accepts a static image or an animated .webm. Leave blank to use the default spell-icon art."
 }

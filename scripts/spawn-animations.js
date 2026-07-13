@@ -6,7 +6,7 @@
 // already created it, this just animates the visual reveal.
 
 import { tweenWithTicker, easeOutCubic } from "./tween.js";
-import { getEffectTexture } from "./effect-textures.js";
+import { ensureEffectTexture } from "./effect-textures.js";
 
 const MODULE_ID = "luxurious-summons";
 
@@ -32,7 +32,10 @@ async function particleBloom(token, opts = {}) {
   const textureName = palette === "ember" ? "ember"
                     : palette === "bone"  ? "boneMote"
                     : "goldMote";
-  const texture = getEffectTexture(textureName);
+  // v0.4.7 FIX 2: load on demand instead of relying on the ready-hook preload
+  // having already run — the initial boot-time canvas draw can fire this
+  // before ready(). ensureEffectTexture caches, so post-ready calls are free.
+  const texture = await ensureEffectTexture(textureName);
   if (!texture) {
     console.warn(`[${MODULE_ID}] particleBloom: texture "${textureName}" not loaded`);
     return;
@@ -109,7 +112,8 @@ async function crystalForm(token, opts = {}) {
   if (!token?.mesh) return;
   const mesh = token.mesh;
 
-  const texture = getEffectTexture("hexShard");
+  // v0.4.7 FIX 2 — see particleBloom for rationale (boot-time draw races ready hook).
+  const texture = await ensureEffectTexture("hexShard");
   if (!texture) {
     console.warn(`[${MODULE_ID}] crystalForm: hexShard texture not loaded`);
     return;

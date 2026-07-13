@@ -46,6 +46,19 @@ export function registerSettings() {
     type: Boolean,
     default: false
   });
+  // v0.4.7 FIX 4: lets a GM point Mage Hand's token art (+ portrait) at a
+  // custom static image or animated .webm, instead of the fallback square
+  // spell icon. Foundry supports webm token textures natively — no special
+  // handling needed on our end beyond passing the path through.
+  game.settings.register(MODULE_ID, "mageHandTokenPath", {
+    name: "LUXSUM.Settings.MageHandTokenPath.Name",
+    hint: "LUXSUM.Settings.MageHandTokenPath.Hint",
+    scope: "world",
+    config: true,
+    type: String,
+    default: "",
+    filePicker: "imagevideo"
+  });
   game.settings.register(MODULE_ID, "customTemplates", {
     scope: "world", config: false, type: Array, default: []
   });

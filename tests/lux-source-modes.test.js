@@ -5,7 +5,8 @@ import {
   resolveCloneData,
   resolveInlineData,
   pickScalingTier,
-  applyScalingTier
+  applyScalingTier,
+  resolveArtFallback
 } from "../scripts/source-modes.js";
 
 test("resolveCloneData: copies actor data, strips _id, applies name prefix/suffix", () => {
@@ -53,6 +54,47 @@ test("resolveInlineData: deep-clones inline so subsequent calls don't share stat
 
 test("resolveInlineData: throws on missing source.inline", () => {
   assert.throws(() => resolveInlineData({ id: "broken", name: "Broken" }), /no source.inline/);
+});
+
+// v0.4.7 FIX 4 — resolveInlineData overrideArtPath (Mage Hand custom token art)
+
+test("resolveInlineData: overrideArtPath replaces both img and prototypeToken.texture.src", () => {
+  const template = {
+    name: "Mage Hand",
+    source: {
+      mode: "inline-synthesized",
+      inline: {
+        type: "npc",
+        img: "icons/magic/unholy/strike-hand-glow-pink.webp",
+        system: { attributes: { hp: { value: 1, max: 1 } } },
+        prototypeToken: { name: "Mage Hand", actorLink: false, texture: { scaleX: 0.8, scaleY: 0.8 } }
+      }
+    }
+  };
+  const result = resolveInlineData(template, { name: "Mage Hand of Lyra", overrideArtPath: "modules/other/hand.webm" });
+  assert.equal(result.img, "modules/other/hand.webm");
+  assert.equal(result.prototypeToken.texture.src, "modules/other/hand.webm");
+  // scale is preserved — only src is overridden
+  assert.equal(result.prototypeToken.texture.scaleX, 0.8);
+});
+
+test("resolveInlineData: empty/undefined overrideArtPath leaves template art untouched", () => {
+  const template = {
+    name: "Mage Hand",
+    source: { mode: "inline-synthesized", inline: { type: "npc", img: "default.webp", prototypeToken: { texture: { src: "default.webp" } } } }
+  };
+  const result = resolveInlineData(template, { overrideArtPath: "" });
+  assert.equal(result.img, "default.webp");
+  assert.equal(result.prototypeToken.texture.src, "default.webp");
+});
+
+test("resolveInlineData: overrideArtPath creates prototypeToken.texture when absent", () => {
+  const template = {
+    name: "Unseen Servant",
+    source: { mode: "inline-synthesized", inline: { type: "npc", prototypeToken: { name: "Unseen Servant" } } }
+  };
+  const result = resolveInlineData(template, { overrideArtPath: "custom/servant.png" });
+  assert.equal(result.prototypeToken.texture.src, "custom/servant.png");
 });
 
 const SCALING_TABLE = [
@@ -103,4 +145,62 @@ test("applyScalingTier: handles missing hp attributes gracefully", () => {
   const base = { system: { attributes: {} } };
   const result = applyScalingTier(base, { hpAdd: 10 });
   assert.equal(result.system.attributes.hp, undefined);
+});
+
+// v0.4.7 FIX 5 — resolveArtFallback (Draconic Spirit missing-art heal)
+
+const DRAGON_TEMPLATE = { id: "summon-dragon", thumbnail: "icons/creatures/abilities/dragon-fire-breath-orange.webp" };
+
+test("resolveArtFallback: empty img and no token texture both get healed", () => {
+  const actorData = { img: "", name: "Draconic Spirit", prototypeToken: {} };
+  const { data, healed } = resolveArtFallback(actorData, DRAGON_TEMPLATE);
+  assert.equal(healed, true);
+  assert.equal(data.img, DRAGON_TEMPLATE.thumbnail);
+  assert.equal(data.prototypeToken.texture.src, DRAGON_TEMPLATE.thumbnail);
+});
+
+test("resolveArtFallback: Foundry default mystery-man silhouette also counts as missing", () => {
+  const actorData = { img: "icons/svg/mystery-man.svg", prototypeToken: { texture: { src: "icons/svg/mystery-man.svg" } } };
+  const { data, healed } = resolveArtFallback(actorData, DRAGON_TEMPLATE);
+  assert.equal(healed, true);
+  assert.equal(data.img, DRAGON_TEMPLATE.thumbnail);
+  assert.equal(data.prototypeToken.texture.src, DRAGON_TEMPLATE.thumbnail);
+});
+
+test("resolveArtFallback: existing valid art is left untouched", () => {
+  const actorData = { img: "systems/dnd5e/tokens/dragon/Wyrmling.webp", prototypeToken: { texture: { src: "systems/dnd5e/tokens/dragon/Wyrmling.webp" } } };
+  const { data, healed } = resolveArtFallback(actorData, DRAGON_TEMPLATE);
+  assert.equal(healed, false);
+  assert.equal(data, actorData);   // returns the SAME object, no clone when nothing changed
+});
+
+test("resolveArtFallback: preserves prototypeToken width/height/scale (Large creature stays Large)", () => {
+  const actorData = { img: "", prototypeToken: { width: 2, height: 2, texture: { scaleX: 1, scaleY: 1 } } };
+  const { data } = resolveArtFallback(actorData, DRAGON_TEMPLATE);
+  assert.equal(data.prototypeToken.width, 2);
+  assert.equal(data.prototypeToken.height, 2);
+  assert.equal(data.prototypeToken.texture.src, DRAGON_TEMPLATE.thumbnail);
+});
+
+test("resolveArtFallback: only img missing, token texture already valid — only img healed", () => {
+  const actorData = { img: "", prototypeToken: { texture: { src: "systems/dnd5e/tokens/dragon/Wyrmling.webp" } } };
+  const { data, healed } = resolveArtFallback(actorData, DRAGON_TEMPLATE);
+  assert.equal(healed, true);
+  assert.equal(data.img, DRAGON_TEMPLATE.thumbnail);
+  assert.equal(data.prototypeToken.texture.src, "systems/dnd5e/tokens/dragon/Wyrmling.webp");
+});
+
+test("resolveArtFallback: template with no thumbnail is a safe no-op", () => {
+  const actorData = { img: "" };
+  const { data, healed } = resolveArtFallback(actorData, { id: "no-thumb" });
+  assert.equal(healed, false);
+  assert.equal(data, actorData);
+});
+
+test("resolveArtFallback: no prototypeToken at all — creates one when healing the token texture", () => {
+  const actorData = { img: "systems/dnd5e/tokens/dragon/Wyrmling.webp" };
+  const { data, healed } = resolveArtFallback(actorData, DRAGON_TEMPLATE);
+  assert.equal(healed, true);
+  assert.equal(data.prototypeToken.texture.src, DRAGON_TEMPLATE.thumbnail);
+  assert.equal(data.img, "systems/dnd5e/tokens/dragon/Wyrmling.webp");   // img untouched
 });

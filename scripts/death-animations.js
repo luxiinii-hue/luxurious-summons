@@ -8,7 +8,7 @@
 // that's the lifecycle hook's job. Just animate.
 
 import { tweenWithTicker, easeOutCubic } from "./tween.js";
-import { getEffectTexture } from "./effect-textures.js";
+import { ensureEffectTexture } from "./effect-textures.js";
 
 const MODULE_ID = "luxurious-summons";
 
@@ -107,7 +107,8 @@ export const deathAnimations = {
     if (!token?.mesh) return;
     const mesh = token.mesh;
     const startAlpha = mesh.alpha;
-    const texture = getEffectTexture("hexShard");
+    // v0.4.7 FIX 2: load on demand — see spawn-animations.js particleBloom comment.
+    const texture = await ensureEffectTexture("hexShard");
     if (!texture) {
       console.warn(`[${MODULE_ID}] hexShatter: hexShard texture not loaded`);
       mesh.alpha = 0;
@@ -150,7 +151,7 @@ export const deathAnimations = {
    */
   mageHandDissolve: async (token) => {
     await deathAnimations.belleFade(token);
-    const texture = getEffectTexture("goldMote");
+    const texture = await ensureEffectTexture("goldMote");
     if (!texture || !token?.center) return;
     const layer = canvas.interface;
     const cx = token.center.x;
@@ -189,7 +190,7 @@ export const deathAnimations = {
     if (!token?.mesh) return;
     const mesh = token.mesh;
     const startAlpha = mesh.alpha;
-    const texture = getEffectTexture("goldMote");
+    const texture = await ensureEffectTexture("goldMote");
     if (!texture) {
       mesh.alpha = 0;
       return;
@@ -228,7 +229,7 @@ export const deathAnimations = {
    */
   infernalFade: async (token) => {
     await deathAnimations.belleFade(token);
-    const texture = getEffectTexture("ember");
+    const texture = await ensureEffectTexture("ember");
     if (!texture || !token?.center) return;
     const layer = canvas.interface;
     const cx = token.center.x;

@@ -6,6 +6,7 @@ import { installBrokerHook } from "./chat-broker.js";
 import { installSpawnBrokerHandler } from "./spawn-engine.js";
 import { applyFiltersToToken, removeMotionFromToken } from "./visual-filters.js";
 import { installLifecycleHooks, installDeleteHandling, installDismissBrokerHandler, cleanupOrphanedCompanionTokens } from "./lifecycle.js";
+import { runHealSweep } from "./heal-sweep.js";
 import { installDnd5eHooks } from "./dnd5e-mods.js";
 import "./handlers/simulacrum.js";   // self-registers Repair via registerHandler
 import { installSheetDecorator } from "./sheet-decorator.js";
@@ -63,21 +64,19 @@ Hooks.once("ready", async () => {
     ui.notifications?.warn(`[${MODULE_ID}] requires the dnd5e system; spawn features disabled on system "${game.system.id}".`);
     return;
   }
-  // Plan 3: preload effect SVG textures used by spawn + death animations.
-  // Failure is non-fatal — animations check for texture presence and skip
-  // gracefully if not loaded.
+  // Plan 3 / v0.4.7 FIX 2: warm-up preload of effect SVG textures used by
+  // spawn + death animations. This is no longer load-bearing for correctness
+  // (see effect-textures.js doc comment — Game.setupGame's initial canvas
+  // draw can fire drawToken -> maybeRunSpawnAnimation BEFORE this ready hook
+  // runs, e.g. replaying a stale pending-spawn flag from a prior session).
+  // Every animation call site now awaits ensureEffectTexture() itself, which
+  // loads on demand and caches. This preload just shaves first-use latency
+  // for anything that spawns after ready. Failure is non-fatal.
   try {
-    const { setEffectTextures } = await import("./effect-textures.js");
-    const textures = {
-      hexShard: await PIXI.Assets.load("modules/luxurious-summons/assets/effects/hex-shard.svg"),
-      goldMote: await PIXI.Assets.load("modules/luxurious-summons/assets/effects/gold-mote.svg"),
-      ember:    await PIXI.Assets.load("modules/luxurious-summons/assets/effects/ember.svg"),
-      boneMote: await PIXI.Assets.load("modules/luxurious-summons/assets/effects/bone-mote.svg")
-    };
-    setEffectTextures(textures);
-    console.log(`[${MODULE_ID}] preloaded 4 effect textures`);
+    const { preloadAllEffectTextures } = await import("./effect-textures.js");
+    await preloadAllEffectTextures();
   } catch (e) {
-    console.warn(`[${MODULE_ID}] effect-texture preload failed:`, e);
+    console.warn(`[${MODULE_ID}] effect-texture warm-up preload failed:`, e);
   }
 
   await refreshUserIndexes();
@@ -92,6 +91,11 @@ Hooks.once("ready", async () => {
   // Sweep up ghost tokens from prior sessions (companion tokens whose actor was deleted
   // without the token also being deleted — paid for in v0.3.3). GM-only by gate inside.
   await cleanupOrphanedCompanionTokens();
+  // v0.4.7 FIX 1: heal broken pre-0.4.6 baked token-art paths + clear stale
+  // pending-spawn flags left over from earlier builds. Primary-GM-gated
+  // internally; safe to call on every client. Runs after settings + templates
+  // are available.
+  await runHealSweep();
   if (s("verboseLogging")) {
     console.log(`[${MODULE_ID}] verbose logging enabled — full diagnostic trail will print`);
   }
