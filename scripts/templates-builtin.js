@@ -14,6 +14,21 @@
 // Spirit" (reachable via DDB-Importer), so the trigger carries both names.
 // Inline-synthesized templates (Mage Hand / Unseen Servant / Echo Knight Echo)
 // work without UUIDs.
+//
+// v0.5.0 (conjurations wave, tier 1): 6 new templates + 2 source-mode
+// conversions (Mage Hand, Unseen Servant: inline-synthesized -> compendium),
+// all backed by dnd5e.actors24 stat blocks under
+// packs/_source/actors24/{conjurations,companions/otherworldly-steeds}/ —
+// UUIDs + filenames verified against the release-5.2.1 tag via gh api (TASK 0).
+// TASK 0 also found that Spiritual Weapon + Arcane Hand's damage formulas
+// reference `@flags.dnd5e.summon.{level,mod}` (populated natively by dnd5e's
+// SummonActivity, never by a standalone Actor.create() clone) — those two
+// templates carry `source.substituteSpellLevel: true`; see source-modes.js
+// applySummonFlags doc comment for the full mechanism. No template in this
+// wave referenced `@item.level` / `@scaling` / `@attributes.spell.*` /
+// `@classes.*` — the speculative "@item.level substitution" machinery
+// originally scoped for this wave was NOT built; see module CLAUDE.md decisions
+// log for the write-up.
 
 export const templates = [
   {
@@ -252,6 +267,16 @@ export const templates = [
     trigger: { type: "spell", name: "Mage Hand" },
     triggerSpell: "Mage Hand",
 
+    // v0.5.0 TASK 2: evaluated converting to source.mode "compendium" against
+    // Compendium.dnd5e.actors24.Actor.phbsplMageHand00 and decided AGAINST it.
+    // The official 2024-SRD stat block ships system.attributes.movement with
+    // walk/fly/swim/climb/burrow ALL null (RAW encodes Mage Hand's "move up to
+    // 30 ft" as spell-text flavor, not token movement) and ac.flat: 0. Cloned
+    // as-is, the companion token would be immobile on the grid (no walk speed
+    // to drag it with, no fly speed either) and have AC 0 — materially worse
+    // for play than our inline block's fly:30/hover:true/ac:10, which lets a
+    // player actually move the hand around the table. Kept inline per the
+    // v0.5.0 spec's "keep inline if materially worse" clause.
     source: {
       mode: "inline-synthesized",
       inline: {
@@ -321,23 +346,14 @@ export const templates = [
     trigger: { type: "spell", name: "Unseen Servant" },
     triggerSpell: "Unseen Servant",
 
-    source: {
-      mode: "inline-synthesized",
-      inline: {
-        type: "npc",
-        img:  "modules/luxurious-summons/assets/tokens/unseen-servant.webp",
-        system: {
-          abilities: { str: { value: 2 }, dex: { value: 6 }, con: { value: 10 }, int: { value: 1 }, wis: { value: 1 }, cha: { value: 1 } },
-          attributes: {
-            ac:    { flat: 10, calc: "flat" },
-            hp:    { value: 2, max: 2 },
-            movement: { walk: 15 }
-          },
-          details: { type: { value: "construct" }, cr: 0 }
-        },
-        prototypeToken: { name: "Unseen Servant", actorLink: false, sight: { enabled: false } }
-      }
-    },
+    // v0.5.0 TASK 2: converted inline-synthesized -> compendium. The official
+    // 2024-SRD stat block (Compendium.dnd5e.actors24.Actor.phbsplUnseenServ)
+    // has walk:15 / ac.flat:10, matching our inline block, AND corrects our
+    // hp to the RAW-accurate 1/1 (our inline block had drifted to 2/2). Ships
+    // img: '' — resolveArtFallback heals both actor img and token texture to
+    // template.thumbnail (our existing assets/tokens/unseen-servant.webp),
+    // so the visual art is unchanged from before this conversion.
+    source: { mode: "compendium", baseUuid: "Compendium.dnd5e.actors24.Actor.phbsplUnseenServ" },
     syncMode: "snapshot",
     maxActive: 1,
     requiresApproval: false,
@@ -482,5 +498,283 @@ export const templates = [
     ],
 
     deathAnimation: "hexShatter"
+  },
+
+  // ============================================================
+  // v0.5.0 templates (conjurations wave, tier 1)
+  // ============================================================
+
+  {
+    id: "spiritual-weapon",
+    name: "Spiritual Weapon",
+    description: "A spectral weapon of your deity's favor attacks on your behalf.",
+    thumbnail: "icons/weapons/axes/axe-double-gold.webp",   // dnd5e SRD spell icon (spells24/2nd-level/spiritual-weapon.yml)
+    aestheticFamily: "belle-epoque",
+
+    trigger: { type: "spell", name: "Spiritual Weapon" },
+    triggerSpell: "Spiritual Weapon",
+
+    // TASK 3: damage formula is "(@flags.dnd5e.summon.level - 1)d8 + @flags.dnd5e.summon.mod" —
+    // needs flags.dnd5e.summon.{level,mod} substituted at spawn time. See
+    // source-modes.js applySummonFlags doc comment. baseSpellLevel 2 matches
+    // the spell's own base casting level (spells24/2nd-level).
+    source: { mode: "compendium", baseUuid: "Compendium.dnd5e.actors24.Actor.phbsplSpiritualW", substituteSpellLevel: true, baseSpellLevel: 2 },
+    syncMode: "snapshot",
+    maxActive: 1,
+    requiresApproval: false,
+
+    effects: {
+      motion: { profile: "floating-hand", intensity: 0.8 },
+      spawn:  "belleBloom",
+      death:  "belleFade"
+    },
+
+    defaults: {
+      hueColor: "#c9a14b",
+      hueIntensity: 0.15,
+      alpha: 1.0,
+      saturation: 1.0,
+      brightness: 1.05,
+      outlineColor: "#c9a14b",
+      outlineThickness: 2,
+      namePrefix: "",
+      nameSuffix: "",
+      borderColor: "#c9a14b",
+      motionProfile: "floating-hand",
+      motionIntensity: 0.8
+    },
+
+    deathAnimation: "belleFade"
+  },
+
+  {
+    id: "arcane-hand",
+    name: "Arcane Hand",
+    description: "A Large hand of magical force follows your commands to grapple, strike, and shield.",
+    thumbnail: "icons/magic/earth/strike-fist-stone.webp",   // dnd5e SRD spell icon (spells24/5th-level/arcane-hand.yml)
+    aestheticFamily: "hextech",
+
+    // 2024 SRD name is "Arcane Hand"; "Bigby's Hand" is the legacy/Tasha's
+    // name DDB-Importer may still use — same dual-alias pattern as Summon Dragon.
+    trigger: { type: "spell", name: ["Arcane Hand", "Bigby's Hand"] },
+    triggerSpell: "Arcane Hand",
+
+    // TASK 3: TWO damage formulas reference @flags.dnd5e.summon.level (Clenched
+    // Fist: "(2 * @flags.dnd5e.summon.level - 5)d8"; Grasping Hand: "(2 *
+    // @flags.dnd5e.summon.level - 6)d6 + @flags.dnd5e.summon.mod"). baseSpellLevel
+    // 5 matches the spell's own base casting level (spells24/5th-level).
+    // Large size (prototypeToken width/height: 2) comes through unmodified via
+    // actor.toObject() clone — do NOT apply any scale-down override here.
+    source: { mode: "compendium", baseUuid: "Compendium.dnd5e.actors24.Actor.phbsplBigbysHand", substituteSpellLevel: true, baseSpellLevel: 5 },
+    syncMode: "snapshot",
+    maxActive: 1,
+    requiresApproval: false,
+
+    effects: {
+      motion: { profile: "floating-hand", intensity: 1.0 },
+      spawn:  "mageHandSparks",
+      death:  "mageHandDissolve"
+    },
+
+    defaults: {
+      hueColor: "#5cd3e8",
+      hueIntensity: 0.20,
+      alpha: 0.9,
+      saturation: 1.0,
+      brightness: 1.0,
+      outlineColor: "#5cd3e8",
+      outlineThickness: 2,
+      namePrefix: "",
+      nameSuffix: "",
+      borderColor: "#5cd3e8",
+      motionProfile: "floating-hand",
+      motionIntensity: 1.0
+    },
+
+    deathAnimation: "mageHandDissolve"
+  },
+
+  {
+    id: "mirror-image",
+    name: "Mirror Image",
+    description: "Three illusory duplicates of yourself spring into being, confusing attackers.",
+    thumbnail: "icons/magic/defensive/illusion-evasion-echo-purple.webp",   // dnd5e SRD spell icon (spells24/2nd-level/mirror-image.yml)
+    aestheticFamily: "hextech",
+
+    trigger: { type: "spell", name: "Mirror Image" },
+    triggerSpell: "Mirror Image",
+
+    source: { mode: "compendium", baseUuid: "Compendium.dnd5e.actors24.Actor.phbDuplicate0000" },
+    syncMode: "snapshot",
+    // Fixed multi-spawn of 3 duplicates. maxActive > 1 is the SAME signal
+    // variant-picker-app.js already uses to switch into multi-spawn mode
+    // (this.multiSpawn = template.maxActive > 1) — no variant steppers are
+    // shown here because this template carries no `variants` array, so the
+    // picker's single-variant path pre-selects the implicit __default__
+    // "variant" and increments it straight to 3 (see TASK 4 test + manual
+    // verification note). Reuses the exact same multi-spawn-counter +
+    // sequential-placement machinery Animate Dead uses, including the ESC-abort
+    // mid-sequence behavior from v0.4.6 FIX 10.
+    maxActive: 3,
+    requiresApproval: false,
+
+    effects: {
+      motion: { profile: "mirror-wobble", intensity: 1.0 },
+      spawn:  "echoStep",
+      death:  "echoCollapse"
+    },
+
+    defaults: {
+      hueColor: "#7ea9ff",
+      hueIntensity: 0.20,
+      alpha: 0.7,
+      saturation: 0.8,
+      brightness: 1.05,
+      outlineColor: "#7ea9ff",
+      outlineThickness: 1,
+      // Duplicates are named "Duplicate of <caster>" — spawn-engine.js's
+      // synthName falls back to `${prefix}${masterName}${suffix}` whenever no
+      // `variant` is selected (this template has none), so namePrefix alone
+      // produces exactly that shape.
+      namePrefix: "Duplicate of ",
+      nameSuffix: "",
+      borderColor: "#7ea9ff",
+      motionProfile: "mirror-wobble",
+      motionIntensity: 1.0
+    },
+
+    deathAnimation: "echoCollapse"
+  },
+
+  {
+    id: "find-steed",
+    name: "Find Steed",
+    description: "Summon a spirit steed to serve as a loyal mount.",
+    thumbnail: "icons/commodities/claws/claw-blue-grey.webp",   // dnd5e SRD spell icon (spells24/2nd-level/find-steed.yml)
+    aestheticFamily: "belle-epoque",
+
+    trigger: { type: "spell", name: "Find Steed" },
+    triggerSpell: "Find Steed",
+
+    // Three named-flavor variants only — the generic Compendium.dnd5e.actors24
+    // "Otherworldly Steed" (phbmobOtherworld) is redundant with these and
+    // skipped per spec. Variant thumbnails intentionally point at the
+    // template thumbnail (no custom per-flavor art yet) rather than inventing
+    // a path that doesn't exist on disk — lux-thumbnail-paths.test.js would
+    // catch a fabricated modules/... path anyway.
+    source: { mode: "compendium" },
+    syncMode: "snapshot",
+    maxActive: 1,
+    requiresApproval: false,
+
+    effects: {
+      motion: { profile: "idle-breathing", intensity: 1.0 },
+      spawn:  "belleBloom",
+      death:  "belleFade"
+    },
+
+    defaults: {
+      hueColor: "#c9a14b",
+      hueIntensity: 0.15,
+      alpha: 1.0,
+      saturation: 1.0,
+      brightness: 1.0,
+      outlineColor: "#c9a14b",
+      outlineThickness: 0,
+      namePrefix: "",
+      nameSuffix: "",
+      borderColor: "#c9a14b",
+      motionProfile: "idle-breathing",
+      motionIntensity: 1.0
+    },
+
+    variants: [
+      { id: "celestial", name: "Celestial Steed", thumbnail: "icons/commodities/claws/claw-blue-grey.webp",
+        source: { baseUuid: "Compendium.dnd5e.actors24.Actor.phbostCelestial0" } },
+      { id: "fey",       name: "Fey Steed",       thumbnail: "icons/commodities/claws/claw-blue-grey.webp",
+        source: { baseUuid: "Compendium.dnd5e.actors24.Actor.phbostFey0000000" } },
+      { id: "fiend",     name: "Fiend Steed",     thumbnail: "icons/commodities/claws/claw-blue-grey.webp",
+        source: { baseUuid: "Compendium.dnd5e.actors24.Actor.phbostFiend00000" } }
+    ],
+
+    deathAnimation: "belleFade"
+  },
+
+  {
+    id: "phantom-steed",
+    name: "Phantom Steed",
+    description: "A spectral mount, quiet as death, appears to carry you swiftly across the land.",
+    thumbnail: "icons/creatures/mammals/deer-antlers-glowing-blue.webp",   // dnd5e SRD spell icon (spells24/3rd-level/phantom-steed.yml)
+    aestheticFamily: "hextech",
+
+    trigger: { type: "spell", name: "Phantom Steed" },
+    triggerSpell: "Phantom Steed",
+
+    source: { mode: "compendium", baseUuid: "Compendium.dnd5e.actors24.Actor.phbsumPhantomSte" },
+    syncMode: "snapshot",
+    maxActive: 1,
+    requiresApproval: false,
+
+    effects: {
+      motion: { profile: "idle-breathing", intensity: 0.7 },
+      spawn:  "echoStep",
+      death:  "softFade"
+    },
+
+    defaults: {
+      hueColor: "#5cd3e8",
+      hueIntensity: 0.20,
+      alpha: 0.85,
+      saturation: 0.9,
+      brightness: 1.0,
+      outlineColor: "#5cd3e8",
+      outlineThickness: 1,
+      namePrefix: "",
+      nameSuffix: "",
+      borderColor: "#5cd3e8",
+      motionProfile: "idle-breathing",
+      motionIntensity: 0.7
+    },
+
+    deathAnimation: "softFade"
+  },
+
+  {
+    id: "flaming-sphere",
+    name: "Flaming Sphere",
+    description: "A ten-foot-diameter sphere of fire rolls at your command, scorching all it touches.",
+    thumbnail: "icons/magic/fire/flame-burning-earth-yellow.webp",   // dnd5e SRD spell icon (spells24/2nd-level/flaming-sphere.yml) — matches the stat block's own img exactly
+    aestheticFamily: "hextech",
+
+    trigger: { type: "spell", name: "Flaming Sphere" },
+    triggerSpell: "Flaming Sphere",
+
+    source: { mode: "compendium", baseUuid: "Compendium.dnd5e.actors24.Actor.phbsplFlamingSph" },
+    syncMode: "snapshot",
+    maxActive: 1,
+    requiresApproval: false,
+
+    effects: {
+      motion: { profile: "flame-flicker", intensity: 1.0 },
+      spawn:  "infernalBloom",
+      death:  "infernalFade"
+    },
+
+    defaults: {
+      hueColor: "#ff7733",
+      hueIntensity: 0.25,
+      alpha: 1.0,
+      saturation: 1.0,
+      brightness: 1.1,
+      outlineColor: "#ff7733",
+      outlineThickness: 2,
+      namePrefix: "",
+      nameSuffix: "",
+      borderColor: "#ff7733",
+      motionProfile: "flame-flicker",
+      motionIntensity: 1.0
+    },
+
+    deathAnimation: "infernalFade"
   }
 ];

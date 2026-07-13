@@ -74,6 +74,19 @@ export class VariantPickerApp extends HandlebarsApplicationMixin(ApplicationV2) 
     // Multi-spawn state
     this.multiSpawn = (template.maxActive ?? 1) > 1;
     this.counter = this.multiSpawn ? createCounter({ maxActive: template.maxActive }) : null;
+    // v0.5.0: "fixed multi-spawn" templates (Mirror Image — always exactly
+    // maxActive copies of the SAME single stat block, no per-variant choice)
+    // are signaled by carrying no explicit `variants` array while maxActive > 1.
+    // Every OTHER multi-spawn template (Animate Dead, and any future one)
+    // ships a real `variants` array (Skeleton/Zombie) where the player picks
+    // WHICH thing to spawn how many of — that's the only case the manual
+    // per-card stepper makes sense for. For fixed multi-spawn we pre-fill the
+    // counter to the cap and hide the stepper entirely; the picker just shows
+    // "places N <template.name>" and Place runs the full sequence immediately.
+    this.fixedMultiSpawn = this.multiSpawn && !template.variants;
+    if (this.fixedMultiSpawn) {
+      for (let i = 0; i < template.maxActive; i++) this.counter = increment(this.counter, this.selectedVariantId);
+    }
     // Cast-level state (used by compendium-scaled templates — wired in task 25)
     this.selectedCastSlotLevel = ctx.castSlotLevel ?? null;
   }
@@ -106,6 +119,12 @@ export class VariantPickerApp extends HandlebarsApplicationMixin(ApplicationV2) 
         ? (this.counter ? totalCount(this.counter) > 0 : false)
         : (!!selected && !selected._ineligible),
       multiSpawn: this.multiSpawn,
+      // v0.5.0: fixed multi-spawn (Mirror Image) pre-fills to the cap and
+      // hides the per-card stepper — showStepper is what the partial actually
+      // renders on, distinct from multiSpawn (which still drives the
+      // "N / max" total chip and the "Place N" button label for both cases).
+      showStepper: this.multiSpawn && !this.fixedMultiSpawn,
+      fixedMultiSpawn: this.fixedMultiSpawn,
       multispawnTotal: this.multiSpawn ? totalCount(this.counter) : 0,
       multispawnMax: this.template.maxActive,
       showCastLevelSelector,
@@ -177,7 +196,10 @@ export class VariantPickerApp extends HandlebarsApplicationMixin(ApplicationV2) 
   }
 
   #wireStepperClicks() {
-    if (!this.multiSpawn) return;
+    // v0.5.0: fixedMultiSpawn templates (Mirror Image) have no stepper DOM to
+    // wire — the counter is pre-filled to the cap in the constructor and
+    // never changes for the lifetime of the dialog.
+    if (!this.multiSpawn || this.fixedMultiSpawn) return;
     this.element.querySelectorAll('.luxsum-variant-stepper button[data-action="inc"]').forEach(b => {
       b.addEventListener("click", (e) => {
         e.stopPropagation();

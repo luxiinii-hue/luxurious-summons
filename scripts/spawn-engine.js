@@ -120,25 +120,42 @@ export async function performSpawn(payload) {
       : `${prefix}${masterName}${suffix}`;
 
     // 2. Resolve actor data per source mode
+    //
+    // v0.5.0 TASK 2: the mageHandTokenPath override used to be wired only
+    // through resolveInlineData (inline-synthesized mode). Mage Hand is now
+    // source.mode "compendium" — resolved here BEFORE the mode branch so it
+    // applies uniformly whichever mode the template happens to use, instead
+    // of duplicating the settings-read per branch.
+    let overrideArtPath;
+    if (templateId === "mage-hand") {
+      overrideArtPath = game.settings.get(MODULE_ID, "mageHandTokenPath") || undefined;
+      if (overrideArtPath) {
+        console.log(`[${MODULE_ID}] performSpawn: using custom mageHandTokenPath "${overrideArtPath}" for Mage Hand art`);
+      }
+    }
+
+    // v0.5.0 TASK 3: Spiritual Weapon / Arcane Hand damage formulas need
+    // flags.dnd5e.summon.{level,mod} populated (see source-modes.js
+    // applySummonFlags doc comment). Resolve the caster's relevant
+    // spellcasting-ability score here — spawn-engine is the layer that has
+    // sourceActor available; source-modes.js stays pure-logic.
+    let casterAbilityScore;
+    if (template.source?.substituteSpellLevel) {
+      const spellcastingAbility = sourceActor.system?.attributes?.spellcasting;
+      casterAbilityScore = spellcastingAbility
+        ? sourceActor.system?.abilities?.[spellcastingAbility]?.value
+        : undefined;
+      console.log(`[${MODULE_ID}] performSpawn: substituteSpellLevel template "${template.id}" — caster spellcasting ability "${spellcastingAbility}" score ${casterAbilityScore}`);
+    }
+
     let actorData;
     if (mode === "clone") {
       actorData = resolveCloneData(sourceActor, { prefix, suffix, folderId: folder.id });
     } else if (mode === "compendium") {
-      actorData = await resolveCompendiumData(template, variant, { name: synthName, folderId: folder.id });
+      actorData = await resolveCompendiumData(template, variant, { name: synthName, folderId: folder.id, overrideArtPath, castSlotLevel, casterAbilityScore });
     } else if (mode === "compendium-scaled") {
-      actorData = await resolveCompendiumScaledData(template, variant, { name: synthName, folderId: folder.id, castSlotLevel });
+      actorData = await resolveCompendiumScaledData(template, variant, { name: synthName, folderId: folder.id, castSlotLevel, overrideArtPath, casterAbilityScore });
     } else if (mode === "inline-synthesized") {
-      // v0.4.7 FIX 4: Mage Hand's fallback art is a washed-out square spell icon;
-      // let a GM point it at a custom static image or animated .webm via the
-      // mageHandTokenPath world setting. Injected as a param (not read inside
-      // resolveInlineData) so that function stays pure-logic and unit-testable.
-      let overrideArtPath;
-      if (templateId === "mage-hand") {
-        overrideArtPath = game.settings.get(MODULE_ID, "mageHandTokenPath") || undefined;
-        if (overrideArtPath) {
-          console.log(`[${MODULE_ID}] performSpawn: using custom mageHandTokenPath "${overrideArtPath}" for Mage Hand art`);
-        }
-      }
       actorData = resolveInlineData(template, { name: synthName, folderId: folder.id, overrideArtPath });
     } else {
       throw new Error(`unknown source.mode "${mode}" on template "${template.id}"`);
@@ -194,6 +211,9 @@ export async function performSpawn(payload) {
         "system.attributes.ac.flat": casterAc,
         "system.attributes.ac.calc": "flat"
       });
+    } else if (templateId === "mirror-image") {
+      const { onAfterSpawn } = await import("./handlers/mirror-image.js");
+      await onAfterSpawn(newActor, sourceActor);
     }
 
     // 9. Place token at the requested grid cell, tagged for orphan-cleanup

@@ -62,6 +62,56 @@ test("no built-in template still carries a placeholder compendium UUID", () => {
   assert.ok(!json.includes("uuid-tbd"), "found a *-uuid-tbd placeholder in templates-builtin");
 });
 
+// v0.5.0 conjurations wave — new templates' trigger matching
+
+test("Arcane Hand: BOTH the 2024-SRD name and the legacy Bigby's Hand name trigger", () => {
+  for (const name of ["Arcane Hand", "Bigby's Hand"]) {
+    const matches = findTemplatesByItem({ name, type: "spell" });
+    assert.deepEqual(matches.map(t => t.id), ["arcane-hand"], `spell name "${name}" should match arcane-hand`);
+  }
+});
+
+test("Arcane Hand alias matching is case-insensitive", () => {
+  const matches = findTemplatesByItem({ name: "bigby's hand", type: "spell" });
+  assert.deepEqual(matches.map(t => t.id), ["arcane-hand"]);
+});
+
+test("Spiritual Weapon cast matches spiritual-weapon only", () => {
+  const matches = findTemplatesByItem({ name: "Spiritual Weapon", type: "spell" });
+  assert.deepEqual(matches.map(t => t.id), ["spiritual-weapon"]);
+});
+
+test("Mirror Image cast matches mirror-image only", () => {
+  const matches = findTemplatesByItem({ name: "Mirror Image", type: "spell" });
+  assert.deepEqual(matches.map(t => t.id), ["mirror-image"]);
+});
+
+test("Find Steed cast matches find-steed only", () => {
+  const matches = findTemplatesByItem({ name: "Find Steed", type: "spell" });
+  assert.deepEqual(matches.map(t => t.id), ["find-steed"]);
+});
+
+test("Phantom Steed cast matches phantom-steed only", () => {
+  const matches = findTemplatesByItem({ name: "Phantom Steed", type: "spell" });
+  assert.deepEqual(matches.map(t => t.id), ["phantom-steed"]);
+});
+
+test("Flaming Sphere cast matches flaming-sphere only", () => {
+  const matches = findTemplatesByItem({ name: "Flaming Sphere", type: "spell" });
+  assert.deepEqual(matches.map(t => t.id), ["flaming-sphere"]);
+});
+
+test("v0.5.0 new spell triggers do not match when item.type is feat", () => {
+  for (const name of ["Spiritual Weapon", "Arcane Hand", "Mirror Image", "Find Steed", "Phantom Steed", "Flaming Sphere"]) {
+    assert.deepEqual(findTemplatesByItem({ name, type: "feat" }), [], `"${name}" as a feat should match nothing`);
+  }
+});
+
+test("Mage Hand and Unseen Servant trigger matching unaffected by the v0.5.0 source-mode conversion", () => {
+  assert.deepEqual(findTemplatesByItem({ name: "Mage Hand", type: "spell" }).map(t => t.id), ["mage-hand"]);
+  assert.deepEqual(findTemplatesByItem({ name: "Unseen Servant", type: "spell" }).map(t => t.id), ["unseen-servant"]);
+});
+
 // v0.4.6 FIX 4 — extractCastSlotLevel. Verified against dnd5e 5.2.1
 // activity/mixin.mjs: usageConfig.spell.slot is a key string ("spell6", "pact"),
 // never a number; usageConfig.consume.spellSlot is a boolean, not a level.

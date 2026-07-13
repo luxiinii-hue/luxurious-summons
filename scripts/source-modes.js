@@ -75,6 +75,68 @@ export function applyScalingTier(baseData, tier) {
 // as "missing art" for fallback purposes.
 const FOUNDRY_DEFAULT_ACTOR_IMG = "icons/svg/mystery-man.svg";
 
+// ── v0.5.0 TASK 3: @flags.dnd5e.summon.{level,mod} substitution ──────────
+//
+// TASK 0 finding: dnd5e's 2024-SRD "Spiritual Weapon" and "Arcane Hand" stat
+// blocks (packs/_source/actors24/conjurations/{spiritual-weapon,arcane-hand}.yml,
+// verified against the release-5.2.1 tag) embed damage-roll formulas that
+// reference `@flags.dnd5e.summon.level` and `@flags.dnd5e.summon.mod`:
+//   spiritual-weapon: "(@flags.dnd5e.summon.level - 1)d8 + @flags.dnd5e.summon.mod"
+//   arcane-hand:       "(2 * @flags.dnd5e.summon.level - 5)d8"            (Clenched Fist)
+//                       "(2 * @flags.dnd5e.summon.level - 6)d6 + @flags.dnd5e.summon.mod"  (Grasping Hand)
+// These flags are written onto the SUMMONED actor by dnd5e's own
+// SummonActivity#getChanges (module/documents/activity/summon.mjs, ~line 266):
+//   actorUpdates["flags.dnd5e.summon"] = { level: this.relevantLevel, mod: rollData.mod, ... }
+// A standalone clone created via our own Actor.create() never goes through
+// that activity, so the flags are never set — the roll formula would parse
+// fine (it's valid dnd5e roll-data syntax) but resolve `@flags.dnd5e.summon.level`
+// and `.mod` to `undefined`, producing NaN-shaped dice terms at roll time.
+// This is a SIBLING failure mode to the "[object Object] damage parts" bug
+// documented in the workspace CLAUDE.md (dnd5e 5.x damage parts are strings) —
+// same "looks fine until someone rolls damage" latency, different root cause
+// (missing roll-data flags, not malformed parts shape).
+//
+// Fix: write `flags.dnd5e.summon.{level,mod}` directly onto the cloned actor
+// data at spawn time, computed the same way dnd5e's own activity would:
+//   level = castSlotLevel ?? template's spell base level (upcast-aware, mirrors relevantLevel)
+//   mod   = the CASTER's relevant spellcasting-ability modifier (mirrors rollData.mod)
+// This is NOT a string-replace of the formula text — the formula stays
+// "@flags.dnd5e.summon.level"; we make that roll-data path resolve correctly
+// by populating the flag dnd5e's own damage roll already expects to read.
+
+/**
+ * Pure-logic. Computes the caster's spellcasting-ability modifier the same
+ * way dnd5e's SummonActivity does (`rollData.mod` from `actor.getRollData()`),
+ * without depending on Foundry's Actor#getRollData implementation — takes an
+ * already-resolved ability score object so this stays testable without mocks.
+ *
+ * @param abilityScore  the caster's spellcasting ability's `.value` (10-20 typical)
+ * @returns {number}    floor((score - 10) / 2), defaulting to 0 for a missing/invalid score
+ */
+export function computeSpellcastingMod(abilityScore) {
+  if (typeof abilityScore !== "number" || Number.isNaN(abilityScore)) return 0;
+  return Math.floor((abilityScore - 10) / 2);
+}
+
+/**
+ * Pure-logic. Writes `flags.dnd5e.summon.{level,mod}` onto a (deep-cloned)
+ * actor data object so damage formulas referencing those roll-data paths
+ * resolve correctly outside dnd5e's native summon activity.
+ *
+ * @param actorData    cloned compendium actor data (already has _id stripped)
+ * @param level        resolved summon level (castSlotLevel, falling back to
+ *                      the template's base spell level — resolution happens
+ *                      at the call site since it needs template + cast context)
+ * @param mod           the caster's spellcasting ability modifier
+ * @returns {object}    new actor data object with the flag applied
+ */
+export function applySummonFlags(actorData, level, mod) {
+  const data = structuredClone(actorData);
+  data.flags = data.flags ?? {};
+  data.flags.dnd5e = { ...(data.flags.dnd5e ?? {}), summon: { ...(data.flags.dnd5e?.summon ?? {}), level, mod } };
+  return data;
+}
+
 /**
  * Pure-logic (v0.4.7 FIX 5; v0.4.8 made variant-aware). Given already-cloned
  * compendium actor data and the owning template (+ optional variant), decide
@@ -125,8 +187,26 @@ export function resolveArtFallback(actorData, template, variant) {
   return { data, healed: true };
 }
 
-// Foundry-side; not unit-tested
-export async function resolveCompendiumData(template, variant, { name, folderId } = {}) {
+/**
+ * Foundry-side; not unit-tested (fromUuid + game.settings-shaped inputs).
+ *
+ * @param overrideArtPath  v0.5.0 TASK 2 — generalizes the mageHandTokenPath
+ *   override (previously inline-synthesized-only, see resolveInlineData) to
+ *   the compendium path. Applied AFTER resolveArtFallback so an explicit GM
+ *   override always wins over the automatic missing-art heal. Caller
+ *   (spawn-engine.js) reads the per-template setting and passes it in — kept
+ *   as an injected param, not read here, so this stays consistent with the
+ *   existing resolveInlineData pattern.
+ * @param castSlotLevel + casterAbilityScore  v0.5.0 TASK 3 — only used when
+ *   template.source.substituteSpellLevel is true (Spiritual Weapon, Arcane
+ *   Hand). casterAbilityScore is the caster's RELEVANT spellcasting ability
+ *   score (e.g. Wisdom for a cleric casting Spiritual Weapon) — the caller
+ *   resolves which ability that is (spawn-engine.js reads
+ *   sourceActor.system.attributes.spellcasting + the ability score), this
+ *   function only does the floor((score-10)/2) arithmetic via
+ *   computeSpellcastingMod. See applySummonFlags doc comment above.
+ */
+export async function resolveCompendiumData(template, variant, { name, folderId, overrideArtPath, castSlotLevel, casterAbilityScore } = {}) {
   const uuid = variant?.source?.baseUuid ?? template?.source?.baseUuid;
   if (!uuid) throw new Error(`no baseUuid on template "${template?.id}" or its variant`);
   const actor = await fromUuid(uuid);
@@ -147,11 +227,32 @@ export async function resolveCompendiumData(template, variant, { name, folderId 
     console.log(`[luxurious-summons] resolveCompendiumData: applied art fallback for "${template?.id}"${variant ? ` variant "${variant.id}"` : ""} (source had missing/default art) -> ${healedTo}`);
   }
 
+  // v0.5.0 TASK 2: explicit override art (e.g. mageHandTokenPath, once Mage
+  // Hand or any other template routes through the compendium path with a
+  // configured override) wins over both the source's own art AND the
+  // automatic fallback above.
+  if (overrideArtPath) {
+    data.img = overrideArtPath;
+    data.prototypeToken = data.prototypeToken ?? {};
+    data.prototypeToken.texture = { ...(data.prototypeToken.texture ?? {}), src: overrideArtPath };
+  }
+
+  // v0.5.0 TASK 3: Spiritual Weapon / Arcane Hand damage formulas reference
+  // @flags.dnd5e.summon.{level,mod}, which dnd5e's native SummonActivity
+  // writes onto the summoned actor but our clone path bypasses. See the
+  // applySummonFlags doc comment for the full explanation.
+  if (template?.source?.substituteSpellLevel) {
+    const level = castSlotLevel ?? template?.source?.baseSpellLevel ?? 1;
+    const mod = computeSpellcastingMod(casterAbilityScore);
+    data = applySummonFlags(data, level, mod);
+    console.log(`[luxurious-summons] resolveCompendiumData: applied flags.dnd5e.summon (level=${level}, mod=${mod}) for "${template?.id}"`);
+  }
+
   return data;
 }
 
-export async function resolveCompendiumScaledData(template, variant, { name, folderId, castSlotLevel } = {}) {
-  const base = await resolveCompendiumData(template, variant, { name, folderId });
+export async function resolveCompendiumScaledData(template, variant, { name, folderId, castSlotLevel, overrideArtPath, casterAbilityScore } = {}) {
+  const base = await resolveCompendiumData(template, variant, { name, folderId, castSlotLevel, overrideArtPath, casterAbilityScore });
   const tier = pickScalingTier(template?.source?.scalingTable ?? [], castSlotLevel);
   return applyScalingTier(base, tier);
 }

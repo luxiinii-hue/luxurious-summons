@@ -64,6 +64,7 @@
   "LUXSUM.VariantPicker.Place": "Place",
   "LUXSUM.VariantPicker.PlaceN": "Place {count} tokens",
   "LUXSUM.VariantPicker.MultispawnTotal": "Total",
+  "LUXSUM.VariantPicker.FixedMultiSpawn": "Places {count} {name}",
   "LUXSUM.VariantPicker.MultiSpawnCancelled": "Placement cancelled — {placed} of {total} placed.",
   "LUXSUM.Common.Cancel": "Cancel",
   "LUXSUM.Spawn.NoSourceActor": "No source actor — assign a character to your user first.",

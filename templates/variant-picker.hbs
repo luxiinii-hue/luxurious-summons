@@ -1,6 +1,6 @@
 <div class="luxsum-variant-picker">
   <header class="luxsum-variant-picker-header">
-    <h2>{{template.name}} — {{localize "LUXSUM.VariantPicker.PickVariant"}}</h2>
+    <h2>{{#if fixedMultiSpawn}}{{template.name}}{{else}}{{template.name}} — {{localize "LUXSUM.VariantPicker.PickVariant"}}{{/if}}</h2>
   </header>
   <div class="luxsum-variant-picker-body">
     <div class="luxsum-variant-picker-left">
@@ -11,11 +11,15 @@
               selected=(eq v.id ../selectedVariantId)
               ineligible=v._ineligible
               ineligibilityReason=v._reason
-              showStepper=../multiSpawn
+              showStepper=../showStepper
               count=v._count}}
         {{/each}}
       </div>
-      {{#if multiSpawn}}
+      {{#if fixedMultiSpawn}}
+        <div class="luxsum-multispawn-total luxsum-fixed-multispawn">
+          {{localize "LUXSUM.VariantPicker.FixedMultiSpawn" count=multispawnMax name=template.name}}
+        </div>
+      {{else if multiSpawn}}
         <div class="luxsum-multispawn-total">
           {{localize "LUXSUM.VariantPicker.MultispawnTotal"}}: <span data-multispawn-total>{{multispawnTotal}}</span> / {{multispawnMax}}
         </div>

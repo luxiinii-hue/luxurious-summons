@@ -6,7 +6,9 @@ import {
   resolveInlineData,
   pickScalingTier,
   applyScalingTier,
-  resolveArtFallback
+  resolveArtFallback,
+  computeSpellcastingMod,
+  applySummonFlags
 } from "../scripts/source-modes.js";
 
 test("resolveCloneData: copies actor data, strips _id, applies name prefix/suffix", () => {
@@ -239,4 +241,54 @@ test("resolveArtFallback: variant.thumbnail alone (no template.thumbnail) still 
   const { data, healed } = resolveArtFallback(actorData, { id: "no-thumb-template" }, COLD_VARIANT);
   assert.equal(healed, true);
   assert.equal(data.img, COLD_VARIANT.thumbnail);
+});
+
+// v0.5.0 TASK 3 — computeSpellcastingMod + applySummonFlags
+// (Spiritual Weapon / Arcane Hand damage formulas reference
+// @flags.dnd5e.summon.{level,mod}, which dnd5e's native SummonActivity
+// writes but our clone path bypasses. See source-modes.js applySummonFlags
+// doc comment for the full mechanism.)
+
+test("computeSpellcastingMod: standard dnd5e ability-modifier arithmetic", () => {
+  assert.equal(computeSpellcastingMod(10), 0);
+  assert.equal(computeSpellcastingMod(11), 0);
+  assert.equal(computeSpellcastingMod(12), 1);
+  assert.equal(computeSpellcastingMod(20), 5);
+  assert.equal(computeSpellcastingMod(8), -1);
+  assert.equal(computeSpellcastingMod(1), -5);
+});
+
+test("computeSpellcastingMod: missing/invalid score defaults to 0 instead of throwing", () => {
+  assert.equal(computeSpellcastingMod(undefined), 0);
+  assert.equal(computeSpellcastingMod(null), 0);
+  assert.equal(computeSpellcastingMod(NaN), 0);
+  assert.equal(computeSpellcastingMod("not a number"), 0);
+});
+
+test("applySummonFlags: writes flags.dnd5e.summon.level and .mod", () => {
+  const actorData = { name: "Spiritual Weapon", system: {} };
+  const result = applySummonFlags(actorData, 6, 3);
+  assert.equal(result.flags.dnd5e.summon.level, 6);
+  assert.equal(result.flags.dnd5e.summon.mod, 3);
+});
+
+test("applySummonFlags: deep-clones — mutating result doesn't touch the input", () => {
+  const actorData = { name: "Arcane Hand", flags: { other: { untouched: true } } };
+  const result = applySummonFlags(actorData, 5, 2);
+  result.flags.other.untouched = false;
+  assert.equal(actorData.flags.other.untouched, true);
+});
+
+test("applySummonFlags: preserves other flags namespaces and other flags.dnd5e keys", () => {
+  const actorData = { flags: { "luxurious-summons": { isCompanion: true }, dnd5e: { unrelatedKey: "keep-me" } } };
+  const result = applySummonFlags(actorData, 5, 2);
+  assert.equal(result.flags["luxurious-summons"].isCompanion, true);
+  assert.equal(result.flags.dnd5e.unrelatedKey, "keep-me");
+  assert.equal(result.flags.dnd5e.summon.level, 5);
+});
+
+test("applySummonFlags: actor with no existing flags object at all still works", () => {
+  const actorData = { name: "bare" };
+  const result = applySummonFlags(actorData, 2, 0);
+  assert.deepEqual(result.flags.dnd5e.summon, { level: 2, mod: 0 });
 });
