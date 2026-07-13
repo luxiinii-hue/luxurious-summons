@@ -1,0 +1,29 @@
+<div class="luxsum-restyle-group">
+  <h5 class="luxsum-restyle-group-title">{{localize "LUXSUM.GmConsole.GlobalControls"}}</h5>
+
+  <label class="luxsum-toggle">
+    <input type="checkbox" class="luxsum-toggle-input" data-gm-global="motionEnabled" {{#if globals.motionEnabled}}checked{{/if}}>
+    <span class="luxsum-toggle-track"><span class="luxsum-toggle-lever"></span></span>
+    <span class="luxsum-toggle-label">{{localize "LUXSUM.GmConsole.MotionMaster"}}</span>
+  </label>
+
+  <div class="luxsum-restyle-row {{#unless globals.motionEnabled}}luxsum-gm-row-disabled{{/unless}}" data-gm-intensity-row>
+    <span class="luxsum-restyle-row-label">{{localize "LUXSUM.GmConsole.Intensity"}}</span>
+    <input type="range" class="luxsum-slider" data-gm-global="motionIntensity" min="0" max="150" step="5" value="{{globals.intensityPct}}">
+    <span class="luxsum-restyle-row-value" data-gm-intensity-value>{{globals.intensityPct}}%</span>
+  </div>
+
+  <label class="luxsum-toggle">
+    <input type="checkbox" class="luxsum-toggle-input" data-gm-global="forceDisableFilters" {{#if globals.forceDisableFilters}}checked{{/if}}>
+    <span class="luxsum-toggle-track"><span class="luxsum-toggle-lever"></span></span>
+    <span class="luxsum-toggle-label">{{localize "LUXSUM.GmConsole.ForceNoFilters"}}</span>
+  </label>
+
+  <label class="luxsum-toggle">
+    <input type="checkbox" class="luxsum-toggle-input" data-gm-global="forceDisableSpawnDeathAnims" {{#if globals.forceDisableSpawnDeathAnims}}checked{{/if}}>
+    <span class="luxsum-toggle-track"><span class="luxsum-toggle-lever"></span></span>
+    <span class="luxsum-toggle-label">{{localize "LUXSUM.GmConsole.ForceNoSpawnDeath"}}</span>
+  </label>
+
+  <span class="luxsum-fleur"><svg viewBox="0 0 24 24"><use href="#luxsum-fleur"/></svg></span>
+</div>

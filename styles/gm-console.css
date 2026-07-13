@@ -1,0 +1,328 @@
+/* styles/gm-console.css — GM Console ("All Companions" Manager tab), v0.6.0.
+   Control primitives (sliders, toggles, color pickers, group/row layout, motion
+   presets) come from restyle.css — its selectors are standalone classes, verified
+   unscoped. This file owns only the console-specific layout: global-controls
+   sizing, per-template rows, roster grid, owner chips, HP bars, quick-toggles. */
+
+.luxsum-gm-console {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ---- Global Controls / group sizing overrides ------------------------- */
+/* Restyle rows are 90px labels; console labels are sentences. */
+
+.luxsum-gm-console .luxsum-restyle-row {
+  grid-template-columns: 220px 1fr 48px;
+}
+
+.luxsum-gm-console .luxsum-restyle-row-value {
+  min-width: 44px;
+}
+
+/* Dim the intensity row when the master switch is off */
+.luxsum-gm-row-disabled {
+  opacity: 0.35;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+/* ---- Collapsible sections (per-template strip, "show all") ------------- */
+
+.luxsum-gm-collapse {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.luxsum-gm-collapse > summary {
+  list-style: none;
+  cursor: pointer;
+  font-family: "Cinzel", serif;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  color: var(--luxsum-accent);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+.luxsum-gm-collapse > summary::-webkit-details-marker { display: none; }
+
+.luxsum-gm-collapse > summary::before {
+  content: "\25B8"; /* ▸ plain unicode caret — no icon-font dependency */
+  font-size: 11px;
+  width: 10px;
+  transition: transform 0.15s ease;
+}
+
+.luxsum-gm-collapse[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+/* ---- Per-template motion rows ------------------------------------------ */
+
+.luxsum-gm-template-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.luxsum-gm-template-row {
+  display: grid;
+  grid-template-columns: 28px minmax(120px, 180px) 44px 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 8px;
+  background: var(--luxsum-bg-elev);
+  border: 1px solid rgba(201, 161, 75, 0.35);
+  border-radius: 3px;
+}
+
+.luxsum-gm-template-row .luxsum-toggle { gap: 0; }
+.luxsum-gm-template-row .luxsum-motion-presets { margin: 0; }
+
+.luxsum-gm-template-thumb {
+  width: 28px;
+  height: 28px;
+  object-fit: cover;
+  border: 1px solid var(--luxsum-accent);
+  border-radius: 3px;
+  background: var(--luxsum-track);
+}
+
+.luxsum-gm-template-name {
+  font-size: 12px;
+  color: var(--luxsum-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.luxsum-gm-template-row-off .luxsum-gm-template-name,
+.luxsum-gm-template-row-off .luxsum-gm-template-thumb {
+  opacity: 0.45;
+}
+
+.luxsum-gm-show-all {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--luxsum-text-mute);
+}
+
+.luxsum-gm-show-all a {
+  cursor: pointer;
+  color: var(--luxsum-accent);
+}
+
+.luxsum-gm-show-all a:hover { color: var(--luxsum-accent-hi); }
+
+.luxsum-gm-count {
+  color: var(--luxsum-text-mute);
+  font-size: 11px;
+  letter-spacing: 0;
+}
+
+/* ---- Roster filters ----------------------------------------------------- */
+
+.luxsum-gm-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.luxsum-gm-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  font-size: 11px;
+  color: var(--luxsum-text);
+  background: var(--luxsum-bg-elev);
+  border: 1px solid rgba(201, 161, 75, 0.35);
+  border-radius: 12px;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.luxsum-gm-chip:hover { border-color: var(--luxsum-accent-hi); }
+
+.luxsum-gm-chip.active {
+  border-color: var(--luxsum-accent);
+  box-shadow: 0 0 6px var(--luxsum-glow);
+}
+
+.luxsum-gm-chip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--chip-color, var(--luxsum-accent));
+}
+
+/* ---- Roster grid + GM companion cards ----------------------------------- */
+
+.luxsum-gm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.luxsum-gm-card {
+  background: var(--luxsum-bg-elev);
+  border: 1px solid var(--luxsum-border);
+  border-left-width: 3px; /* companion borderColor identity stripe */
+  border-radius: 4px;
+  padding: 10px 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.luxsum-gm-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.luxsum-gm-card-token {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  border: 1px solid var(--luxsum-accent);
+  border-radius: 4px;
+  background: var(--luxsum-track);
+  flex: 0 0 auto;
+}
+
+.luxsum-gm-card-title { min-width: 0; }
+
+.luxsum-gm-card-name {
+  font-family: "Cinzel", serif;
+  font-size: 13px;
+  margin: 0;
+  color: var(--luxsum-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border: 0;
+}
+
+.luxsum-gm-card-template {
+  font-size: 10px;
+  color: var(--luxsum-text-mute);
+  letter-spacing: 0.3px;
+}
+
+.luxsum-gm-owner {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  align-self: flex-start;
+  padding: 1px 8px;
+  font-size: 10px;
+  border-radius: 10px;
+  color: var(--luxsum-text);
+  background: color-mix(in srgb, var(--owner-color, #888) 22%, transparent);
+  border: 1px solid color-mix(in srgb, var(--owner-color, #888) 55%, transparent);
+}
+
+.luxsum-gm-owner .luxsum-gm-chip-dot { background: var(--owner-color, #888); }
+
+.luxsum-gm-hp {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  color: var(--luxsum-text-mute);
+}
+
+.luxsum-gm-hp-bar {
+  flex: 1;
+  height: 5px;
+  background: var(--luxsum-track);
+  border: 1px solid rgba(201, 161, 75, 0.3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.luxsum-gm-hp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--luxsum-brass), var(--luxsum-accent-hi));
+  width: var(--hp-pct, 100%);
+}
+
+.luxsum-gm-card-scene {
+  font-size: 10px;
+  color: var(--luxsum-text-mute);
+  font-style: italic;
+}
+
+.luxsum-gm-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(201, 161, 75, 0.25);
+}
+
+.luxsum-gm-card-actions [role="button"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  padding: 2px 7px;
+  color: var(--luxsum-text);
+  background: transparent;
+  border: 1px solid rgba(201, 161, 75, 0.45);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.luxsum-gm-card-actions [role="button"]:hover {
+  border-color: var(--luxsum-accent-hi);
+  color: var(--luxsum-accent-hi);
+  box-shadow: 0 0 5px var(--luxsum-glow);
+}
+
+.luxsum-gm-card-actions [role="button"][disabled],
+.luxsum-gm-card-actions [role="button"].disabled {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+/* Per-companion motion quick-toggle states */
+.luxsum-gm-motion-btn.motion-off {
+  color: var(--luxsum-text-mute);
+  border-color: rgba(182, 168, 144, 0.4);
+}
+
+.luxsum-gm-motion-btn.motion-off i { opacity: 0.6; }
+
+/* Dismiss is the one destructive action on the card */
+.luxsum-gm-dismiss-btn {
+  color: var(--luxsum-danger) !important;
+  border-color: color-mix(in srgb, var(--luxsum-danger) 55%, transparent) !important;
+}
+
+.luxsum-gm-dismiss-btn:hover {
+  box-shadow: 0 0 5px color-mix(in srgb, var(--luxsum-danger) 45%, transparent) !important;
+}
+
+/* ---- Empty state --------------------------------------------------------- */
+
+.luxsum-gm-empty {
+  text-align: center;
+  padding: 28px 12px;
+  color: var(--luxsum-text-mute);
+  font-style: italic;
+  border: 1px dashed rgba(201, 161, 75, 0.35);
+  border-radius: 4px;
+}

@@ -35,7 +35,10 @@ Hooks.once("init", async () => {
       "modules/luxurious-summons/templates/partials/template-card.hbs",
       "modules/luxurious-summons/templates/partials/summon-details.hbs",
       "modules/luxurious-summons/templates/partials/template-gallery-card.hbs",
-      "modules/luxurious-summons/templates/partials/variant-card.hbs"
+      "modules/luxurious-summons/templates/partials/variant-card.hbs",
+      "modules/luxurious-summons/templates/partials/gm-global-controls.hbs",
+      "modules/luxurious-summons/templates/partials/gm-template-motion-row.hbs",
+      "modules/luxurious-summons/templates/partials/gm-companion-card.hbs"
     ]);
     console.log(`[${MODULE_ID}] partials registered`);
   } else {
@@ -120,7 +123,11 @@ Hooks.on("drawToken", async (token) => {
 });
 Hooks.on("updateActor", (actor, changes) => {
   const moduleChanges = changes.flags?.[MODULE_ID];
-  if (moduleChanges?.visualOverrides || moduleChanges?.motionOverrides) {
+  // v0.6.0: gmOverrides (per-companion GM motion controls) re-apply too. A GM
+  // "restore to inherit" arrives as a `-=gmOverrides.<key>` deletion key rather
+  // than a plain `gmOverrides` object, hence the substring check.
+  if (moduleChanges?.visualOverrides || moduleChanges?.motionOverrides
+      || Object.keys(moduleChanges ?? {}).some(k => k.includes("gmOverrides"))) {
     for (const t of actor.getActiveTokens()) applyFiltersToToken(t);
   }
 });

@@ -1,0 +1,18 @@
+<div class="luxsum-gm-template-row {{#unless enabled}}luxsum-gm-template-row-off{{/unless}}" data-template-id="{{id}}">
+  <img class="luxsum-gm-template-thumb" src="{{thumbnail}}" alt="">
+  <span class="luxsum-gm-template-name">{{name}}</span>
+  <label class="luxsum-toggle" title="{{localize 'LUXSUM.GmConsole.TemplateMotionTooltip'}}">
+    <input type="checkbox" class="luxsum-toggle-input" data-gm-template-toggle="{{id}}" {{#if enabled}}checked{{/if}}>
+    <span class="luxsum-toggle-track"><span class="luxsum-toggle-lever"></span></span>
+  </label>
+  <div class="luxsum-motion-presets" role="radiogroup">
+    <input type="radio" name="gm-tpl-preset-{{id}}" id="gm-tpl-{{id}}-off"     value="off"     data-gm-template-preset="{{id}}" {{#if presetOff}}checked{{/if}}     {{#unless enabled}}disabled{{/unless}}>
+    <label for="gm-tpl-{{id}}-off" class="luxsum-motion-preset-label">{{localize "LUXSUM.Restyle.MotionOff"}}</label>
+    <input type="radio" name="gm-tpl-preset-{{id}}" id="gm-tpl-{{id}}-subtle"  value="subtle"  data-gm-template-preset="{{id}}" {{#if presetSubtle}}checked{{/if}}  {{#unless enabled}}disabled{{/unless}}>
+    <label for="gm-tpl-{{id}}-subtle" class="luxsum-motion-preset-label">{{localize "LUXSUM.Restyle.MotionSubtle"}}</label>
+    <input type="radio" name="gm-tpl-preset-{{id}}" id="gm-tpl-{{id}}-default" value="default" data-gm-template-preset="{{id}}" {{#if presetDefault}}checked{{/if}} {{#unless enabled}}disabled{{/unless}}>
+    <label for="gm-tpl-{{id}}-default" class="luxsum-motion-preset-label">{{localize "LUXSUM.Restyle.MotionDefault"}}</label>
+    <input type="radio" name="gm-tpl-preset-{{id}}" id="gm-tpl-{{id}}-lively"  value="lively"  data-gm-template-preset="{{id}}" {{#if presetLively}}checked{{/if}}  {{#unless enabled}}disabled{{/unless}}>
+    <label for="gm-tpl-{{id}}-lively" class="luxsum-motion-preset-label">{{localize "LUXSUM.Restyle.MotionLively"}}</label>
+  </div>
+</div>

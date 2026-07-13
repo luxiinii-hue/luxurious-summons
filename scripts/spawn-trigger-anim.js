@@ -73,11 +73,15 @@ export async function maybeRunSpawnAnimation(token) {
   }
   _alreadyAnimatedTokenIds.add(token.id);
 
-  if (!game.settings.get(MODULE_ID, "enableDeathAnimations")) {
-    // Client-scope "fancy effects" gate — LOCAL PLAYBACK ONLY. Must never
-    // short-circuit the flag clear in a way that races other clients; the
-    // primary-GM clear below runs regardless of this client's setting.
-    console.log(`[${MODULE_ID}] maybeRunSpawnAnimation: animations disabled on this client — skipping local playback for ${token.actor?.name}`);
+  if (!game.settings.get(MODULE_ID, "enableDeathAnimations")
+      || game.settings.get(MODULE_ID, "gmForceDisableSpawnDeathAnims")) {
+    // Client-scope "fancy effects" gate + the GM's world-wide kill switch
+    // (v0.6.0) — both gate LOCAL PLAYBACK ONLY. Must never short-circuit the
+    // flag clear in a way that races other clients; the primary-GM clear below
+    // runs regardless of either setting. (The world switch is symmetric across
+    // clients, so unlike a client-scope early-clear it cannot suppress the
+    // animation for clients that wanted it — everyone skips together.)
+    console.log(`[${MODULE_ID}] maybeRunSpawnAnimation: animations disabled (client or GM world switch) — skipping local playback for ${token.actor?.name}`);
     await clearSpawnStateFlag(token.actor);
     return;
   }

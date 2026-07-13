@@ -5,12 +5,21 @@ import { templates as builtinTemplates } from "./templates-builtin.js";
 // open the picker which in turn calls runSpawnFlow internally.
 import { runDeathAndCleanup } from "./lifecycle.js";
 import { callHandler } from "./handlers/index.js";
+import { s } from "./settings.js";
+import { getCompanionFlag, setGmOverride } from "./data-model.js";
+import { PRESET_INTENSITY, intensityToPreset } from "./restyle-app.js";
 
 const MODULE_ID = "luxurious-summons";
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 export class ManagerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   #activeTab = "my-companions";
+  // v0.6.0 GM Console tab state
+  #gmShowAllTemplates = false;
+  #gmPlayerFilter = null;          // userId | null (= all players)
+  #gmIntensityTimer = null;        // debounce for the global dial
+
+  get activeTab() { return this.#activeTab; }
 
   static DEFAULT_OPTIONS = {
     id: "luxsum-manager",
@@ -59,7 +68,93 @@ export class ManagerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       activeTab: this.#activeTab,
       isGM: game.user.isGM,
       myCompanions,
-      templates
+      templates,
+      gm: game.user.isGM ? this.#prepareGmConsoleContext() : null
+    };
+  }
+
+  /**
+   * v0.6.0 GM Console context. Authoritative data source is game.actors (the
+   * player-scoped user-flag index only sees the current user's companions).
+   */
+  #prepareGmConsoleContext() {
+    const templateOverrides = s("templateOverrides") ?? {};
+
+    // scene lookup: actorId → { sceneId, sceneName } (first token found wins)
+    const sceneOf = (actorId) => {
+      for (const scene of game.scenes) {
+        if (scene.tokens.find(t => t.actorId === actorId)) return scene;
+      }
+      return null;
+    };
+
+    const companions = game.actors.contents
+      .filter(a => a.flags?.[MODULE_ID]?.isCompanion === true)
+      .map(a => {
+        const flag = a.flags[MODULE_ID];
+        const tpl = builtinTemplates.find(t => t.id === flag.templateId);
+        const owner = game.users.get(flag.sourcePlayerId);
+        const scene = sceneOf(a.id);
+        const hpValue = a.system?.attributes?.hp?.value ?? 0;
+        const hpMax = a.system?.attributes?.hp?.max ?? 0;
+        return {
+          actorId: a.id,
+          name: a.name,
+          templateId: flag.templateId,
+          templateName: tpl?.name ?? flag.templateId,
+          tokenImg: a.prototypeToken?.texture?.src || a.img || "icons/svg/mystery-man.svg",
+          borderColor: flag.visualOverrides?.borderColor ?? "#c9a14b",
+          hpValue, hpMax,
+          hpPct: hpMax > 0 ? Math.round((hpValue / hpMax) * 100) : 0,
+          ownerId: flag.sourcePlayerId,
+          ownerName: owner?.name ?? "?",
+          ownerColor: owner?.color?.css ?? String(owner?.color ?? "#888888"),
+          sceneName: scene?.name ?? "",
+          onCurrentScene: scene?.id === canvas?.scene?.id,
+          motionOn: flag.gmOverrides?.motionEnabled !== false
+        };
+      });
+
+    const activeTemplateIds = new Set(companions.map(c => c.templateId));
+    const templateRows = builtinTemplates
+      .filter(t => this.#gmShowAllTemplates || activeTemplateIds.has(t.id))
+      .map(t => {
+        const ov = templateOverrides[t.id] ?? {};
+        const enabled = ov.motionEnabled !== false;
+        const preset = intensityToPreset(ov.motionIntensity ?? 1.0);
+        return {
+          id: t.id,
+          name: t.name,
+          thumbnail: t.thumbnail,
+          enabled,
+          presetOff: preset === "off",
+          presetSubtle: preset === "subtle",
+          presetDefault: preset === "default",
+          presetLively: preset === "lively"
+        };
+      });
+
+    const owners = [...new Map(companions.map(c => [c.ownerId, { id: c.ownerId, name: c.ownerName, color: c.ownerColor }])).values()];
+    const chips = [
+      { id: "", name: game.i18n.localize("LUXSUM.GmConsole.AllPlayers"), color: null, active: !this.#gmPlayerFilter },
+      ...owners.map(o => ({ ...o, active: this.#gmPlayerFilter === o.id }))
+    ];
+
+    const filtered = companions.filter(c => !this.#gmPlayerFilter || c.ownerId === this.#gmPlayerFilter);
+
+    return {
+      globals: {
+        motionEnabled: s("gmMotionEnabled") !== false,
+        intensityPct: Math.round((typeof s("gmMotionIntensity") === "number" ? s("gmMotionIntensity") : 1.0) * 100),
+        forceDisableFilters: !!s("gmForceDisableFilters"),
+        forceDisableSpawnDeathAnims: !!s("gmForceDisableSpawnDeathAnims")
+      },
+      templateRows,
+      showAll: this.#gmShowAllTemplates,
+      chips,
+      companions: filtered,
+      shownCount: filtered.length,
+      totalCount: companions.length
     };
   }
 
@@ -141,6 +236,134 @@ export class ManagerApp extends HandlebarsApplicationMixin(ApplicationV2) {
         await callHandler(handlerId, { actor, app: this });
       });
     });
+
+    this.#wireGmConsole();
+  }
+
+  /**
+   * v0.6.0 GM Console listeners. All selectors are console-scoped data attrs,
+   * so this is a no-op on player clients / other tabs (querySelector misses).
+   *
+   * Slider rule (V13/V14 gotcha): `input` events update the readout + debounce
+   * the world-setting write imperatively — NEVER this.render() mid-drag.
+   * The setting's own onChange handles the world-wide live re-apply.
+   */
+  #wireGmConsole() {
+    // Global: master motion switch
+    this.element.querySelector('[data-gm-global="motionEnabled"]')?.addEventListener("change", async (e) => {
+      const on = e.currentTarget.checked;
+      this.element.querySelector("[data-gm-intensity-row]")?.classList.toggle("luxsum-gm-row-disabled", !on);
+      await game.settings.set(MODULE_ID, "gmMotionEnabled", on);
+      console.log(`[${MODULE_ID}] GM console: idle animations ${on ? "enabled" : "disabled"} world-wide`);
+    });
+
+    // Global: intensity dial (debounced write, imperative readout)
+    this.element.querySelector('[data-gm-global="motionIntensity"]')?.addEventListener("input", (e) => {
+      const pct = Number(e.currentTarget.value);
+      const readout = this.element.querySelector("[data-gm-intensity-value]");
+      if (readout) readout.textContent = `${pct}%`;
+      clearTimeout(this.#gmIntensityTimer);
+      this.#gmIntensityTimer = setTimeout(async () => {
+        await game.settings.set(MODULE_ID, "gmMotionIntensity", pct / 100);
+        console.log(`[${MODULE_ID}] GM console: global motion intensity → ${pct}%`);
+      }, 350);
+    });
+
+    // Global: world-wide kill switches
+    for (const key of ["forceDisableFilters", "forceDisableSpawnDeathAnims"]) {
+      this.element.querySelector(`[data-gm-global="${key}"]`)?.addEventListener("change", async (e) => {
+        const settingKey = key === "forceDisableFilters" ? "gmForceDisableFilters" : "gmForceDisableSpawnDeathAnims";
+        await game.settings.set(MODULE_ID, settingKey, e.currentTarget.checked);
+        console.log(`[${MODULE_ID}] GM console: ${settingKey} → ${e.currentTarget.checked}`);
+      });
+    }
+
+    // Per-template: motion toggle
+    this.element.querySelectorAll("[data-gm-template-toggle]").forEach(el => {
+      el.addEventListener("change", async (e) => {
+        const tid = e.currentTarget.dataset.gmTemplateToggle;
+        const overrides = foundry.utils.duplicate(s("templateOverrides") ?? {});
+        overrides[tid] = { ...(overrides[tid] ?? {}), motionEnabled: e.currentTarget.checked };
+        await game.settings.set(MODULE_ID, "templateOverrides", overrides);
+        console.log(`[${MODULE_ID}] GM console: template "${tid}" motion → ${e.currentTarget.checked}`);
+        this.render({ force: true });
+      });
+    });
+
+    // Per-template: intensity preset radios
+    this.element.querySelectorAll("[data-gm-template-preset]").forEach(el => {
+      el.addEventListener("change", async (e) => {
+        const tid = e.currentTarget.dataset.gmTemplatePreset;
+        const overrides = foundry.utils.duplicate(s("templateOverrides") ?? {});
+        overrides[tid] = { ...(overrides[tid] ?? {}), motionIntensity: PRESET_INTENSITY[e.currentTarget.value] ?? 1.0 };
+        await game.settings.set(MODULE_ID, "templateOverrides", overrides);
+        console.log(`[${MODULE_ID}] GM console: template "${tid}" motion preset → ${e.currentTarget.value}`);
+      });
+    });
+
+    // Show all / active-only templates
+    this.element.querySelector('[data-action="gm-show-all"]')?.addEventListener("click", () => {
+      this.#gmShowAllTemplates = !this.#gmShowAllTemplates;
+      this.render({ force: true });
+    });
+
+    // Player filter chips
+    this.element.querySelectorAll("[data-gm-chip]").forEach(el => {
+      el.addEventListener("click", (e) => {
+        this.#gmPlayerFilter = e.currentTarget.dataset.userId || null;
+        this.render({ force: true });
+      });
+    });
+
+    // Per-companion motion quick-toggle. Freezing SETS motionEnabled:false;
+    // restoring REMOVES the key entirely (back to inherit) rather than storing
+    // `true` — a stored true would needlessly shadow future template-level
+    // decisions. setGmOverride(null) uses Foundry's `-=` deletion syntax.
+    this.element.querySelectorAll('[data-action="gm-motion-toggle"]').forEach(el => {
+      el.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        const actor = game.actors.get(e.currentTarget.dataset.actorId);
+        if (!actor) return;
+        const currentlyOn = getCompanionFlag(actor)?.gmOverrides?.motionEnabled !== false;
+        await setGmOverride(actor, "motionEnabled", currentlyOn ? false : null);
+        console.log(`[${MODULE_ID}] GM console: ${actor.name} idle motion ${currentlyOn ? "frozen" : "restored"}`);
+        this.render({ force: true });
+      });
+    });
+
+    // Cross-scene Select & Pan (the player-card variant only sees the current
+    // scene; the GM console walks all scenes and views the target's first)
+    this.element.querySelectorAll('[data-action="gm-select-pan"]').forEach(el => {
+      el.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.#onGmSelectAndPan(e.currentTarget.dataset.actorId);
+      });
+    });
+  }
+
+  async #onGmSelectAndPan(actorId) {
+    const actor = game.actors.get(actorId);
+    if (!actor) return;
+    let targetScene = null, tokenDoc = null;
+    for (const scene of game.scenes) {
+      const found = scene.tokens.find(t => t.actorId === actorId);
+      if (found) { targetScene = scene; tokenDoc = found; break; }
+    }
+    if (!tokenDoc) {
+      ui.notifications?.warn(`[${MODULE_ID}] no token found for ${actor.name} on any scene`);
+      return;
+    }
+    if (targetScene.id !== canvas.scene?.id) {
+      console.log(`[${MODULE_ID}] GM console: viewing scene "${targetScene.name}" to reach ${actor.name}`);
+      await targetScene.view();
+    }
+    const token = canvas.tokens.get(tokenDoc.id) ?? tokenDoc.object;
+    if (!token) {
+      ui.notifications?.warn(`[${MODULE_ID}] token for ${actor.name} not available on the canvas yet — try again in a moment`);
+      return;
+    }
+    token.control({ releaseOthers: true });
+    await canvas.animatePan({ x: token.center.x, y: token.center.y, duration: 250 });
   }
 
   #onOpenSheet(actorId) {
@@ -272,6 +495,19 @@ export function openManager() {
 export function getActiveManager() {
   return _managerInstance?.rendered ? _managerInstance : null;
 }
+
+// v0.6.0: keep the GM Console roster live. Re-render when a companion actor is
+// created / deleted / updated (HP, gmOverrides, restyles) while the GM has the
+// All-Companions tab open. Renders are read-only — no write-loop risk.
+function gmConsoleRefresh(doc) {
+  if (!game.user?.isGM) return;
+  if (doc?.flags?.[MODULE_ID]?.isCompanion !== true) return;
+  if (!_managerInstance?.rendered || _managerInstance.activeTab !== "all-companions") return;
+  _managerInstance.render({ force: true });
+}
+Hooks.on("createActor", gmConsoleRefresh);
+Hooks.on("deleteActor", gmConsoleRefresh);
+Hooks.on("updateActor", gmConsoleRefresh);
 
 // Re-render the manager when our user-flag activeCompanions changes
 // (signaled by the GM client running refreshUserIndexes after spawn/dismiss/delete).

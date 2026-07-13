@@ -79,7 +79,11 @@ async function deleteAllTokensFor(actor) {
  * actor last (so any deleteActor downstream listeners see the tokens already gone).
  */
 export async function runDeathAndCleanup(actor, { skipAnimation = false } = {}) {
-  if (!skipAnimation && game.settings.get(MODULE_ID, "enableDeathAnimations")) {
+  // v0.6.0: the GM's world-wide kill switch ANDs with the client escape hatch.
+  // Both only gate PLAYBACK — cleanup below runs unconditionally either way.
+  if (!skipAnimation
+      && game.settings.get(MODULE_ID, "enableDeathAnimations")
+      && !game.settings.get(MODULE_ID, "gmForceDisableSpawnDeathAnims")) {
     const { templates } = await import("./templates-builtin.js");
     const flag = actor.flags?.[MODULE_ID];
     const template = templates.find(t => t.id === flag?.templateId);

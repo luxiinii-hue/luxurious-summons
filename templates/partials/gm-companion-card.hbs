@@ -1,0 +1,26 @@
+<div class="luxsum-gm-card" style="border-left-color: {{borderColor}}" data-actor-id="{{actorId}}">
+  <div class="luxsum-gm-card-head">
+    <img class="luxsum-gm-card-token" src="{{tokenImg}}" alt="{{name}}">
+    <div class="luxsum-gm-card-title">
+      <h3 class="luxsum-gm-card-name">{{name}}</h3>
+      <span class="luxsum-gm-card-template">{{templateName}}</span>
+    </div>
+  </div>
+  <span class="luxsum-gm-owner" style="--owner-color:{{ownerColor}}"><span class="luxsum-gm-chip-dot"></span>{{ownerName}}</span>
+  <div class="luxsum-gm-hp">
+    <span>HP {{hpValue}}/{{hpMax}}</span>
+    <div class="luxsum-gm-hp-bar"><div class="luxsum-gm-hp-fill" style="--hp-pct:{{hpPct}}%"></div></div>
+  </div>
+  {{#unless onCurrentScene}}{{#if sceneName}}<span class="luxsum-gm-card-scene">{{localize "LUXSUM.GmConsole.OnScene"}} {{sceneName}}</span>{{/if}}{{/unless}}
+  <div class="luxsum-gm-card-actions">
+    <span role="button" tabindex="0" data-action="open-sheet" data-actor-id="{{actorId}}" title="{{localize 'LUXSUM.Companion.OpenSheet'}}"><i class="fa-solid fa-id-card"></i> {{localize "LUXSUM.GmConsole.Sheet"}}</span>
+    <span role="button" tabindex="0" data-action="gm-select-pan" data-actor-id="{{actorId}}" title="{{localize 'LUXSUM.Companion.SelectPan'}}"><i class="fa-solid fa-crosshairs"></i> {{localize "LUXSUM.GmConsole.Pan"}}</span>
+    <span role="button" tabindex="0" data-action="restyle" data-actor-id="{{actorId}}" title="{{localize 'LUXSUM.Companion.RestyleTooltip'}}"><i class="fa-solid fa-palette"></i> {{localize "LUXSUM.Companion.Restyle"}}</span>
+    <span role="button" tabindex="0" data-action="gm-motion-toggle" data-actor-id="{{actorId}}"
+          class="luxsum-gm-motion-btn {{#unless motionOn}}motion-off{{/unless}}"
+          title="{{#if motionOn}}{{localize 'LUXSUM.GmConsole.MotionFreeze'}}{{else}}{{localize 'LUXSUM.GmConsole.MotionRestore'}}{{/if}}">
+      <i class="fa-solid {{#if motionOn}}fa-wind{{else}}fa-snowflake{{/if}}"></i> {{localize "LUXSUM.GmConsole.Motion"}}
+    </span>
+    <span role="button" tabindex="0" data-action="dismiss" data-actor-id="{{actorId}}" class="luxsum-gm-dismiss-btn" title="{{localize 'LUXSUM.GmConsole.DismissTooltip'}}"><i class="fa-solid fa-skull"></i> {{localize "LUXSUM.Companion.Dismiss"}}</span>
+  </div>
+</div>

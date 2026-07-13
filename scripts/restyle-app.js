@@ -18,10 +18,12 @@ import { templates as builtinTemplates } from "./templates-builtin.js";
 const MODULE_ID = "luxurious-summons";
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
-// Preset → intensity multiplier (matches design spec §6).
-const PRESET_INTENSITY = { off: 0, subtle: 0.5, default: 1.0, lively: 1.5 };
+// Preset → intensity multiplier (matches design spec §6). Exported since v0.6.0 —
+// the GM Console's per-template rows speak the same Off/Subtle/Default/Lively
+// vocabulary; one source of truth for the mapping.
+export const PRESET_INTENSITY = { off: 0, subtle: 0.5, default: 1.0, lively: 1.5 };
 
-function intensityToPreset(intensity) {
+export function intensityToPreset(intensity) {
   if (intensity === 0) return "off";
   if (intensity <= 0.5) return "subtle";
   if (intensity <= 1.0) return "default";

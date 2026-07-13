@@ -94,6 +94,56 @@ export function readEffects(template) {
 }
 
 /**
+ * Pure-logic (v0.6.0 GM Console). Resolve the EFFECTIVE motion intensity for a
+ * companion under the three-layer GM-wins precedence model:
+ *
+ *   0                                        if gmGlobals.gmMotionEnabled === false   (global switch)
+ *   0                                        if gmGlobals.gmForceDisableFilters       (world kill-switch;
+ *                                              defense-in-depth — the filter chain bails earlier too)
+ *   0                                        if companion gmOverrides.motionEnabled === false
+ *   0                                        if templateOverrides[tid].motionEnabled === false
+ *   else (gmOverrides.motionIntensity        (per-companion GM dial, if set)
+ *         ?? templateOverrides[tid].motionIntensity   (per-template GM dial, if set)
+ *         ?? motionOverrides.intensity)      (player's own Restyle setting; 0 stays 0)
+ *        × gmGlobals.gmMotionIntensity       (global multiplier, default 1.0)
+ *
+ * The GM Console preview (previews/gm-console-preview.js) carries a mirror of
+ * this function for its browser demo — keep them in sync.
+ *
+ * @param companionFlag     actor.flags["luxurious-summons"] (or compatible shape)
+ * @param templateOverrides the `templateOverrides` world-setting object
+ * @param gmGlobals         { gmMotionEnabled, gmMotionIntensity, gmForceDisableFilters }
+ * @returns {number} effective intensity ≥ 0 (0 = motion fully off)
+ */
+export function resolveEffectiveMotion(companionFlag, templateOverrides, gmGlobals) {
+  if (gmGlobals?.gmMotionEnabled === false) return 0;
+  if (gmGlobals?.gmForceDisableFilters === true) return 0;
+  const perCompanion = companionFlag?.gmOverrides ?? {};
+  if (perCompanion.motionEnabled === false) return 0;
+  const perTemplate = templateOverrides?.[companionFlag?.templateId] ?? {};
+  if (perTemplate.motionEnabled === false) return 0;
+  const base = perCompanion.motionIntensity
+            ?? perTemplate.motionIntensity
+            ?? companionFlag?.motionOverrides?.intensity
+            ?? 1.0;
+  const mult = typeof gmGlobals?.gmMotionIntensity === "number" ? gmGlobals.gmMotionIntensity : 1.0;
+  return Math.max(0, base * mult);
+}
+
+/**
+ * Foundry-side. Set (or with value === null, REMOVE) one key of the companion's
+ * `gmOverrides` flag namespace. Removal uses Foundry's `-=` deletion syntax —
+ * plain setFlag deep-merges and can never delete a key (the v0.2.x lesson), and
+ * "restore to inherit" is exactly a key deletion here.
+ */
+export async function setGmOverride(actor, key, value) {
+  if (value === null || value === undefined) {
+    return actor.update({ [`flags.${MODULE_ID}.gmOverrides.-=${key}`]: null });
+  }
+  return actor.update({ [`flags.${MODULE_ID}.gmOverrides.${key}`]: value });
+}
+
+/**
  * Foundry-side wrapper. Walks live game state, builds the index via
  * regenerateUserIndex, and writes each user's slice to
  * user.flags[MODULE_ID].activeCompanions.

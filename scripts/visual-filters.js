@@ -4,7 +4,7 @@
 // buildFilters constructs PIXI instances from descriptors (Foundry-side).
 // applyFiltersToToken attaches them to a token mesh (Task 14, manual smoke).
 
-import { isCompanion, getCompanionFlag } from "./data-model.js";
+import { isCompanion, getCompanionFlag, resolveEffectiveMotion } from "./data-model.js";
 import { getMotionProfile, motionProfileBounds } from "./motion-profiles.js";
 import { s } from "./settings.js";
 import { isAnimating } from "./anim-state.js";
@@ -146,10 +146,14 @@ export function applyFiltersToToken(token) {
 export function applyOverridesToToken(token, visualOverrides, motionOverrides) {
   if (!visualOverrides) return;
 
-  if (!s("enablePIXIFilters")) {
-    // Performance escape hatch — apply only basic tint
+  if (!s("enablePIXIFilters") || s("gmForceDisableFilters")) {
+    // Performance escape hatch (client) OR GM world-wide kill switch (v0.6.0).
+    // Either way: basic tint only, no filters, no motion. The GM switch beats
+    // every client's preference — it exists for "the table is lagging, kill
+    // everything NOW" moments.
     const tintHex = parseInt((visualOverrides.hueColor ?? "#ffffff").replace("#", "0x"), 16);
     if (token.mesh) token.mesh.tint = tintHex;
+    removeMotionFromToken(token);
     return;
   }
 
@@ -197,12 +201,31 @@ function applyMotionToTokenWith(token, motion) {
   // Always clear existing motion first — safe to call when overrides change.
   removeMotionFromToken(token);
 
-  if (!s("enablePIXIFilters")) return;     // escape hatch covers motion too
-  if (!motion || motion.profile === "none" || !motion.intensity) return;
+  if (!s("enablePIXIFilters") || s("gmForceDisableFilters")) return; // escape hatches cover motion too
+  // NOTE: intensity 0 deliberately does NOT early-return here — a per-template
+  // or per-companion GM dial may raise a player's "Off" (GM wins both ways).
+  // The effective-intensity resolver below is the single authority on 0.
+  if (!motion || motion.profile === "none") return;
 
   const profile = getMotionProfile(motion.profile);
   if (!profile) return;
-  const intensity = motion.intensity ?? 1;
+
+  // v0.6.0 GM Console: layer the three GM controls (global switch+dial /
+  // per-template / per-companion) over the player's intensity. `motion` may be
+  // a Restyle DRAFT rather than the persisted flag, so we merge it over the
+  // actor's flag (which carries templateId + gmOverrides) before resolving —
+  // GM freezes hold even during a player's live Restyle preview.
+  const companionFlag = { ...(getCompanionFlag(token.actor) ?? {}), motionOverrides: motion };
+  const gmGlobals = {
+    gmMotionEnabled: s("gmMotionEnabled"),
+    gmMotionIntensity: s("gmMotionIntensity"),
+    gmForceDisableFilters: s("gmForceDisableFilters")
+  };
+  const intensity = resolveEffectiveMotion(companionFlag, s("templateOverrides"), gmGlobals);
+  if (intensity === 0) {
+    if (s("verboseLogging")) console.log(`[${MODULE_ID}] motion suppressed on ${token.id} (effective intensity 0 — GM layer)`);
+    return;
+  }
 
   const mesh = token.mesh;
   if (!mesh) return;
@@ -313,4 +336,26 @@ export function removeMotionFromToken(token) {
   // Restore the mesh to its base orientation so the token doesn't stay frozen
   // mid-wobble when motion is disabled. The next render will set canonical values.
   // (We trust Foundry's own refresh to overwrite our last-frame deltas.)
+}
+
+/**
+ * v0.6.0 GM Console. Re-apply filters + motion to every companion token on the
+ * current canvas. Wired as the onChange of the GM world settings (and
+ * templateOverrides) — world-setting onChange fires on every connected client,
+ * so one GM change takes effect table-wide within a frame. Per-token try/catch:
+ * one broken token must not abort the sweep.
+ */
+export function reapplyAllCompanionTokens() {
+  if (!canvas?.tokens) return;
+  let refreshed = 0;
+  for (const token of canvas.tokens.placeables) {
+    if (!isCompanion(token.actor)) continue;
+    try {
+      applyFiltersToToken(token);
+      refreshed++;
+    } catch (e) {
+      console.warn(`[${MODULE_ID}] reapplyAllCompanionTokens: failed on ${token.id} (${token.name}):`, e);
+    }
+  }
+  console.log(`[${MODULE_ID}] reapplyAllCompanionTokens: refreshed ${refreshed} companion token(s)`);
 }

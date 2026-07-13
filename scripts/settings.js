@@ -59,11 +59,32 @@ export function registerSettings() {
     default: "",
     filePicker: "imagevideo"
   });
+  // ── GM Console (v0.6.0) — world-scope, config:false: the console IS their UI.
+  // World-setting onChange fires on EVERY connected client, so a single GM
+  // change re-applies filters/motion on all clients instantly. Dynamic import
+  // avoids a settings ⇄ visual-filters module cycle (visual-filters imports s()).
+  const reapply = async () => {
+    const { reapplyAllCompanionTokens } = await import("./visual-filters.js");
+    reapplyAllCompanionTokens();
+  };
+  game.settings.register(MODULE_ID, "gmMotionEnabled", {
+    scope: "world", config: false, type: Boolean, default: true, onChange: reapply
+  });
+  game.settings.register(MODULE_ID, "gmMotionIntensity", {
+    scope: "world", config: false, type: Number, default: 1.0, onChange: reapply
+  });
+  game.settings.register(MODULE_ID, "gmForceDisableFilters", {
+    scope: "world", config: false, type: Boolean, default: false, onChange: reapply
+  });
+  game.settings.register(MODULE_ID, "gmForceDisableSpawnDeathAnims", {
+    scope: "world", config: false, type: Boolean, default: false
+  });
+
   game.settings.register(MODULE_ID, "customTemplates", {
     scope: "world", config: false, type: Array, default: []
   });
   game.settings.register(MODULE_ID, "templateOverrides", {
-    scope: "world", config: false, type: Object, default: {}
+    scope: "world", config: false, type: Object, default: {}, onChange: reapply
   });
   game.settings.register(MODULE_ID, "dataModelVersion", {
     scope: "world", config: false, type: String, default: "1"

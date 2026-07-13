@@ -25,7 +25,36 @@
       </div>
     {{/if}}
     {{#if (eq activeTab "all-companions")}}
-      <p class="luxsum-empty">All Companions tab — implemented in Plan 4.</p>
+      <div class="luxsum-gm-console">
+        {{> "modules/luxurious-summons/templates/partials/gm-global-controls.hbs" gm}}
+
+        <div class="luxsum-restyle-group">
+          <details class="luxsum-gm-collapse" open>
+            <summary>{{localize "LUXSUM.GmConsole.PerTemplateMotion"}}</summary>
+            <div class="luxsum-gm-template-rows">
+              {{#each gm.templateRows}}{{> "modules/luxurious-summons/templates/partials/gm-template-motion-row.hbs"}}{{/each}}
+            </div>
+            <div class="luxsum-gm-show-all">
+              <a data-action="gm-show-all">{{#if gm.showAll}}{{localize "LUXSUM.GmConsole.ShowActiveOnly"}}{{else}}{{localize "LUXSUM.GmConsole.ShowAllTemplates"}}{{/if}}</a>
+            </div>
+          </details>
+          <span class="luxsum-fleur"><svg viewBox="0 0 24 24"><use href="#luxsum-fleur"/></svg></span>
+        </div>
+
+        <div class="luxsum-restyle-group" style="padding-bottom: 4px;">
+          <h5 class="luxsum-restyle-group-title">{{localize "LUXSUM.GmConsole.ActiveCompanions"}} <span class="luxsum-gm-count">{{gm.shownCount}} / {{gm.totalCount}}</span></h5>
+          <div class="luxsum-gm-filters">
+            {{#each gm.chips}}
+              <span class="luxsum-gm-chip {{#if active}}active{{/if}}" data-gm-chip data-user-id="{{id}}">{{#if color}}<span class="luxsum-gm-chip-dot" style="--chip-color:{{color}}"></span>{{/if}}{{name}}</span>
+            {{/each}}
+          </div>
+          <div class="luxsum-gm-grid">
+            {{#each gm.companions}}{{> "modules/luxurious-summons/templates/partials/gm-companion-card.hbs"}}{{else}}
+              <div class="luxsum-gm-empty" style="grid-column: 1/-1">{{localize "LUXSUM.GmConsole.Empty"}}</div>
+            {{/each}}
+          </div>
+        </div>
+      </div>
     {{/if}}
     {{#if (eq activeTab "templates")}}
       <p class="luxsum-empty">Templates tab — implemented in Plan 4.</p>
