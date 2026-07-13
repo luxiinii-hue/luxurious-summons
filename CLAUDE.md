@@ -330,7 +330,7 @@ tests/                     (NOT shipped in dist ZIP)
 
 1. **Read this file** + the parent spec + plan (in `../../docs/superpowers/`, via `git -C ../.. show main:...`).
 2. **Read `docs/2026-05-10-plan-2-restyle-design.md`** — Plan 2 canonical design.
-3. **`npm test`** — should print 89/89 passing.
+3. **`npm test`** — all tests should pass (current count lives in the status table above; don't hardcode it here, this line went stale twice).
 4. **`git log --oneline | head -10`** — see recent commits + tags. Check `git tag --list | tail -3` for the latest shipped version rather than trusting a hardcoded number here (this line went stale once already).
 5. **`ls dist/luxurious-summons-*.zip`** — see latest distribution ZIPs (this repo's `dist/`, gitignored).
 6. **Check the friend's live-verification state.** Last confirmed-live version: v0.1.6. Everything newer (0.2.0 motion, 0.3.x Restyle, 0.4.x roster/triggers/animations) needs live testing — see "What's actively in flight / open" above and `docs/reference/friend-environment.md` for the module-interaction risks (Midi QOL, Automated Animations).
