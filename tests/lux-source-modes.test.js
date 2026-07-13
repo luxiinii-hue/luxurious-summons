@@ -204,3 +204,39 @@ test("resolveArtFallback: no prototypeToken at all — creates one when healing 
   assert.equal(data.prototypeToken.texture.src, DRAGON_TEMPLATE.thumbnail);
   assert.equal(data.img, "systems/dnd5e/tokens/dragon/Wyrmling.webp");   // img untouched
 });
+
+// v0.4.8 — resolveArtFallback variant-priority (a spawned Cold dragon must
+// heal to the cold-dragon art, not the template-level fire thumbnail)
+
+const COLD_VARIANT = { id: "cold", name: "Cold", thumbnail: "modules/luxurious-summons/assets/variants/dragon-cold.webp" };
+
+test("resolveArtFallback: variant.thumbnail takes priority over template.thumbnail when healing", () => {
+  const actorData = { img: "", prototypeToken: {} };
+  const { data, healed } = resolveArtFallback(actorData, DRAGON_TEMPLATE, COLD_VARIANT);
+  assert.equal(healed, true);
+  assert.equal(data.img, COLD_VARIANT.thumbnail);
+  assert.equal(data.prototypeToken.texture.src, COLD_VARIANT.thumbnail);
+  assert.notEqual(data.img, DRAGON_TEMPLATE.thumbnail);
+});
+
+test("resolveArtFallback: no variant passed — falls back to template.thumbnail exactly as before", () => {
+  const actorData = { img: "", prototypeToken: {} };
+  const { data, healed } = resolveArtFallback(actorData, DRAGON_TEMPLATE, undefined);
+  assert.equal(healed, true);
+  assert.equal(data.img, DRAGON_TEMPLATE.thumbnail);
+});
+
+test("resolveArtFallback: variant with no thumbnail of its own falls through to template.thumbnail", () => {
+  const actorData = { img: "", prototypeToken: {} };
+  const bareVariant = { id: "bare-variant" };
+  const { data, healed } = resolveArtFallback(actorData, DRAGON_TEMPLATE, bareVariant);
+  assert.equal(healed, true);
+  assert.equal(data.img, DRAGON_TEMPLATE.thumbnail);
+});
+
+test("resolveArtFallback: variant.thumbnail alone (no template.thumbnail) still heals", () => {
+  const actorData = { img: "", prototypeToken: {} };
+  const { data, healed } = resolveArtFallback(actorData, { id: "no-thumb-template" }, COLD_VARIANT);
+  assert.equal(healed, true);
+  assert.equal(data.img, COLD_VARIANT.thumbnail);
+});

@@ -20,7 +20,7 @@ export const templates = [
     id: "simulacrum",
     name: "Simulacrum",
     description: "Illusory duplicate of the master. Half max HP, no spell-slot recovery on rest, no natural HP regain (Repair-only).",
-    thumbnail: "modules/luxurious-summons/assets/templates-thumbs/simulacrum.svg",
+    thumbnail: "modules/luxurious-summons/assets/templates-thumbs/simulacrum.webp",
     aestheticFamily: "hextech",
 
     trigger: { type: "spell", name: "Simulacrum" },
@@ -246,7 +246,7 @@ export const templates = [
     id: "mage-hand",
     name: "Mage Hand",
     description: "A spectral, floating hand. Carries up to 10 lb; no attacks.",
-    thumbnail: "icons/magic/unholy/strike-hand-glow-pink.webp",
+    thumbnail: "modules/luxurious-summons/assets/tokens/mage-hand.webp",
     aestheticFamily: "hextech",
 
     trigger: { type: "spell", name: "Mage Hand" },
@@ -256,7 +256,7 @@ export const templates = [
       mode: "inline-synthesized",
       inline: {
         type: "npc",
-        img:  "icons/magic/unholy/strike-hand-glow-pink.webp",
+        img:  "modules/luxurious-summons/assets/tokens/mage-hand.webp",
         system: {
           abilities: { str: { value: 1 }, dex: { value: 10 }, con: { value: 10 }, int: { value: 10 }, wis: { value: 10 }, cha: { value: 1 } },
           attributes: {
@@ -315,7 +315,7 @@ export const templates = [
     id: "unseen-servant",
     name: "Unseen Servant",
     description: "An invisible, mindless servant performs simple manual tasks within 60 ft.",
-    thumbnail: "icons/creatures/magical/spirit-undead-masked-blue.webp",
+    thumbnail: "modules/luxurious-summons/assets/tokens/unseen-servant.webp",
     aestheticFamily: "hextech",
 
     trigger: { type: "spell", name: "Unseen Servant" },
@@ -325,7 +325,7 @@ export const templates = [
       mode: "inline-synthesized",
       inline: {
         type: "npc",
-        img:  "icons/creatures/magical/spirit-undead-masked-blue.webp",
+        img:  "modules/luxurious-summons/assets/tokens/unseen-servant.webp",
         system: {
           abilities: { str: { value: 2 }, dex: { value: 6 }, con: { value: 10 }, int: { value: 1 }, wis: { value: 1 }, cha: { value: 1 } },
           attributes: {
@@ -370,7 +370,7 @@ export const templates = [
     id: "echo-knight-echo",
     name: "Echo Knight Echo",
     description: "A translucent armored echo of yourself. Mirrors your AC; 1 HP; can be swapped with via class action.",
-    thumbnail: "icons/equipment/chest/breastplate-cuirass-steel-grey.webp",
+    thumbnail: "modules/luxurious-summons/assets/tokens/echo-knight-echo.webp",
     aestheticFamily: "hextech",
 
     trigger: { type: "feature", name: "Manifest Echo" },
@@ -379,7 +379,7 @@ export const templates = [
       mode: "inline-synthesized",
       inline: {
         type: "npc",
-        img:  "icons/equipment/chest/breastplate-cuirass-steel-grey.webp",
+        img:  "modules/luxurious-summons/assets/tokens/echo-knight-echo.webp",
         system: {
           abilities: { str: { value: 10 }, dex: { value: 10 }, con: { value: 10 }, int: { value: 10 }, wis: { value: 10 }, cha: { value: 10 } },
           attributes: {
@@ -425,7 +425,7 @@ export const templates = [
     id: "summon-dragon",
     name: "Summon Dragon",
     description: "Summon a draconic spirit. Pick a damage type and the spell-slot level.",
-    thumbnail: "icons/creatures/abilities/dragon-fire-breath-orange.webp",
+    thumbnail: "modules/luxurious-summons/assets/variants/dragon-fire.webp",
     aestheticFamily: "hextech",
 
     trigger: { type: "spell", name: ["Summon Draconic Spirit", "Summon Dragon"] },
@@ -466,19 +466,18 @@ export const templates = [
       motionIntensity: 1.0
     },
 
-    // v0.4.6 FIX 6: all 5 damage variants point at the same core dragon-breath
-    // icon as a stopgap — the cards are already color-labeled by name + hue
-    // defaults, so this reads fine until asset gen produces per-type art.
+    // v0.4.8: 5 real per-type dragon variants (asset-planner generation pass,
+    // 2026-07-13) replace the v0.4.6 FIX 6 dragon-fire-breath-icon stopgap.
     variants: [
-      { id: "acid",      name: "Acid",      thumbnail: "icons/creatures/abilities/dragon-fire-breath-orange.webp",
+      { id: "acid",      name: "Acid",      thumbnail: "modules/luxurious-summons/assets/variants/dragon-acid.webp",
         defaults: { hueColor: "#9aff66", outlineColor: "#9aff66" } },
-      { id: "cold",      name: "Cold",      thumbnail: "icons/creatures/abilities/dragon-fire-breath-orange.webp",
+      { id: "cold",      name: "Cold",      thumbnail: "modules/luxurious-summons/assets/variants/dragon-cold.webp",
         defaults: { hueColor: "#c8e8f0", outlineColor: "#c8e8f0" } },
-      { id: "fire",      name: "Fire",      thumbnail: "icons/creatures/abilities/dragon-fire-breath-orange.webp",
+      { id: "fire",      name: "Fire",      thumbnail: "modules/luxurious-summons/assets/variants/dragon-fire.webp",
         defaults: { hueColor: "#ff7733", outlineColor: "#ff7733" } },
-      { id: "lightning", name: "Lightning", thumbnail: "icons/creatures/abilities/dragon-fire-breath-orange.webp",
+      { id: "lightning", name: "Lightning", thumbnail: "modules/luxurious-summons/assets/variants/dragon-lightning.webp",
         defaults: { hueColor: "#ffee66", outlineColor: "#ffee66" } },
-      { id: "poison",    name: "Poison",    thumbnail: "icons/creatures/abilities/dragon-fire-breath-orange.webp",
+      { id: "poison",    name: "Poison",    thumbnail: "modules/luxurious-summons/assets/variants/dragon-poison.webp",
         defaults: { hueColor: "#88dd88", outlineColor: "#88dd88" } }
     ],
 

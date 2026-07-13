@@ -52,9 +52,20 @@ test("every template + variant thumbnail resolves to an allowed path shape", () 
   }
 });
 
-test("no template or variant thumbnail points at the never-generated assets/variants/ directory", () => {
-  const entries = collectThumbnails(builtin);
-  for (const { label, thumbnail } of entries) {
-    assert.ok(!thumbnail.includes("assets/variants/"), `${label}: thumbnail "${thumbnail}" still points at assets/variants/, which was never generated (v0.4.6 FIX 6)`);
+// v0.4.8: assets/variants/ now ships real generated dragon-<type>.webp art
+// (asset-planner pass, 2026-07-13) — the v0.4.6 FIX 6 "never generated"
+// constraint above is obsolete and has been superseded by this positive
+// assertion that every dragon variant points at its own distinct, on-disk
+// webp (guards against a copy-paste regression back to the single shared
+// dragon-fire-breath stopgap icon).
+test("summon-dragon variants each point at their own distinct on-disk assets/variants/ webp", () => {
+  const dragon = builtin.find(t => t.id === "summon-dragon");
+  assert.ok(dragon, "summon-dragon template not found");
+  const seen = new Set();
+  for (const v of dragon.variants) {
+    assert.match(v.thumbnail, /^modules\/luxurious-summons\/assets\/variants\/dragon-[a-z]+\.webp$/,
+      `variant "${v.id}": thumbnail "${v.thumbnail}" doesn't match the expected per-type webp path shape`);
+    assert.ok(!seen.has(v.thumbnail), `variant "${v.id}": thumbnail "${v.thumbnail}" is shared with another variant, expected distinct art per type`);
+    seen.add(v.thumbnail);
   }
 });

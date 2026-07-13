@@ -76,9 +76,10 @@ export function applyScalingTier(baseData, tier) {
 const FOUNDRY_DEFAULT_ACTOR_IMG = "icons/svg/mystery-man.svg";
 
 /**
- * Pure-logic (v0.4.7 FIX 5). Given already-cloned compendium actor data and
- * the owning template, decide whether the actor img / token texture need a
- * fallback, and return the corrected data.
+ * Pure-logic (v0.4.7 FIX 5; v0.4.8 made variant-aware). Given already-cloned
+ * compendium actor data and the owning template (+ optional variant), decide
+ * whether the actor img / token texture need a fallback, and return the
+ * corrected data.
  *
  * Root cause: dnd5e 5.2.1's 2024-SRD Draconic Spirit source entry
  * (`actors24/summons/draconic-spirit.yml`) ships `img: ''` and no
@@ -88,16 +89,25 @@ const FOUNDRY_DEFAULT_ACTOR_IMG = "icons/svg/mystery-man.svg";
  * Applied generically so ANY compendium/compendium-scaled variant with
  * missing art benefits, not just Summon Dragon.
  *
+ * v0.4.8: fallback priority is `variant?.thumbnail ?? template?.thumbnail`.
+ * Real per-variant art shipped in v0.4.8 (e.g. summon-dragon's 5 dragon-<type>
+ * webps) — a spawned Cold dragon whose compendium source is missing art must
+ * heal to the cold-dragon thumbnail, not the fire one just because it's the
+ * template-level default. Templates without distinct variant art (variant.thumbnail
+ * undefined, or no variant passed) fall through to template.thumbnail exactly
+ * as before — this is a strict superset of the old behavior.
+ *
  * Preserves existing prototypeToken width/height/scale — the Draconic
  * Spirit is a Large creature (width/height 2) and the fallback must not
  * shrink it back to Medium.
  *
  * @param actorData  cloned compendium actor data (already has _id stripped)
  * @param template   the owning template — its `thumbnail` is the fallback art
+ * @param variant    optional selected variant — its `thumbnail` takes priority
  * @returns {{ data: object, healed: boolean }} healed=true if a fallback was applied
  */
-export function resolveArtFallback(actorData, template) {
-  const fallback = template?.thumbnail;
+export function resolveArtFallback(actorData, template, variant) {
+  const fallback = variant?.thumbnail ?? template?.thumbnail;
   if (!fallback) return { data: actorData, healed: false };
 
   const isMissing = (src) => !src || src === FOUNDRY_DEFAULT_ACTOR_IMG;
@@ -126,12 +136,15 @@ export async function resolveCompendiumData(template, variant, { name, folderId 
   data.name = name ?? `${data.name} of ${template?.name ?? "?"}`;
   if (folderId) data.folder = folderId;
 
-  // v0.4.7 FIX 5 — heal missing art (e.g. the 2024 Draconic Spirit ships
-  // img: '' with no token texture). See resolveArtFallback doc comment.
-  const { data: healedData, healed } = resolveArtFallback(data, template);
+  // v0.4.7 FIX 5, v0.4.8 variant-aware — heal missing art (e.g. the 2024
+  // Draconic Spirit ships img: '' with no token texture). See
+  // resolveArtFallback doc comment for the variant?.thumbnail ?? template.thumbnail
+  // priority.
+  const { data: healedData, healed } = resolveArtFallback(data, template, variant);
   data = healedData;
   if (healed) {
-    console.log(`[luxurious-summons] resolveCompendiumData: applied art fallback for "${template?.id}" (source had missing/default art) -> ${template.thumbnail}`);
+    const healedTo = variant?.thumbnail ?? template.thumbnail;
+    console.log(`[luxurious-summons] resolveCompendiumData: applied art fallback for "${template?.id}"${variant ? ` variant "${variant.id}"` : ""} (source had missing/default art) -> ${healedTo}`);
   }
 
   return data;
