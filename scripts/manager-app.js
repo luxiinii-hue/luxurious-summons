@@ -188,11 +188,28 @@ export class ManagerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async #onTemplateCardClick(templateId) {
     const tpl = builtinTemplates.find(t => t.id === templateId);
     if (!tpl) return;
+    // v0.4.6 FIX 9: game.user.character is null for a typical GM (the friend's
+    // primary test path — he's GM and doesn't assign himself a PC). The old code
+    // passed it unconditionally as sourceActor, so runSpawnFlow's "no source
+    // actor" bail fired for every GM-initiated spawn from the Manager. Resolve
+    // from the currently-controlled canvas token first (what the GM almost
+    // certainly means when they click Spawn New with a token selected), fall
+    // back to the assigned character, and warn + abort BEFORE opening the
+    // picker if neither resolves — opening a picker that can never place
+    // anything is worse than not opening it.
+    const controlledToken = canvas.tokens?.controlled?.[0];
+    const sourceActor = controlledToken?.actor ?? game.user.character;
+    if (!sourceActor) {
+      console.warn(`[${MODULE_ID}] #onTemplateCardClick: no source actor resolved (no controlled token, no assigned character) — aborting before opening the picker`);
+      ui.notifications?.warn(game.i18n.localize("LUXSUM.Spawn.NoSourceActor") || `[${MODULE_ID}] Select a token on the canvas or assign a character to your user, then try again.`);
+      return;
+    }
+    console.log(`[${MODULE_ID}] #onTemplateCardClick: resolved source actor "${sourceActor.name}" via ${controlledToken ? "controlled token" : "assigned character"}`);
     // Plan 3: open the variant picker instead of going straight to placement.
     // Single-variant templates open with N=1 pre-selected — same dialog
     // treatment as multi-variant, just N=1, for consistency.
     const { openVariantPicker } = await import("./variant-picker-app.js");
-    openVariantPicker(tpl, { sourceActor: game.user.character });
+    openVariantPicker(tpl, { sourceActor });
   }
 
   async #onDismiss(actorId) {
@@ -222,8 +239,18 @@ export class ManagerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       console.log(`[${MODULE_ID}] dismissed companion ${actor.id} (GM direct)`);
     } else {
       const { deathAnimations } = await import("./death-animations.js");
+      const { markAnimating, clearAnimating } = await import("./anim-state.js");
       const tokens = actor.getActiveTokens();
-      await Promise.all(tokens.map(t => deathAnimations.softFade?.(t) ?? Promise.resolve()));
+      // Same motion-ticker coordination as runDeathAndCleanup (v0.4.6 FIX 1) —
+      // this player-local softFade plays independently of the broker-side
+      // cleanup (which runs with skipAnimation:true), so it needs its own
+      // markAnimating/clearAnimating around the fade.
+      for (const t of tokens) markAnimating(t.id);
+      try {
+        await Promise.all(tokens.map(t => deathAnimations.softFade?.(t) ?? Promise.resolve()));
+      } finally {
+        for (const t of tokens) clearAnimating(t.id);
+      }
       const { postBrokerRequest } = await import("./chat-broker.js");
       await postBrokerRequest("dismiss", { actorId });
       console.log(`[${MODULE_ID}] dismiss broker request posted for ${actor.id}`);

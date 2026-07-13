@@ -61,26 +61,16 @@ When invoked with this dir as cwd, **the parent `Laps/CLAUDE.md` does NOT auto-l
 | **0.4.3** | Wire template thumbnails + inline-synthesized token textures to **Foundry CORE icons** (zero module dependency). Paths sourced from the dnd5e SRD spell entries (`packs/_source/spells/<level>/<name>.yml` `img:` field) — every Foundry install has these icons at `icons/...`. Mappings: Find Familiar + Pact of the Chain → `icons/creatures/birds/corvid-flying-wings-purple.webp`; Animate Dead → `icons/magic/control/fear-fright-monster-red.webp`; Mage Hand → `icons/magic/unholy/strike-hand-glow-pink.webp` (also token + portrait); Unseen Servant → `icons/creatures/magical/spirit-undead-masked-blue.webp` (also token + portrait); Echo Knight Echo → Mirror Image's SRD icon (also token + portrait); Summon Dragon → Simulacrum's icon (stopgap). Simulacrum keeps its hand-authored SVG placeholder. Eliminates ~10 PNG 404s per gallery render. |
 | **0.4.4** | Two fixes. (1) **Motion ticker re-captures base on Foundry-driven movement.** The previous code captured `base.x` / `base.y` on the first ticker frame and never updated them — so when the user dragged a Mage Hand (or any token with a position-animating profile like `floating-hand`), the next ticker frame wrote `oldBase + delta` and visually snapped the mesh back to the original spawn position. The fix tracks a `wasAnimating` flag through `token._animation` cycles and re-captures `base.x` / `base.y` from `mesh.position` when the tween clears. Also catches non-tweened snaps (token-config dialog x/y edit, scripted moves) via a `lastWrite` drift check. Scale / rotation / alpha NOT re-captured — Foundry drag-and-drop doesn't touch those, and re-capturing them would compound our own last-applied delta into the new base. Simulacrum (`flame-flicker`, alpha-only) was unaffected; this bug was specific to position-animating profiles. (2) Better Foundry CORE icons for two templates with no SRD spell entry: Echo Knight Echo → `icons/equipment/chest/breastplate-cuirass-steel-grey.webp` (Knight monster's breastplate; reads as "armored figure"); Summon Dragon → `icons/creatures/abilities/dragon-fire-breath-orange.webp` (canonical dragon breath icon, used by the adult-red-dragon SRD monster). |
 | **0.4.5** | Replaced 21 of 22 `*-uuid-tbd` placeholders in `templates-builtin.js` with real `dnd5e.monsters` UUIDs (Find Familiar's 15 SRD familiars, Pact of the Chain's 4, Animate Dead's Skeleton + Zombie). Find Familiar / Pact of the Chain / Animate Dead are now end-to-end functional — picker shows real stats, Place creates real compendium-cloned actors. Draconic Spirit remains placeholder — Summon Draconic Spirit is Tasha's content, lives in a different pack (likely `dnd5e.monsters24` or `dnd5e.summons`); needs a follow-up discovery pass. |
+| **0.4.6** | Review-driven stabilization: a 13-finding audit of the barely-live-verified 0.2.0–0.4.5 surface, all fixes landed. (1) **Fixes invisible summons** — spawn/death animations now coordinate with the motion ticker via a shared `anim-state.js` guard (module-side equivalent of the `token._animation` guard); previously the ticker's lazy base snapshot captured the animation-zeroed alpha/scale and pinned it forever (Simulacrum permanently invisible, Animate Dead stuck at 70% scale). Spawn animations also lazy-snapshot mesh state on their first frame (same V13 rationale as v0.3.2). (2) `spawnState` flag clearing is primary-GM-only and error-wrapped — fixes an unhandled permission rejection on every non-owner client per spawn; the client-scope animations setting now gates local playback only (was: any opted-out client raced to clear the flag and could suppress the animation for everyone). (3) Manager spawn resolves source actor from controlled token → assigned character — a GM without an assigned character could not spawn at all ("no source actor"). (4) Variant eligibility gains `requires.feature`; Pact of the Chain is gated on the actual pact-boon feat (the old `requires.subclass: "pact-of-the-chain"` could never match — it's not a subclass). (5) Inline-synthesized AC works via `ac.calc: "flat"` (dnd5e ignores `ac.flat` otherwise); Echo Knight now really mirrors caster AC. (6) `extractCastSlotLevel` parses dnd5e slot-key strings ("spell6"/"pact") — upcast scaling tiers match; boolean `consume.spellSlot` no longer mistaken for a level. (7) All 26 variant thumbnails point at dnd5e system token art / core icons (were 404-broken `assets/variants/*.png`). (8) Death-animation resolution honors `variant.deathEffectOverride` and `effects.death` via `readEffects` (Imp/Quasit `infernalFade` was dead config). (9) ESC cleanly aborts a multi-spawn sequence (`runSpawnFlow` returns explicit outcome objects). (10) Draconic Spirit UUID wired to `Compendium.dnd5e.actors24.Actor.phbmobDraconicSp` (verified vs dnd5e release-5.2.1); Summon Dragon trigger matches both the 2024 name and Tasha's "Summon Draconic Spirit". (11) Dead "Open Foundry Sheet" button suppressed in the picker info card. Housekeeping: friend's screenshots moved out of `assets/` (they were shipping ~400 KB inside the 0.4.3–0.4.5 ZIPs) into `docs/reference/` with a module-stack compat writeup; `dist/` + `.staging/` + `.superpowers/` gitignored. **Tests: 89 → 121.** |
 
-**80 unit tests passing.** Distribution ZIPs in `../../dist/luxurious-summons-X.Y.Z.zip`.
+**121 unit tests passing.** Distribution ZIPs in this repo's `dist/` (gitignored as of 2026-07-13; parent `../../dist/` was the original convention but has never actually held this module's ZIPs).
 
-### What's actively in flight
+### What's actively in flight / open
 
-- **Plan 2 preview** (`previews/restyle.html` + `previews/restyle-preview.js`) — three template flavors (Simulacrum / Mage Hand / Familiar) drive a mock token through the full filter + motion chain. The dialog itself is a 2-column layout: left = summon details info card, right = customization controls. Design-locked after user review.
-- **Plan 2 design doc** at `docs/2026-05-10-plan-2-restyle-design.md` (inner-repo `docs/`, NOT the parent workspace). This is the canonical Plan 2 reference and has absorbed both my original design and the design-critique revision pass + user review feedback.
-
-### What's gated on the friend's v0.1.5 verification
-
-- **Spec amendments** (on parent `main` branch — touches §5.3, §6.6, §6.8, §6.9, §7.1, §7.2 + Plan 3 + Plan 4 doc edits). Batched commit when v0.1.5 verifies.
-- **Plan 2 implementation phase** — porting the preview to `restyle-app.js` + `restyle.hbs`, wiring PIXI filters / motion ticker / shimmer DisplacementFilter, plumbing the new schema fields through the spawn flow, shipping as v0.2.0. Files this touches overlap with files Plan 1 bugs might surface in (`spawn-app.js`, `visual-filters.js`), so the gate matters.
-
-### What's next once v0.1.5 verifies
-
-1. Batched spec amendment commit on parent `main`.
-2. Plan 2 design-doc reconciliation against the spec amendments.
-3. Plan 2 implementation phase → `restyle-app.js` + Foundry integration → v0.2.0 ship.
-4. Plan 3 (asset generation + 11 more templates + multi-variant gallery selector).
-5. Plan 4 (GM Console + Templates editor + per-variant CRUD + D-mode approval).
+- **Live verification of the 0.4.x line.** The friend last confirmed v0.1.6 live; everything from 0.2.0 (motion), 0.3.x (Restyle), and 0.4.x (Plan 3 roster) has had little or no live-Foundry verification. The friend's stack is heavily automated (Midi QOL, Automated Animations + Sequencer + JB2A, DFreds — see `docs/reference/friend-environment.md`), so trigger hooks and spawn animations need testing WITH those modules enabled. Screenshot reference of their full module list is in `docs/reference/`.
+- **Asset generation** (deferred from Plan 3): template thumbnails, per-variant thumbnails (`assets/variants/*.png` paths are declared in `templates-builtin.js` but the files don't exist — the placement overlay and gallery fall back gracefully), inline-synthesized token art. Route through the asset-planner agent; prompts in parent spec §9 / E.2.
+- **Spec amendments on parent `main`** (§5.3, §6.6, §6.8, §6.9, §7.1, §7.2 + Plan 3/4 doc edits) — planned during the Plan 2 session, still unverified whether they ever landed. Check `git -C ../.. log main --oneline` before Plan 4 work.
+- **Plan 4** (GM Console + Templates editor + per-variant CRUD + D-mode approval) — not started.
 
 ### Decisions taken during planning, important to remember
 
@@ -107,7 +97,7 @@ Captured during the user-feedback brainstorming and plan-mode planning session. 
 
 ## Module conventions
 
-- **Test files** in `tests/` prefixed `lux-*.test.js`. Run via `npm test` (`node --test`, no npm deps). **42 tests as of v0.1.5 + Plan 2 preview phase.**
+- **Test files** in `tests/` prefixed `lux-*.test.js`. Run via `npm test` (`node --test`, no npm deps). **121 tests as of v0.4.6.**
 - **All console logs** prefixed `[luxurious-summons]` so a clean log trail is paste-friendly.
 - **Companion record state** on `actor.flags["luxurious-summons"]` (canonical); `user.flags["luxurious-summons"].activeCompanions` is a fast index regenerated from authoritative state on world init.
 - **Chat-broker pattern** (chat messages with module flags) for player↔GM coordination — never `game.socket.emit` (drops messages silently in V14 with no error trace).
@@ -145,7 +135,7 @@ The parent `Laps` workspace (one dir up: `../`) holds adjacent context that this
 | `../../CLAUDE.md` | Parent project CLAUDE.md (universal Foundry/V14 conventions, build tooling, image-processing pipeline) | If something here references "the parent CLAUDE.md" and you need the original wording, or if you suspect a V14 gotcha not yet captured here |
 | `../../docs/superpowers/specs/` | Design specs for both modules (this one + emote-wheel). luxurious-summons spec lives on parent `main` — read via `git show main:...`. | Spec is the canonical source for design intent |
 | `../../docs/superpowers/plans/` | Implementation plans for both modules. Same git-show pattern. | Plan 1 detailed + Plans 2-5 roadmap |
-| `../../dist/` | Distribution ZIPs (gitignored in parent) for all modules | Verify the latest shipped ZIP for this module (`luxurious-summons-X.Y.Z.zip`) |
+| `../../dist/` | Distribution ZIPs for OTHER modules (e.g. emote-wheel) | This module's ZIPs live in this repo's own `dist/` (gitignored), NOT the parent's |
 | `../emote-wheel/` | The other Foundry module in the workspace, system-agnostic emote selector | Cross-pattern reference: how does emote-wheel solve scene controls / dialogs / chat-broker / sprite anchoring? Patterns may transfer (V14 gotchas overlap) — but the user is actively iterating on emote-wheel, so don't modify |
 | `../emote-wheel/CLAUDE.md` | emote-wheel's module-local notes | Reference if a pattern was paid for there |
 | `../../tests/` | emote-wheel's test files (this module's tests live in this repo's `tests/`) | Don't run from this dir's `npm test` — that runs only this module's tests |
@@ -338,13 +328,12 @@ tests/                     (NOT shipped in dist ZIP)
 
 1. **Read this file** + the parent spec + plan (in `../../docs/superpowers/`, via `git -C ../.. show main:...`).
 2. **Read `docs/2026-05-10-plan-2-restyle-design.md`** — Plan 2 canonical design.
-3. **`npm test`** — should print 42/42 passing.
-4. **`git log --oneline | head -10`** — see recent commits + tags. Latest tag: `luxurious-summons-v0.1.5`. Latest commit (as of 2026-05-10 session end): `1e65143` (hex thumbs fix).
-5. **`ls ../../dist/luxurious-summons-*.zip`** — see latest distribution ZIPs.
-6. **Check whether friend has reported back on v0.1.5.**
-   - If **friend reports a bug**: reproduce minimally, fix in inner repo, bump patch version (0.1.6+), commit + tag + new ZIP. Plan 2 implementation phase stays gated.
-   - If **friend confirms v0.1.5 stable**: kick off the batched spec amendment commit on parent `main` (see "Decisions taken during planning" — they enumerate what needs to change in spec §5.3, §6.6, §6.8, §6.9, §7.1, §7.2, plus Plan 3 + 4 doc edits). Then begin Plan 2 implementation phase per `docs/2026-05-10-plan-2-restyle-design.md` §13 task list, starting at task 8 (Extend `scripts/visual-filters.js`).
-7. **Open `previews/restyle.html`** in a browser to see the current locked aesthetic of the Restyle dialog. This is the visual target for the Foundry-coupled implementation.
+3. **`npm test`** — should print 89/89 passing.
+4. **`git log --oneline | head -10`** — see recent commits + tags. Check `git tag --list | tail -3` for the latest shipped version rather than trusting a hardcoded number here (this line went stale once already).
+5. **`ls dist/luxurious-summons-*.zip`** — see latest distribution ZIPs (this repo's `dist/`, gitignored).
+6. **Check the friend's live-verification state.** Last confirmed-live version: v0.1.6. Everything newer (0.2.0 motion, 0.3.x Restyle, 0.4.x roster/triggers/animations) needs live testing — see "What's actively in flight / open" above and `docs/reference/friend-environment.md` for the module-interaction risks (Midi QOL, Automated Animations).
+   - If **friend reports a bug**: reproduce minimally, fix in inner repo, bump patch version, commit + tag + new ZIP.
+7. **Open `previews/restyle.html`** in a browser to see the locked aesthetic of the Restyle dialog (shipped in 0.3.0; preview kept as design reference).
 
 ## Asset generation (Plan 3)
 

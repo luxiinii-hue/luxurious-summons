@@ -49,3 +49,38 @@ test("filterVariants: null/undefined inputs handled", () => {
   assert.deepEqual(filterVariants(null, null), []);
   assert.deepEqual(filterVariants([], null), []);
 });
+
+// v0.4.6 FIX 2: Pact of the Chain is a warlock FEATURE (owned feat-item), not a
+// subclass. requires.feature matches against caster.featureNames.
+const pactImp = { id: "imp", name: "Imp", requires: { class: "warlock", feature: "Pact of the Chain" } };
+
+test("isVariantEligible: requires.feature present (case-insensitive) — eligible", () => {
+  const caster = { classes: [{ name: "warlock", level: 3 }], featureNames: ["pact of the chain"] };
+  assert.equal(isVariantEligible(pactImp, caster), true);
+});
+
+test("isVariantEligible: requires.feature present with different case in caster list — still eligible", () => {
+  const caster = { classes: [{ name: "warlock", level: 3 }], featureNames: ["PACT OF THE CHAIN".toLowerCase()] };
+  assert.equal(isVariantEligible(pactImp, caster), true);
+});
+
+test("isVariantEligible: requires.feature absent from caster's feature list — ineligible", () => {
+  const caster = { classes: [{ name: "warlock", level: 3 }], featureNames: ["pact of the tome"] };
+  assert.equal(isVariantEligible(pactImp, caster), false);
+});
+
+test("isVariantEligible: requires.feature with no featureNames on caster at all — ineligible, does not throw", () => {
+  const caster = { classes: [{ name: "warlock", level: 3 }] };
+  assert.equal(isVariantEligible(pactImp, caster), false);
+});
+
+test("isVariantEligible: requires.class passes but requires.feature still gates independently", () => {
+  // Right class, wrong (missing) feature — must not fall back to "class matched, good enough".
+  const caster = { classes: [{ name: "warlock", level: 5 }], featureNames: [] };
+  assert.equal(isVariantEligible(pactImp, caster), false);
+});
+
+test("isVariantEligible: requires.feature is independent of requires.subclass — a variant with only feature never checks subclass", () => {
+  const caster = { classes: [{ name: "warlock", subclass: "the-fiend", level: 3 }], featureNames: ["pact of the chain"] };
+  assert.equal(isVariantEligible(pactImp, caster), true);
+});

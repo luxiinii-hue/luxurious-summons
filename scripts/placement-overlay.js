@@ -20,8 +20,24 @@ export function isCellBlocked(proposed, placedBounds) {
 let _activeOverlay = null;
 
 /**
- * Begin a placement session. Resolves with array of {x, y, sceneId} placements
- * (length 0 to opts.count) when N done OR ESC pressed.
+ * Begin a placement session.
+ *
+ * Resolves with:
+ *   - an array of {x, y, sceneId} placements (always length === opts.count)
+ *     when the user completes placement, OR
+ *   - `null` when the user cancels via ESC or a competing overlay preempts
+ *     this one (_activeOverlay.cancel()).
+ *
+ * v0.4.6 FIX 10: previously both outcomes resolved with an array (possibly
+ * empty, if ESC was pressed before any click), which made "cancelled" and
+ * "placed" indistinguishable to callers that only checked
+ * `placements.length === 0`. That was harmless for spawn-flow's own
+ * single-placement callers (count is always 1 there) but meant a multi-spawn
+ * sequence in variant-picker-app.js's #onPlace loop couldn't tell "ESC,
+ * stop the whole sequence" apart from "still need more placements" and kept
+ * re-arming the overlay for every remaining token in an Animate Dead
+ * multi-spawn. Explicit `null` lets callers propagate a real "cancelled"
+ * outcome and break out of a placement loop.
  *
  * @param opts.tokenWidth   width of token in pixels (e.g., grid.size)
  * @param opts.tokenHeight  height in pixels
@@ -135,9 +151,9 @@ export async function activatePlacement(opts) {
 
     function onKey(e) {
       if (e.key === "Escape") {
-        console.log(`[${MODULE_ID}] placement cancelled by ESC; ${placements.length} placement(s) committed`);
+        console.log(`[${MODULE_ID}] placement cancelled by ESC; ${placements.length} placement(s) committed before cancel — resolving null (v0.4.6 FIX 10)`);
         cleanup();
-        resolve(placements);
+        resolve(null);
       }
     }
 
@@ -155,7 +171,7 @@ export async function activatePlacement(opts) {
     canvas.stage.on("pointerdown", onClick);
     document.addEventListener("keydown", onKey, true);
 
-    _activeOverlay = { cancel: () => { cleanup(); resolve(placements); } };
+    _activeOverlay = { cancel: () => { cleanup(); resolve(null); } };
   });
 }
 

@@ -69,6 +69,14 @@ export async function ensureMasterFolder(masterName) {
  * the drawToken hook plays the spawn animation once. Plumbs variantId +
  * castSlotLevel through the companion record.
  *
+ * KNOWN TODO (v0.4.6 FIX 11, comment-only this pass): this function does NOT
+ * call checkRestrictions. spawn-flow.js's runSpawnFlow() enforces caps/antispam
+ * client-side, on the requester's own client, before the broker post — but
+ * that check is bypassable (stale index, race between rapid casts, a modified
+ * client) and nothing re-validates on this, the actually-privileged side. A
+ * real fix would re-run checkRestrictions here against the requester's live
+ * game.actors state before creating anything. Not implemented yet.
+ *
  * Payload:
  *   { templateId, variantId?, castSlotLevel?, sourceActorId, sourcePlayerId,
  *     placements, visualOverrides? }
@@ -166,8 +174,15 @@ export async function performSpawn(payload) {
       await onAfterSpawn(newActor, sourceActor);
     } else if (templateId === "echo-knight-echo") {
       // Mirror caster's AC into the echo per RAW (Echo Knight's echo shares AC).
+      // v0.4.6 FIX 3: dnd5e 5.2.1 (module/data/actor/templates/attributes.mjs) only
+      // reads system.attributes.ac.flat when system.attributes.ac.calc === "flat" —
+      // writing .flat alone left the echo on the inline template's original calc
+      // mode and its sheet showed AC 10 instead of the mirrored value.
       const casterAc = sourceActor.system?.attributes?.ac?.value ?? 14;
-      await newActor.update({ "system.attributes.ac.flat": casterAc });
+      await newActor.update({
+        "system.attributes.ac.flat": casterAc,
+        "system.attributes.ac.calc": "flat"
+      });
     }
 
     // 9. Place token at the requested grid cell, tagged for orphan-cleanup

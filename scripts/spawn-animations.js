@@ -28,10 +28,6 @@ async function particleBloom(token, opts = {}) {
 
   if (!token?.mesh) return;
   const mesh = token.mesh;
-  const startAlpha = mesh.alpha;
-  const startScale = mesh.scale.x;
-  mesh.alpha = 0;
-  mesh.scale.set(startScale * scaleFrom);
 
   const textureName = palette === "ember" ? "ember"
                     : palette === "bone"  ? "boneMote"
@@ -39,8 +35,6 @@ async function particleBloom(token, opts = {}) {
   const texture = getEffectTexture(textureName);
   if (!texture) {
     console.warn(`[${MODULE_ID}] particleBloom: texture "${textureName}" not loaded`);
-    mesh.alpha = startAlpha;
-    mesh.scale.set(startScale);
     return;
   }
 
@@ -73,7 +67,19 @@ async function particleBloom(token, opts = {}) {
     motes.push(sprite);
   }
 
+  // Lazy snapshot: startAlpha/startScale are captured on the FIRST ticker frame,
+  // not at attach time. drawToken fires partway through Foundry's draw chain on
+  // V13 build 351, so mesh.alpha/scale can be pre-init here. Snapshotting early
+  // and immediately zeroing alpha (the old behavior) also handed the motion
+  // ticker's own lazy-base-snapshot a poisoned mesh state to capture — v0.4.6 FIX 1.
+  let startAlpha = null;
+  let startScale = null;
+
   await tweenWithTicker(durationMs, (t) => {
+    if (startAlpha === null) {
+      startAlpha = mesh.alpha;
+      startScale = mesh.scale.x;
+    }
     const eased = easeOutCubic(t);
     mesh.alpha = startAlpha * eased;
     mesh.scale.set(startScale * (scaleFrom + (1 - scaleFrom) * eased));
@@ -84,8 +90,8 @@ async function particleBloom(token, opts = {}) {
     }
   });
 
-  mesh.alpha = startAlpha;
-  mesh.scale.set(startScale);
+  mesh.alpha = startAlpha ?? mesh.alpha;
+  mesh.scale.set(startScale ?? mesh.scale.x);
   for (const sprite of motes) {
     layer.removeChild(sprite);
     sprite.destroy();
@@ -102,14 +108,10 @@ async function crystalForm(token, opts = {}) {
 
   if (!token?.mesh) return;
   const mesh = token.mesh;
-  const startAlpha = mesh.alpha;
-  const startScale = mesh.scale.x;
-  mesh.alpha = 0;
 
   const texture = getEffectTexture("hexShard");
   if (!texture) {
     console.warn(`[${MODULE_ID}] crystalForm: hexShard texture not loaded`);
-    mesh.alpha = startAlpha;
     return;
   }
 
@@ -132,7 +134,16 @@ async function crystalForm(token, opts = {}) {
     shards.push(sprite);
   }
 
+  // Lazy snapshot on first ticker frame — see particleBloom for rationale
+  // (v0.4.6 FIX 1: attach-time snapshot races Foundry's draw chain on V13).
+  let startAlpha = null;
+  let startScale = null;
+
   await tweenWithTicker(durationMs, (t) => {
+    if (startAlpha === null) {
+      startAlpha = mesh.alpha;
+      startScale = mesh.scale.x;
+    }
     const eased = easeOutCubic(t);
     mesh.alpha = startAlpha * eased;
     // Snap-bounce: 1.0 at t<0.85, peak 1.08 at t=0.92, back to 1.0 at t=1.0
@@ -149,8 +160,8 @@ async function crystalForm(token, opts = {}) {
     }
   });
 
-  mesh.scale.set(startScale);
-  mesh.alpha = startAlpha;
+  mesh.scale.set(startScale ?? mesh.scale.x);
+  mesh.alpha = startAlpha ?? mesh.alpha;
   for (const sprite of shards) {
     layer.removeChild(sprite);
     sprite.destroy();
@@ -164,13 +175,14 @@ async function crystalForm(token, opts = {}) {
 async function echoStep(token) {
   if (!token?.mesh) return;
   const mesh = token.mesh;
-  const startAlpha = mesh.alpha;
-  mesh.alpha = 0;
+  // Lazy snapshot on first ticker frame — see particleBloom for rationale.
+  let startAlpha = null;
   await tweenWithTicker(500, (t) => {
+    if (startAlpha === null) startAlpha = mesh.alpha;
     const eased = easeOutCubic(t);
     mesh.alpha = startAlpha * eased;
   });
-  mesh.alpha = startAlpha;
+  mesh.alpha = startAlpha ?? mesh.alpha;
 }
 
 export const spawnAnimations = {

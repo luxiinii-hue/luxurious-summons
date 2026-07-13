@@ -7,6 +7,7 @@
 import { isCompanion, getCompanionFlag } from "./data-model.js";
 import { getMotionProfile, motionProfileBounds } from "./motion-profiles.js";
 import { s } from "./settings.js";
+import { isAnimating } from "./anim-state.js";
 
 const MODULE_ID = "luxurious-summons";
 
@@ -216,7 +217,15 @@ function applyMotionToTokenWith(token, motion) {
   const startedAt = performance.now() / 1000;
 
   const tickerCallback = () => {
-    if (token._animation) {
+    // Treat a module-owned spawn/death animation exactly like Foundry's own
+    // token._animation tween: skip the frame entirely and set wasAnimating so
+    // the base is re-captured from the canonical (post-animation) mesh once it
+    // clears. Critically, this check runs BEFORE the lazy base snapshot below,
+    // so the snapshot can never capture an animation-mutated mesh (e.g. alpha
+    // pinned to ~0 mid-fade-in). v0.4.6 FIX 1 — paid for by Simulacrum/Unseen
+    // Servant/Summon Dragon shipping permanently invisible after their spawn
+    // animation completed.
+    if (token._animation || isAnimating(token.id)) {
       wasAnimating = true;
       return;
     }

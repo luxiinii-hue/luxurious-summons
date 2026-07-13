@@ -20,15 +20,23 @@ const MODULE_ID = "luxurious-summons";
  * Plan 3: Find Familiar + Pact of the Chain share `trigger.name = "Find Familiar"`,
  * so a single item-use can match multiple templates. The picker handles routing.
  *
+ * `trigger.name` accepts a string or an array of alias names — Summon Dragon
+ * carries both the Tasha's name ("Summon Draconic Spirit", via DDB-Importer)
+ * and the dnd5e-2024 SRD name ("Summon Dragon").
+ *
  * Returns an array of matching templates (possibly empty).
+ * Exported for the pure-logic test suite.
  */
-function findTemplatesByItem(item) {
+export function findTemplatesByItem(item, templates = builtinTemplates) {
   if (!item) return [];
   const itemName = item.name?.toLowerCase();
   if (!itemName) return [];
-  return builtinTemplates.filter(t => {
-    const triggerName = (t.trigger?.name ?? t.triggerSpell)?.toLowerCase();
-    if (!triggerName || triggerName !== itemName) return false;
+  return templates.filter(t => {
+    const raw = t.trigger?.name ?? t.triggerSpell;
+    const triggerNames = (Array.isArray(raw) ? raw : [raw])
+      .filter(n => typeof n === "string")
+      .map(n => n.toLowerCase());
+    if (!triggerNames.includes(itemName)) return false;
     const expectedType = t.trigger?.type ?? "spell";
     if (expectedType === "spell"   && item.type !== "spell") return false;
     if (expectedType === "feature" && item.type !== "feat")  return false;
@@ -47,17 +55,35 @@ function markTriggered(item) {
 }
 
 /**
- * Best-effort extraction of the spell-slot level used for this cast. dnd5e
- * versions differ in where they stash it on the usage object — try the common
- * paths and return null on miss (the picker falls back to template base level).
+ * Best-effort extraction of the spell-slot level used for this cast.
+ *
+ * v0.4.6 FIX 4: verified against dnd5e 5.2.1 `activity/mixin.mjs` (~461-464) —
+ * `usageConfig.spell.slot` is a KEY STRING like "spell6" or "pact", never a
+ * number. `usageConfig.consume.spellSlot` is a BOOLEAN ("should this activation
+ * consume a slot at all"), not a level — the old `??` chain treated whichever
+ * of these was truthy as the numeric level, so `pickScalingTier` in
+ * source-modes.js (which compares `row.slotLevel === castSlotLevel`) could
+ * never match a real scaling row; it silently fell back to the table's first
+ * tier every time regardless of the actual cast level.
+ *
+ * Returns a number, or null if nothing usable was found (callers fall back to
+ * the template's base level).
  */
-function extractCastSlotLevel(usageConfig, activity, item) {
-  return usageConfig?.spell?.slot
-      ?? usageConfig?.consume?.spellSlot
-      ?? usageConfig?.level
-      ?? activity?.spell?.level
-      ?? item?.system?.level
-      ?? null;
+export function extractCastSlotLevel(usageConfig, activity, item) {
+  const slotKey = usageConfig?.spell?.slot;
+  if (typeof slotKey === "number") return slotKey;
+  if (typeof slotKey === "string") {
+    const m = /^spell(\d+)$/.exec(slotKey);
+    if (m) return Number(m[1]);
+    if (slotKey === "pact") {
+      const pactLevel = item?.actor?.system?.spells?.pact?.level;
+      if (typeof pactLevel === "number") return pactLevel;
+    }
+  }
+  const base = item?.system?.level;
+  const scaling = usageConfig?.scaling;
+  if (typeof base === "number" && typeof scaling === "number") return base + scaling;
+  return typeof base === "number" ? base : null;
 }
 
 async function handleItemUse(item, hookName, usageConfig = null, activity = null) {
@@ -71,11 +97,18 @@ async function handleItemUse(item, hookName, usageConfig = null, activity = null
     return;
   }
 
-  // For shared triggers (Find Familiar matches both Find Familiar + Pact of the
-  // Chain templates), prefer the first non-Pact match. The Pact variants will
-  // surface in the picker via the variant-eligibility filter if the caster
-  // qualifies. Future improvement: a small picker over which TEMPLATE to use
-  // when both match independently — out of scope for Plan 3.
+  // For shared triggers (Find Familiar matches both the find-familiar AND
+  // pact-of-the-chain templates), prefer the find-familiar template. This is a
+  // DIFFERENT template from pact-of-the-chain — the four Pact variants (Imp,
+  // Pseudodragon, Quasit, Sprite) do NOT surface in the find-familiar picker;
+  // pact-of-the-chain has its own separate template + variant list and is only
+  // reachable via the Manager's template gallery (its own card, gated on
+  // requires.feature "Pact of the Chain" per variant, per v0.4.6 FIX 2). This
+  // was previously mis-documented as "the Pact variants surface in the picker
+  // via eligibility filtering" — that's wrong; the whole TEMPLATE is skipped
+  // here, so its variants are never rendered by this trigger path at all.
+  // Future improvement: a small picker over which TEMPLATE to use when both
+  // match independently — out of scope for Plan 3.
   const template = matchedTemplates.find(t => t.id !== "pact-of-the-chain") ?? matchedTemplates[0];
   const castSlotLevel = extractCastSlotLevel(usageConfig, activity, item);
 

@@ -4,8 +4,9 @@
 // installLifecycleHooks wires the Foundry-side detection (Task 15).
 // installDeleteHandling wires deleteActor cleanup + master-deletion prompt (Task 16).
 
-import { isCompanion, refreshUserIndexes } from "./data-model.js";
+import { isCompanion, refreshUserIndexes, readEffects } from "./data-model.js";
 import { registerBrokerHandler } from "./chat-broker.js";
+import { markAnimating, clearAnimating } from "./anim-state.js";
 
 const MODULE_ID = "luxurious-summons";
 
@@ -15,6 +16,28 @@ const MODULE_ID = "luxurious-summons";
 export function detectHpDeath({ before, after }) {
   if (typeof before !== "number") return false;
   return before > 0 && after <= 0;
+}
+
+/**
+ * Pure-logic. Resolves which death animation id to play for a companion.
+ *
+ * v0.4.6 FIX 7: the original call site used `template?.deathAnimation ?? "softFade"`
+ * directly, which bypassed BOTH the per-variant `deathEffectOverride` (e.g. the
+ * Imp/Quasit Pact-of-the-Chain variants configure `infernalFade`) AND the
+ * `readEffects()` migration helper that Plan 3's unified `effects.death` shape
+ * relies on. Resolution order: variant override wins, then the template's
+ * migrated effects.death, then the hard fallback "softFade".
+ *
+ * @param template        the template object (may be undefined if the flag's
+ *                         templateId no longer resolves — readEffects handles that)
+ * @param variantId       the companion record's variantId, or null/undefined
+ * @param readEffectsFn   injected so this stays pure-logic-testable without a
+ *                         circular import cycle back into data-model.js at
+ *                         module-load time; production call passes readEffects.
+ */
+export function resolveDeathAnimationId(template, variantId, readEffectsFn) {
+  const variant = variantId ? (template?.variants ?? []).find(v => v.id === variantId) : null;
+  return variant?.deathEffectOverride ?? readEffectsFn(template).death ?? "softFade";
 }
 
 /**
@@ -60,10 +83,21 @@ export async function runDeathAndCleanup(actor, { skipAnimation = false } = {}) 
     const { templates } = await import("./templates-builtin.js");
     const flag = actor.flags?.[MODULE_ID];
     const template = templates.find(t => t.id === flag?.templateId);
-    const animationId = template?.deathAnimation ?? "softFade";
+    // v0.4.6 FIX 7 — see resolveDeathAnimationId doc comment for the resolution
+    // order and why the old `template?.deathAnimation ?? "softFade"` read was wrong.
+    const animationId = resolveDeathAnimationId(template, flag?.variantId, readEffects);
     const { deathAnimations } = await import("./death-animations.js");
     const tokens = actor.getActiveTokens();
-    await Promise.all(tokens.map(t => deathAnimations[animationId]?.(t) ?? Promise.resolve()));
+    // Mark every token animating BEFORE the animation starts so the motion
+    // ticker skips these frames and doesn't fight the death fade for
+    // alpha/scale control (v0.4.6 FIX 1 — flame-flicker was writing alpha every
+    // frame while icyShatter was fading the same mesh out).
+    for (const t of tokens) markAnimating(t.id);
+    try {
+      await Promise.all(tokens.map(t => deathAnimations[animationId]?.(t) ?? Promise.resolve()));
+    } finally {
+      for (const t of tokens) clearAnimating(t.id);
+    }
   }
   await deleteAllTokensFor(actor);
   await actor.delete();

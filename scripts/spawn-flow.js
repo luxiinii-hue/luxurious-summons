@@ -18,6 +18,20 @@ import { s } from "./settings.js";
 
 const MODULE_ID = "luxurious-summons";
 
+/**
+ * Runs one placement + spawn request.
+ *
+ * Returns an outcome object so multi-placement callers (variant-picker-app.js's
+ * multi-spawn loop) can distinguish "the user cancelled — stop the whole
+ * sequence" from "this one spawn didn't happen for an unrelated reason (no
+ * template, no source actor, restriction check failed) — but a subsequent one
+ * in the same batch might still be fine." v0.4.6 FIX 10.
+ *
+ *   { outcome: "spawned" }    — broker request posted successfully
+ *   { outcome: "cancelled" }  — user pressed ESC / a competing overlay preempted
+ *   { outcome: "blocked", reason } — template missing, no source actor, or a
+ *                                     restriction (cap/antispam) rejected the spawn
+ */
 export async function runSpawnFlow(ctx) {
   const {
     template,
@@ -29,14 +43,25 @@ export async function runSpawnFlow(ctx) {
 
   if (!template) {
     console.warn(`[${MODULE_ID}] runSpawnFlow called without template`);
-    return;
+    return { outcome: "blocked", reason: "no-template" };
   }
   if (!sourceActor) {
     ui.notifications?.warn(game.i18n.localize("LUXSUM.Spawn.NoSourceActor") || `[${MODULE_ID}] no source actor — assign a character to your user first.`);
-    return;
+    return { outcome: "blocked", reason: "no-source-actor" };
   }
 
-  // Restrictions pre-check (broker re-checks authoritatively on the GM client).
+  // Restrictions pre-check, enforced HERE ONLY, on the requester's own client,
+  // against the defensively-filtered index below.
+  //
+  // v0.4.6 FIX 11: this comment previously claimed "the broker re-checks
+  // authoritatively on the GM client" — that's false. spawn-engine.js's
+  // performSpawn() (the function registered as the broker's "spawn" handler,
+  // run on the primary-GM client) never calls checkRestrictions at all. A
+  // player who bypasses this client-side check (mods, a stale index, a race
+  // between two rapid casts before recentSpawnTimestamps updates) can still
+  // get a broker-side spawn through uncontested. A GM-side authoritative
+  // re-check inside performSpawn is a known TODO, not yet implemented — this
+  // pass only corrects the misleading comment; see FIX 11 in the v0.4.6 spec.
   // Defensive: filter out stale entries (actor no longer exists in game.actors).
   const rawActiveCompanions = game.user.flags?.[MODULE_ID]?.activeCompanions ?? [];
   const activeCompanions = rawActiveCompanions.filter(entry => game.actors.get(entry.actorId));
@@ -54,7 +79,7 @@ export async function runSpawnFlow(ctx) {
   });
   if (!verdict.allowed) {
     ui.notifications?.warn(verdict.message);
-    return;
+    return { outcome: "blocked", reason: verdict.reason };
   }
 
   // Minimize any windows that sit over the canvas and occlude the placement preview:
@@ -98,7 +123,14 @@ export async function runSpawnFlow(ctx) {
       }
     }
   }
-  if (!placements || placements.length === 0) return;     // user cancelled (ESC)
+  // v0.4.6 FIX 10: activatePlacement now resolves `null` (not `[]`) on ESC /
+  // preemption, so this check unambiguously means "the user cancelled" — no
+  // longer conflated with "count was somehow already satisfied with zero
+  // clicks," which never happens with count:1 but was a latent ambiguity.
+  if (!placements) {
+    console.log(`[${MODULE_ID}] runSpawnFlow: placement cancelled by user`);
+    return { outcome: "cancelled" };
+  }
 
   // Hand off to the primary GM client via chat-broker
   await postBrokerRequest("spawn", {
@@ -116,4 +148,6 @@ export async function runSpawnFlow(ctx) {
   const windowMs = config.antispamWindowSeconds * 1000;
   const updatedRecent = [...recentSpawnTimestamps, ts].filter(t => ts - t <= windowMs);
   await game.user.update({ [`flags.${MODULE_ID}.recentSpawnTimestamps`]: updatedRecent });
+
+  return { outcome: "spawned" };
 }

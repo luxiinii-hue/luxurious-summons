@@ -35,13 +35,31 @@ export class VariantPickerApp extends HandlebarsApplicationMixin(ApplicationV2) 
     body: { template: "modules/luxurious-summons/templates/variant-picker.hbs", root: true }
   };
 
+  /**
+   * Single source of truth for "which actor is this picker acting on behalf of."
+   * v0.4.6 FIX 9: every call site in this file used to read game.user.character
+   * directly, ignoring ctx.sourceActor (which spell-trigger.js passes correctly
+   * — the actual casting actor, not whatever character happens to be assigned
+   * to the current user). That broke eligibility, maxSpellSlotLevel, and the
+   * Place-button source actor for GMs, who typically have no assigned character
+   * at all — the friend's primary test path.
+   */
+  #sourceActor() {
+    return this.ctx?.sourceActor ?? game.user.character;
+  }
+
   constructor(template, ctx = {}) {
     super();
     this.template = template;
     this.ctx = ctx;
     const variants = template.variants ?? [{ id: "__default__", name: template.name, thumbnail: template.thumbnail }];
-    // Annotate with eligibility for the active caster
-    const caster = ctx.caster ?? readActiveCaster();
+    // Annotate with eligibility for the active caster. Resolved from ctx.sourceActor
+    // first (the actor that actually cast the spell / triggered the picker — set
+    // correctly by spell-trigger.js), falling back to game.user.character only when
+    // no source actor was passed (e.g. legacy call sites). v0.4.6 FIX 9: reading
+    // game.user.character unconditionally broke eligibility + info-card resolution
+    // for GMs, who typically have no assigned character.
+    const caster = ctx.caster ?? readActiveCaster(this.#sourceActor());
     this._caster = caster;
     this._eligibleVariants = variants.map(v => {
       const eligible = isVariantEligible(v, caster);
@@ -254,7 +272,7 @@ export class VariantPickerApp extends HandlebarsApplicationMixin(ApplicationV2) 
         const { resolveInlineData } = await import("./source-modes.js");
         actorData = resolveInlineData(this.template, { name: variant.name ?? this.template.name });
       } else if (sourceMode === "clone") {
-        const source = this.ctx.sourceActor ?? game.user.character;
+        const source = this.#sourceActor();
         if (source) {
           const { resolveCloneData } = await import("./source-modes.js");
           actorData = resolveCloneData(source, {
@@ -325,14 +343,33 @@ export class VariantPickerApp extends HandlebarsApplicationMixin(ApplicationV2) 
       const sequence = toPlacementSequence(this.counter);
       if (sequence.length === 0) return;
       this.close();
+      // v0.4.6 FIX 10: runSpawnFlow now returns an explicit outcome. Before this
+      // fix, ESC on placement N of M resolved the SAME shape as "0 placements
+      // collected" (an empty array), which runSpawnFlow already treated as
+      // cancel-and-return — but this loop had no way to tell that apart from
+      // "this iteration's spawn just didn't happen, keep going" and re-armed
+      // the placement overlay for every remaining token in the sequence. Now we
+      // break on "cancelled" specifically, so ESC during e.g. an Animate Dead
+      // 4-token sequence stops the whole batch instead of re-prompting 3 more times.
+      let placedCount = 0;
       for (const variantId of sequence) {
-        await runSpawnFlow({
+        const result = await runSpawnFlow({
           template: this.template,
           variantId,
           castSlotLevel: this.selectedCastSlotLevel,
           sourcePlayerId: game.user.id,
-          sourceActor: this.ctx.sourceActor ?? game.user.character
+          sourceActor: this.#sourceActor()
         });
+        if (result?.outcome === "cancelled") {
+          console.log(`[${MODULE_ID}] multi-spawn sequence cancelled by user after ${placedCount} of ${sequence.length} placement(s)`);
+          ui.notifications?.info(game.i18n.format("LUXSUM.VariantPicker.MultiSpawnCancelled", { placed: placedCount, total: sequence.length })
+            || `Placement cancelled — ${placedCount} of ${sequence.length} placed.`);
+          return;
+        }
+        if (result?.outcome === "spawned") placedCount++;
+        // "blocked" outcomes (restriction cap hit mid-sequence, etc.) fall
+        // through and the loop continues — a per-iteration restriction
+        // rejection doesn't necessarily invalidate the rest of the batch.
       }
       return;
     }
@@ -344,14 +381,13 @@ export class VariantPickerApp extends HandlebarsApplicationMixin(ApplicationV2) 
       variantId: variant.id !== "__default__" ? variant.id : null,
       castSlotLevel: this.selectedCastSlotLevel,
       sourcePlayerId: game.user.id,
-      sourceActor: this.ctx.sourceActor ?? game.user.character
+      sourceActor: this.#sourceActor()
     });
   }
 }
 
-function readActiveCaster() {
-  const char = game.user.character;
-  if (!char) return { classes: [], maxSpellSlotLevel: 0 };
+function readActiveCaster(char) {
+  if (!char) return { classes: [], maxSpellSlotLevel: 0, featureNames: [] };
   // dnd5e v5: actor.classes is a record keyed by class id; values have .identifier + .subclass + .system.levels
   const classes = Object.values(char.classes ?? {}).map(cls => ({
     name:     (cls.identifier ?? cls.name ?? "").toLowerCase(),
@@ -364,7 +400,13 @@ function readActiveCaster() {
   for (let i = 1; i <= 9; i++) {
     if ((spells[`spell${i}`]?.max ?? 0) > 0) maxSpellSlotLevel = i;
   }
-  return { classes, maxSpellSlotLevel };
+  // v0.4.6 FIX 2: lowercased names of every owned feat-type item — Pact of the
+  // Chain is a feature, not a subclass, and variant.requires.feature matches
+  // against this list.
+  const featureNames = (char.items ?? [])
+    .filter(i => i.type === "feat")
+    .map(i => (i.name ?? "").toLowerCase());
+  return { classes, maxSpellSlotLevel, featureNames };
 }
 
 let _instance = null;

@@ -103,6 +103,14 @@ Hooks.on("drawToken", async (token) => {
   // Plan 3: play a one-shot spawn animation if the actor is freshly spawned.
   // Reads the actor's spawnState flag (set by performSpawn) — clears it after
   // play so subsequent drawToken events don't re-trigger.
+  //
+  // Ordering note (v0.4.6 FIX 1): applyFiltersToToken() above starts the motion
+  // ticker (if the actor has motionOverrides), but ticker callbacks only run on
+  // the NEXT PIXI tick — never synchronously inside this hook. maybeRunSpawnAnimation
+  // marks the token as "module-animating" (scripts/anim-state.js) synchronously
+  // before its first await, so by the time the motion ticker's callback actually
+  // fires, isAnimating(token.id) is already true and it skips the frame instead
+  // of racing the spawn animation for control of mesh.alpha/scale.
   const { maybeRunSpawnAnimation } = await import("./spawn-trigger-anim.js");
   await maybeRunSpawnAnimation(token);
 });

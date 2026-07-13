@@ -40,7 +40,15 @@
   </div>
   {{/if}}
 
+  {{!-- v0.4.6 FIX 13: the variant picker's info card always builds actorId: null
+        (preview-only — no live actor exists yet at pick time) and never wires
+        an "open-foundry-sheet" action, so this button rendered as a dead click
+        target there. The Restyle dialog DOES have a real actorId and DOES wire
+        the action (see restyle-app.js _onRender) — gate the button on actorId
+        being present so it only appears where it can actually do something. --}}
+  {{#if details.actorId}}
   <button type="button" class="luxsum-open-sheet-btn" data-action="open-foundry-sheet" data-actor-id="{{details.actorId}}" title="{{localize 'LUXSUM.SummonDetails.OpenSheetTooltip'}}">
     {{localize "LUXSUM.SummonDetails.OpenSheet"}}
   </button>
+  {{/if}}
 </section>
