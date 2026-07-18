@@ -84,9 +84,9 @@ export async function runDeathAndCleanup(actor, { skipAnimation = false } = {}) 
   if (!skipAnimation
       && game.settings.get(MODULE_ID, "enableDeathAnimations")
       && !game.settings.get(MODULE_ID, "gmForceDisableSpawnDeathAnims")) {
-    const { templates } = await import("./templates-builtin.js");
+    const { getEffectiveTemplate } = await import("./template-store.js");
     const flag = actor.flags?.[MODULE_ID];
-    const template = templates.find(t => t.id === flag?.templateId);
+    const template = getEffectiveTemplate(flag?.templateId);
     // v0.4.6 FIX 7 — see resolveDeathAnimationId doc comment for the resolution
     // order and why the old `template?.deathAnimation ?? "softFade"` read was wrong.
     const animationId = resolveDeathAnimationId(template, flag?.variantId, readEffects);

@@ -81,6 +81,10 @@ test("every built-in template has a valid source.mode", () => {
 test("compendium and compendium-scaled templates carry a resolvable baseUuid (on the template or every variant)", () => {
   for (const t of builtin) {
     if (t.source?.mode !== "compendium" && t.source?.mode !== "compendium-scaled") continue;
+    // v0.7.0: requiresLink templates (Summon X spirit family) SHIP unlinked by
+    // design — the GM wires their subscriber-content UUIDs via the Templates
+    // editor. Their null baseUuid is validated by lux-template-store tests.
+    if (t.source.requiresLink === true) continue;
     if (t.source.baseUuid) {
       assert.match(t.source.baseUuid, /^Compendium\.dnd5e\./, `template "${t.id}": baseUuid "${t.source.baseUuid}" doesn't look like a dnd5e compendium UUID`);
       continue;
@@ -102,9 +106,25 @@ test("substituteSpellLevel templates carry a numeric baseSpellLevel", () => {
   }
 });
 
-test("v0.5.0: exactly 2 templates carry substituteSpellLevel (spiritual-weapon, arcane-hand) — TASK 0 finding", () => {
+test("substituteSpellLevel set: the v0.5.0 pair + the nine v0.7.0 Summon X spirit templates", () => {
   const flagged = builtin.filter(t => t.source?.substituteSpellLevel === true).map(t => t.id).sort();
-  assert.deepEqual(flagged, ["arcane-hand", "spiritual-weapon"]);
+  assert.deepEqual(flagged, [
+    "arcane-hand", "spiritual-weapon",
+    "summon-aberration", "summon-beast", "summon-celestial", "summon-construct",
+    "summon-elemental", "summon-fey", "summon-fiend", "summon-shadowspawn", "summon-undead"
+  ].sort());
+});
+
+test("v0.7.0: all nine Summon X templates are requiresLink with a single unlinked 'spirit' variant", () => {
+  const spirits = builtin.filter(t => t.source?.requiresLink === true);
+  assert.equal(spirits.length, 9, `expected 9 requiresLink templates, found ${spirits.length}`);
+  for (const t of spirits) {
+    assert.match(t.id, /^summon-/, `unexpected requiresLink template "${t.id}"`);
+    assert.equal(t.variants?.length, 1, `template "${t.id}" should ship exactly one variant`);
+    assert.equal(t.variants[0].id, "spirit");
+    assert.equal(t.variants[0].source.baseUuid, null, `template "${t.id}" must ship UNlinked`);
+    assert.equal(typeof t.source.baseSpellLevel, "number");
+  }
 });
 
 test("mirror-image: fixed multi-spawn of 3, no variants array (single stat block spawned 3x)", () => {
@@ -144,6 +164,6 @@ test("v0.5.0 templates all use real (non-placeholder) UUIDs — no *-uuid-tbd", 
   }
 });
 
-test("templates-builtin.js grew from 8 to 14 templates in v0.5.0", () => {
-  assert.equal(builtin.length, 14, `expected 14 built-in templates, found ${builtin.length}`);
+test("templates-builtin.js count: 14 (v0.5.0) + 9 Summon X spirits (v0.7.0) = 23", () => {
+  assert.equal(builtin.length, 23, `expected 23 built-in templates, found ${builtin.length}`);
 });

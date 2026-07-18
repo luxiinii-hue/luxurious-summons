@@ -1,0 +1,40 @@
+<details class="luxsum-gm-collapse luxsum-gm-editor-card" data-template-id="{{id}}" {{#if open}}open{{/if}}>
+  <summary>
+    <img class="luxsum-gm-template-thumb" src="{{thumbnail}}" alt="">
+    <span class="luxsum-gm-editor-title">{{name}}</span>
+    {{#if unlinked}}<span class="luxsum-gm-badge luxsum-gm-badge-warn" title="{{localize 'LUXSUM.Editor.UnlinkedTooltip'}}">{{localize "LUXSUM.Editor.Unlinked"}}</span>{{/if}}
+    {{#if overridden}}<span class="luxsum-gm-badge" title="{{localize 'LUXSUM.Editor.OverriddenTooltip'}}">{{localize "LUXSUM.Editor.Overridden"}}</span>{{/if}}
+  </summary>
+
+  <div class="luxsum-gm-editor-body">
+    <div class="luxsum-gm-editor-row luxsum-gm-editor-headrow">
+      <span class="luxsum-restyle-row-label">{{localize "LUXSUM.Editor.DisplayName"}}</span>
+      <input type="text" class="luxsum-restyle-input" data-editor-name="{{id}}" value="{{nameValue}}" placeholder="{{builtinName}}">
+      <span role="button" tabindex="0" class="luxsum-gm-editor-btn" data-editor-thumb="{{id}}" title="{{localize 'LUXSUM.Editor.PickThumbTooltip'}}"><i class="fa-solid fa-image"></i> {{localize "LUXSUM.Editor.Thumbnail"}}</span>
+    </div>
+
+    <div class="luxsum-gm-editor-variants">
+      {{#each variants}}
+        <div class="luxsum-gm-editor-variant {{#if removed}}luxsum-gm-editor-variant-removed{{/if}}" data-variant-id="{{id}}">
+          <img class="luxsum-gm-template-thumb" src="{{thumbnail}}" alt="">
+          <input type="text" class="luxsum-restyle-input" data-variant-name value="{{name}}" {{#if removed}}disabled{{/if}}>
+          <input type="text" class="luxsum-restyle-input luxsum-gm-uuid-input" data-variant-uuid value="{{uuid}}" placeholder="Compendium.…​.Actor.id or Actor.id" spellcheck="false" {{#if removed}}disabled{{/if}}>
+          <span role="button" tabindex="0" class="luxsum-gm-editor-btn" data-variant-test title="{{localize 'LUXSUM.Editor.TestLinkTooltip'}}">{{localize "LUXSUM.Editor.TestLink"}}</span>
+          <span role="button" tabindex="0" class="luxsum-gm-editor-btn" data-variant-thumb title="{{localize 'LUXSUM.Editor.PickThumbTooltip'}}"><i class="fa-solid fa-image"></i></span>
+          {{#if removed}}
+            <span role="button" tabindex="0" class="luxsum-gm-editor-btn" data-variant-restore title="{{localize 'LUXSUM.Editor.RestoreTooltip'}}"><i class="fa-solid fa-rotate-left"></i></span>
+          {{else}}
+            <span role="button" tabindex="0" class="luxsum-gm-editor-btn luxsum-gm-dismiss-btn" data-variant-remove title="{{localize 'LUXSUM.Editor.RemoveTooltip'}}"><i class="fa-solid fa-xmark"></i></span>
+          {{/if}}
+          <span class="luxsum-gm-link-result" data-link-result></span>
+        </div>
+      {{/each}}
+    </div>
+
+    <div class="luxsum-gm-editor-add">
+      <input type="text" class="luxsum-restyle-input" data-add-name placeholder="{{localize 'LUXSUM.Editor.AddNamePlaceholder'}}">
+      <input type="text" class="luxsum-restyle-input luxsum-gm-uuid-input" data-add-uuid placeholder="{{localize 'LUXSUM.Editor.AddUuidPlaceholder'}}" spellcheck="false">
+      <span role="button" tabindex="0" class="luxsum-gm-editor-btn" data-add-variant><i class="fa-solid fa-plus"></i> {{localize "LUXSUM.Editor.AddVariant"}}</span>
+    </div>
+  </div>
+</details>

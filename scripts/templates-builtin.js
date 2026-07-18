@@ -29,6 +29,95 @@
 // `@classes.*` — the speculative "@item.level substitution" machinery
 // originally scoped for this wave was NOT built; see module CLAUDE.md decisions
 // log for the write-up.
+//
+// v0.7.0 — Summon X spirit family (Tasha's / PHB 2024): these nine spells'
+// spirit stat blocks are SUBSCRIBER content (not in dnd5e's free packs — only
+// the Draconic Spirit made the SRD cut), reachable in this world via
+// DDB-Importer. They ship with `source.requiresLink: true` and a null-uuid
+// "spirit" variant; the GM links the imported stat block via the Templates
+// editor (Manager → Templates), which writes the uuid into the
+// `templateOverrides` world setting (template-store.js merges it in). Until
+// linked, the picker shows the variant as "not linked" with guidance. Same
+// substituteSpellLevel plumbing as Spiritual Weapon / Arcane Hand — Tasha's
+// spirit blocks scale off the spell's slot level.
+
+const SUMMON_SPIRIT_SPECS = [
+  { id: "summon-beast",       spell: "Summon Beast",       level: 2, spirit: "Bestial Spirit",
+    family: "belle-epoque", hue: "#c9a14b", spawn: "belleBloom",     death: "belleFade",
+    thumbnail: "icons/creatures/birds/corvid-flying-wings-purple.webp" },
+  { id: "summon-fey",         spell: "Summon Fey",         level: 3, spirit: "Fey Spirit",
+    family: "belle-epoque", hue: "#a78bfa", spawn: "belleBloom",     death: "belleFade",
+    thumbnail: "icons/creatures/magical/spirit-undead-masked-blue.webp" },
+  { id: "summon-shadowspawn", spell: "Summon Shadowspawn", level: 3, spirit: "Shadow Spirit",
+    family: "hextech",      hue: "#6b5b95", spawn: "boneRise",       death: "boneCollapse",
+    thumbnail: "icons/magic/control/fear-fright-monster-red.webp" },
+  { id: "summon-undead",      spell: "Summon Undead",      level: 3, spirit: "Undead Spirit",
+    family: "hextech",      hue: "#88dd88", spawn: "boneRise",       death: "boneCollapse",
+    thumbnail: "icons/magic/control/fear-fright-monster-red.webp" },
+  { id: "summon-aberration",  spell: "Summon Aberration",  level: 4, spirit: "Aberrant Spirit",
+    family: "hextech",      hue: "#9eecf5", spawn: "hexCrystalForm", death: "hexShatter",
+    thumbnail: "icons/creatures/magical/spirit-undead-masked-blue.webp" },
+  { id: "summon-construct",   spell: "Summon Construct",   level: 4, spirit: "Construct Spirit",
+    family: "hextech",      hue: "#c8e8f0", spawn: "hexCrystalForm", death: "hexShatter",
+    thumbnail: "icons/equipment/chest/breastplate-cuirass-steel-grey.webp" },
+  { id: "summon-elemental",   spell: "Summon Elemental",   level: 4, spirit: "Elemental Spirit",
+    family: "hextech",      hue: "#ff7733", spawn: "hexCrystalForm", death: "hexShatter",
+    thumbnail: "icons/creatures/abilities/dragon-fire-breath-orange.webp" },
+  { id: "summon-celestial",   spell: "Summon Celestial",   level: 5, spirit: "Celestial Spirit",
+    family: "belle-epoque", hue: "#f0c97a", spawn: "belleBloom",     death: "belleFade",
+    thumbnail: "icons/creatures/magical/spirit-undead-masked-blue.webp" },
+  { id: "summon-fiend",       spell: "Summon Fiend",       level: 6, spirit: "Fiendish Spirit",
+    family: "hextech",      hue: "#7a1c1c", spawn: "infernalBloom",  death: "infernalFade",
+    thumbnail: "icons/magic/control/fear-fright-monster-red.webp" }
+];
+
+const SUMMON_SPIRIT_TEMPLATES = SUMMON_SPIRIT_SPECS.map(spec => ({
+  id: spec.id,
+  name: spec.spell,
+  description: `Summon a ${spec.spirit.toLowerCase()}. Subscriber content — the GM links your imported stat block once via the Templates editor.`,
+  thumbnail: spec.thumbnail,
+  aestheticFamily: spec.family,
+
+  trigger: { type: "spell", name: spec.spell },
+  triggerSpell: spec.spell,
+
+  source: {
+    mode: "compendium",
+    requiresLink: true,
+    substituteSpellLevel: true,
+    baseSpellLevel: spec.level
+  },
+  syncMode: "snapshot",
+  maxActive: 1,
+  requiresApproval: false,
+
+  effects: {
+    motion: { profile: "idle-breathing", intensity: 1.0 },
+    spawn: spec.spawn,
+    death: spec.death
+  },
+
+  defaults: {
+    hueColor: spec.hue,
+    hueIntensity: 0.12,
+    alpha: 1.0,
+    saturation: 1.0,
+    brightness: 1.0,
+    outlineColor: spec.hue,
+    outlineThickness: 0,
+    namePrefix: "",
+    nameSuffix: "",
+    borderColor: spec.hue,
+    motionProfile: "idle-breathing",
+    motionIntensity: 1.0
+  },
+
+  variants: [
+    { id: "spirit", name: spec.spirit, thumbnail: spec.thumbnail, source: { baseUuid: null } }
+  ],
+
+  deathAnimation: spec.death
+}));
 
 export const templates = [
   {
@@ -776,5 +865,8 @@ export const templates = [
     },
 
     deathAnimation: "infernalFade"
-  }
+  },
+
+  // v0.7.0 — the nine Summon X spirit templates (see SUMMON_SPIRIT_SPECS above)
+  ...SUMMON_SPIRIT_TEMPLATES
 ];

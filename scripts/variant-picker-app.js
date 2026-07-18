@@ -12,6 +12,7 @@
 // the preview review surfaced.
 
 import { filterVariants, isVariantEligible } from "./variant-eligibility.js";
+import { variantHasLink } from "./template-store.js";
 import {
   createCounter, increment, decrement, totalCount, canIncrement, toPlacementSequence
 } from "./multi-spawn-counter.js";
@@ -62,6 +63,13 @@ export class VariantPickerApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const caster = ctx.caster ?? readActiveCaster(this.#sourceActor());
     this._caster = caster;
     this._eligibleVariants = variants.map(v => {
+      // v0.7.0: requiresLink templates (Summon X spirit family) ship with null
+      // stat-block uuids — the GM links their subscriber-content imports via
+      // Manager → Templates. Until then the variant is visible but unplaceable,
+      // with guidance instead of a generic eligibility message.
+      if (!variantHasLink(template, v)) {
+        return { ...v, _ineligible: true, _reason: game.i18n.localize("LUXSUM.Picker.NotLinked") };
+      }
       const eligible = isVariantEligible(v, caster);
       return {
         ...v,

@@ -8,7 +8,7 @@
 // border treatment.
 
 import { isCompanion, getCompanionFlag } from "./data-model.js";
-import { templates as builtinTemplates } from "./templates-builtin.js";
+import { getEffectiveTemplate } from "./template-store.js";
 
 const MODULE_ID = "luxurious-summons";
 
@@ -31,7 +31,7 @@ function decorateSheet(app, html) {
   windowContent.querySelector?.(".luxsum-companion-banner")?.remove();
 
   const flag = getCompanionFlag(app.actor);
-  const tpl = builtinTemplates.find(t => t.id === flag.templateId);
+  const tpl = getEffectiveTemplate(flag.templateId);
   const master = flag.sourceActorId ? game.actors.get(flag.sourceActorId) : null;
   const borderColor = flag.visualOverrides?.borderColor ?? "#c9a14b";
 

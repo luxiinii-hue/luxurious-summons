@@ -1,5 +1,6 @@
 // scripts/manager-app.js — Companion Manager dialog (5 tabs, role-gated)
-import { templates as builtinTemplates } from "./templates-builtin.js";
+import { getEffectiveTemplates, getEffectiveTemplate, mergeTemplateOverrides, templateNeedsLink } from "./template-store.js";
+import { templates as builtinTemplatesRaw } from "./templates-builtin.js";
 // Plan 3: spawn flow now goes Manager → VariantPickerApp → runSpawnFlow(ctx).
 // The variant picker is the universal entry point; manager-app + spell-trigger
 // open the picker which in turn calls runSpawnFlow internally.
@@ -18,6 +19,7 @@ export class ManagerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   #gmShowAllTemplates = false;
   #gmPlayerFilter = null;          // userId | null (= all players)
   #gmIntensityTimer = null;        // debounce for the global dial
+  #gmEditorOpen = new Set();       // v0.7.0: which editor accordions stay open across renders
 
   get activeTab() { return this.#activeTab; }
 
@@ -42,7 +44,7 @@ export class ManagerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const actor = game.actors.get(entry.actorId);
       if (!actor) return null;
       const flag = actor.flags?.[MODULE_ID];
-      const tpl = builtinTemplates.find(t => t.id === flag?.templateId);
+      const tpl = getEffectiveTemplate(flag?.templateId);
       const scene = entry.sceneId ? game.scenes.get(entry.sceneId) : null;
       return {
         actorId: actor.id,
@@ -59,7 +61,7 @@ export class ManagerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       };
     }).filter(Boolean);
 
-    const templates = builtinTemplates.map(t => ({
+    const templates = getEffectiveTemplates().map(t => ({
       ...t,
       activeCount: myCompanions.filter(c => c.templateId === t.id).length
     }));
@@ -92,7 +94,7 @@ export class ManagerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       .filter(a => a.flags?.[MODULE_ID]?.isCompanion === true)
       .map(a => {
         const flag = a.flags[MODULE_ID];
-        const tpl = builtinTemplates.find(t => t.id === flag.templateId);
+        const tpl = getEffectiveTemplate(flag.templateId);
         const owner = game.users.get(flag.sourcePlayerId);
         const scene = sceneOf(a.id);
         const hpValue = a.system?.attributes?.hp?.value ?? 0;
@@ -116,7 +118,7 @@ export class ManagerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       });
 
     const activeTemplateIds = new Set(companions.map(c => c.templateId));
-    const templateRows = builtinTemplates
+    const templateRows = getEffectiveTemplates()
       .filter(t => this.#gmShowAllTemplates || activeTemplateIds.has(t.id))
       .map(t => {
         const ov = templateOverrides[t.id] ?? {};
@@ -154,8 +156,49 @@ export class ManagerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       chips,
       companions: filtered,
       shownCount: filtered.length,
-      totalCount: companions.length
+      totalCount: companions.length,
+      editorTemplates: this.#prepareTemplatesEditorContext(templateOverrides)
     };
+  }
+
+  /**
+   * v0.7.0 Templates editor. Built from the RAW builtin data + the override
+   * entry (NOT the merged view) so removed variants stay visible for restore
+   * and the GM sees exactly which values are overrides vs shipped defaults.
+   */
+  #prepareTemplatesEditorContext(templateOverrides) {
+    return builtinTemplatesRaw.map(t => {
+      const ov = templateOverrides[t.id] ?? {};
+      const vo = ov.variantOverrides ?? {};
+      const variants = (t.variants ?? []).map(v => ({
+        id: v.id,
+        name: vo[v.id]?.name ?? v.name,
+        thumbnail: vo[v.id]?.thumbnail ?? v.thumbnail,
+        uuid: (vo[v.id]?.uuid !== undefined ? vo[v.id].uuid : (v.source?.baseUuid ?? "")) || "",
+        removed: vo[v.id]?.removed === true,
+        custom: false
+      })).concat((ov.customVariants ?? []).map(cv => ({
+        id: cv.id,
+        name: cv.name ?? cv.id,
+        thumbnail: cv.thumbnail || t.thumbnail,
+        uuid: cv.uuid ?? "",
+        removed: false,
+        custom: true
+      })));
+      const effective = mergeTemplateOverrides(t, ov);
+      return {
+        id: t.id,
+        name: effective.name,
+        builtinName: t.name,
+        nameValue: ov.nameOverride ?? "",
+        thumbnail: effective.thumbnail,
+        unlinked: templateNeedsLink(effective),
+        overridden: !!(ov.nameOverride || ov.thumbnailOverride
+          || Object.keys(vo).length > 0 || (ov.customVariants?.length ?? 0) > 0),
+        open: this.#gmEditorOpen.has(t.id),
+        variants
+      };
+    });
   }
 
   _onRender(context, options) {
@@ -238,6 +281,17 @@ export class ManagerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     });
 
     this.#wireGmConsole();
+    this.#wireTemplatesEditor();
+
+    // Settings tab shortcut → Foundry's settings sheet, module section
+    this.element.querySelector('[data-action="open-module-settings"]')?.addEventListener("click", () => {
+      try {
+        game.settings.sheet.render({ force: true });
+      } catch (e) {
+        console.warn(`[${MODULE_ID}] could not open settings sheet:`, e);
+        ui.notifications?.warn("Open Game Settings from the sidebar instead.");
+      }
+    });
   }
 
   /**
@@ -341,6 +395,150 @@ export class ManagerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     });
   }
 
+  /**
+   * v0.7.0 Templates editor wiring. Every mutation funnels through
+   * #updateTemplateOverride — one read-modify-write of the templateOverrides
+   * world setting per action, then a re-render. The setting's onChange also
+   * reapplies motion world-wide, which is harmless here (editor keys are
+   * ignored by the motion resolver).
+   */
+  #wireTemplatesEditor() {
+    const list = this.element.querySelector(".luxsum-gm-editor-list");
+    if (!list) return;
+
+    // Persist accordion open/closed across re-renders
+    list.querySelectorAll(".luxsum-gm-editor-card").forEach(card => {
+      card.addEventListener("toggle", () => {
+        const tid = card.dataset.templateId;
+        if (card.open) this.#gmEditorOpen.add(tid); else this.#gmEditorOpen.delete(tid);
+      });
+    });
+
+    // Template display-name override (clear the field → back to shipped name)
+    list.querySelectorAll("[data-editor-name]").forEach(el => {
+      el.addEventListener("change", (e) => {
+        const tid = e.currentTarget.dataset.editorName;
+        const value = e.currentTarget.value.trim();
+        this.#updateTemplateOverride(tid, ov => {
+          if (value) ov.nameOverride = value; else delete ov.nameOverride;
+        });
+      });
+    });
+
+    // Template thumbnail FilePicker
+    list.querySelectorAll("[data-editor-thumb]").forEach(el => {
+      el.addEventListener("click", (e) => {
+        const tid = e.currentTarget.dataset.editorThumb;
+        this.#pickImage(path => this.#updateTemplateOverride(tid, ov => { ov.thumbnailOverride = path; }));
+      });
+    });
+
+    // Per-variant rows
+    list.querySelectorAll(".luxsum-gm-editor-variant").forEach(row => {
+      const card = row.closest(".luxsum-gm-editor-card");
+      const tid = card.dataset.templateId;
+      const vid = row.dataset.variantId;
+      const isCustom = () => {
+        const ov = (s("templateOverrides") ?? {})[tid];
+        return (ov?.customVariants ?? []).some(cv => cv.id === vid);
+      };
+      const mutateVariant = (fn) => this.#updateTemplateOverride(tid, ov => {
+        if (isCustom()) {
+          const cv = (ov.customVariants ?? []).find(c => c.id === vid);
+          if (cv) fn(cv);
+        } else {
+          ov.variantOverrides = ov.variantOverrides ?? {};
+          ov.variantOverrides[vid] = ov.variantOverrides[vid] ?? {};
+          fn(ov.variantOverrides[vid]);
+        }
+      });
+
+      row.querySelector("[data-variant-name]")?.addEventListener("change", (e) => {
+        const value = e.currentTarget.value.trim();
+        if (value) mutateVariant(v => { v.name = value; });
+      });
+      row.querySelector("[data-variant-uuid]")?.addEventListener("change", (e) => {
+        mutateVariant(v => { v.uuid = e.currentTarget.value.trim(); });
+      });
+      row.querySelector("[data-variant-thumb]")?.addEventListener("click", () => {
+        this.#pickImage(path => mutateVariant(v => { v.thumbnail = path; }));
+      });
+      row.querySelector("[data-variant-test]")?.addEventListener("click", async () => {
+        const uuid = row.querySelector("[data-variant-uuid]")?.value.trim();
+        const out = row.querySelector("[data-link-result]");
+        if (!out) return;
+        if (!uuid) { out.textContent = game.i18n.localize("LUXSUM.Editor.LinkEmpty"); out.className = "luxsum-gm-link-result luxsum-gm-link-bad"; return; }
+        out.textContent = "…";
+        try {
+          const doc = await fromUuid(uuid);
+          if (doc?.documentName === "Actor") {
+            out.textContent = `✓ ${doc.name}`;
+            out.className = "luxsum-gm-link-result luxsum-gm-link-ok";
+          } else {
+            out.textContent = game.i18n.localize("LUXSUM.Editor.LinkNotActor");
+            out.className = "luxsum-gm-link-result luxsum-gm-link-bad";
+          }
+        } catch (e) {
+          out.textContent = game.i18n.localize("LUXSUM.Editor.LinkFailed");
+          out.className = "luxsum-gm-link-result luxsum-gm-link-bad";
+        }
+      });
+      row.querySelector("[data-variant-remove]")?.addEventListener("click", () => {
+        this.#updateTemplateOverride(tid, ov => {
+          if ((ov.customVariants ?? []).some(cv => cv.id === vid)) {
+            ov.customVariants = ov.customVariants.filter(cv => cv.id !== vid);
+          } else {
+            ov.variantOverrides = ov.variantOverrides ?? {};
+            ov.variantOverrides[vid] = { ...(ov.variantOverrides[vid] ?? {}), removed: true };
+          }
+        });
+      });
+      row.querySelector("[data-variant-restore]")?.addEventListener("click", () => {
+        this.#updateTemplateOverride(tid, ov => {
+          if (ov.variantOverrides?.[vid]) delete ov.variantOverrides[vid].removed;
+        });
+      });
+    });
+
+    // Add custom variant
+    list.querySelectorAll("[data-add-variant]").forEach(el => {
+      el.addEventListener("click", (e) => {
+        const card = e.currentTarget.closest(".luxsum-gm-editor-card");
+        const tid = card.dataset.templateId;
+        const name = card.querySelector("[data-add-name]")?.value.trim();
+        const uuid = card.querySelector("[data-add-uuid]")?.value.trim() ?? "";
+        if (!name) { ui.notifications?.warn(game.i18n.localize("LUXSUM.Editor.AddNeedsName")); return; }
+        const baseId = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "variant";
+        this.#updateTemplateOverride(tid, ov => {
+          ov.customVariants = ov.customVariants ?? [];
+          let id = baseId, n = 2;
+          const taken = new Set([
+            ...(builtinTemplatesRaw.find(t => t.id === tid)?.variants ?? []).map(v => v.id),
+            ...ov.customVariants.map(cv => cv.id)
+          ]);
+          while (taken.has(id)) id = `${baseId}-${n++}`;
+          ov.customVariants.push({ id, name, uuid });
+        });
+      });
+    });
+  }
+
+  async #updateTemplateOverride(templateId, mutate) {
+    const all = foundry.utils.duplicate(s("templateOverrides") ?? {});
+    const entry = all[templateId] ?? {};
+    mutate(entry);
+    all[templateId] = entry;
+    await game.settings.set(MODULE_ID, "templateOverrides", all);
+    console.log(`[${MODULE_ID}] Templates editor: override updated for "${templateId}"`);
+    this.render({ force: true });
+  }
+
+  #pickImage(callback) {
+    const FP = foundry.applications?.apps?.FilePicker?.implementation ?? globalThis.FilePicker;
+    if (!FP) { ui.notifications?.warn("FilePicker unavailable"); return; }
+    new FP({ type: "image", callback }).browse();
+  }
+
   async #onGmSelectAndPan(actorId) {
     const actor = game.actors.get(actorId);
     if (!actor) return;
@@ -409,7 +607,7 @@ export class ManagerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   async #onTemplateCardClick(templateId) {
-    const tpl = builtinTemplates.find(t => t.id === templateId);
+    const tpl = getEffectiveTemplate(templateId);
     if (!tpl) return;
     // v0.4.6 FIX 9: game.user.character is null for a typical GM (the friend's
     // primary test path — he's GM and doesn't assign himself a PC). The old code

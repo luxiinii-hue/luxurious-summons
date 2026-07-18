@@ -92,8 +92,8 @@ export async function performSpawn(payload) {
   const sourceActor = game.actors.get(sourceActorId);
   if (!sourceActor) throw new Error(`source actor ${sourceActorId} not found`);
 
-  const { templates } = await import("./templates-builtin.js");
-  const template = templates.find(t => t.id === templateId);
+  const { getEffectiveTemplate } = await import("./template-store.js");
+  const template = getEffectiveTemplate(templateId);
   if (!template) throw new Error(`template ${templateId} not found`);
 
   const variant = variantId ? (template.variants ?? []).find(v => v.id === variantId) : null;

@@ -316,7 +316,175 @@
   box-shadow: 0 0 5px color-mix(in srgb, var(--luxsum-danger) 45%, transparent) !important;
 }
 
+/* ---- Templates editor (v0.7.0) ------------------------------------------ */
+
+.luxsum-gm-editor-hint {
+  font-size: 11px;
+  color: var(--luxsum-text-mute);
+  margin: 0 0 8px 0;
+}
+
+.luxsum-gm-editor-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.luxsum-gm-editor-card {
+  background: var(--luxsum-bg-elev);
+  border: 1px solid rgba(201, 161, 75, 0.35);
+  border-radius: 3px;
+  padding: 6px 10px;
+}
+
+.luxsum-gm-editor-card > summary {
+  font-family: var(--font-primary, sans-serif);
+  font-size: 12px;
+  color: var(--luxsum-text);
+  letter-spacing: 0;
+}
+
+.luxsum-gm-editor-title { flex: 1; }
+
+.luxsum-gm-badge {
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 1px 7px;
+  border-radius: 8px;
+  border: 1px solid var(--luxsum-accent);
+  color: var(--luxsum-accent);
+}
+
+.luxsum-gm-badge-warn {
+  border-color: var(--luxsum-danger);
+  color: var(--luxsum-danger);
+}
+
+.luxsum-gm-editor-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 2px 4px;
+}
+
+.luxsum-gm-editor-headrow {
+  display: grid;
+  grid-template-columns: 90px 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.luxsum-gm-editor-variants {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.luxsum-gm-editor-variant {
+  display: grid;
+  grid-template-columns: 24px minmax(90px, 140px) 1fr auto auto auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.luxsum-gm-editor-variant .luxsum-gm-template-thumb { width: 24px; height: 24px; }
+
+.luxsum-gm-editor-variant-removed { opacity: 0.4; }
+
+.luxsum-gm-uuid-input {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+}
+
+.luxsum-gm-editor-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  padding: 3px 8px;
+  color: var(--luxsum-text);
+  border: 1px solid rgba(201, 161, 75, 0.45);
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.luxsum-gm-editor-btn:hover {
+  border-color: var(--luxsum-accent-hi);
+  color: var(--luxsum-accent-hi);
+}
+
+.luxsum-gm-link-result {
+  grid-column: 1 / -1;
+  font-size: 10px;
+  min-height: 0;
+}
+
+.luxsum-gm-link-result:empty { display: none; }
+.luxsum-gm-link-ok  { color: var(--luxsum-success); }
+.luxsum-gm-link-bad { color: var(--luxsum-danger); }
+
+.luxsum-gm-editor-add {
+  display: grid;
+  grid-template-columns: minmax(90px, 140px) 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding-top: 6px;
+  border-top: 1px dashed rgba(201, 161, 75, 0.25);
+}
+
 /* ---- Empty state --------------------------------------------------------- */
+
+/* ---- D-mode approval chat card (v0.7.0) ---------------------------------- */
+
+.luxsum-approval-card {
+  border: 1px solid var(--luxsum-accent);
+  border-radius: 3px;
+  background: var(--luxsum-bg-elev);
+  color: var(--luxsum-text);
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+.luxsum-approval-title {
+  font-family: "Cinzel", serif;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  color: var(--luxsum-accent);
+  margin-bottom: 4px;
+}
+
+.luxsum-approval-meta {
+  font-size: 10px;
+  color: var(--luxsum-text-mute);
+  margin-top: 2px;
+}
+
+.luxsum-approval-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.luxsum-approval-actions button {
+  flex: 1;
+  font-size: 11px;
+  padding: 3px 0;
+  background: transparent;
+  color: var(--luxsum-text);
+  border: 1px solid var(--luxsum-accent);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.luxsum-approval-actions button:hover { color: var(--luxsum-accent-hi); border-color: var(--luxsum-accent-hi); }
+.luxsum-approval-actions button[data-luxsum-approval="deny"] { border-color: color-mix(in srgb, var(--luxsum-danger) 55%, transparent); color: var(--luxsum-danger); }
+
+.luxsum-approval-verdict { margin-top: 6px; font-size: 11px; font-weight: bold; }
+.luxsum-approval-approved { color: var(--luxsum-success); }
+.luxsum-approval-denied { color: var(--luxsum-danger); }
 
 .luxsum-gm-empty {
   text-align: center;

@@ -86,8 +86,8 @@ export async function maybeRunSpawnAnimation(token) {
     return;
   }
 
-  const { templates } = await import("./templates-builtin.js");
-  const template = templates.find(t => t.id === flag.templateId);
+  const { getEffectiveTemplate } = await import("./template-store.js");
+  const template = getEffectiveTemplate(flag.templateId);
   if (!template) {
     console.warn(`[${MODULE_ID}] maybeRunSpawnAnimation: template "${flag.templateId}" not found`);
     await clearSpawnStateFlag(token.actor);

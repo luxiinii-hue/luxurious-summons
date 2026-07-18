@@ -13,7 +13,7 @@
 
 import { applyOverridesToToken } from "./visual-filters.js";
 import { getCompanionFlag } from "./data-model.js";
-import { templates as builtinTemplates } from "./templates-builtin.js";
+import { getEffectiveTemplate } from "./template-store.js";
 
 const MODULE_ID = "luxurious-summons";
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -122,7 +122,7 @@ export class RestyleApp extends HandlebarsApplicationMixin(ApplicationV2) {
   constructor({ actor }) {
     super();
     this.#actor = actor;
-    this.#template = builtinTemplates.find(t => t.id === actor.flags?.[MODULE_ID]?.templateId) ?? null;
+    this.#template = getEffectiveTemplate(actor.flags?.[MODULE_ID]?.templateId) ?? null;
     const flag = getCompanionFlag(actor) ?? {};
     this.#originalFlag = {
       visualOverrides: foundry.utils.deepClone(flag.visualOverrides ?? {}),

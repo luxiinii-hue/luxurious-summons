@@ -255,7 +255,8 @@ export async function runHealSweep() {
   }
   console.log(`[${MODULE_ID}] heal-sweep: starting (primary GM client)`);
   try {
-    const { templates } = await import("./templates-builtin.js");
+    const { getEffectiveTemplates } = await import("./template-store.js");
+    const templates = getEffectiveTemplates();
     const artResult = await sweepBrokenArt(templates);
     const clearedCount = await sweepStalePendingSpawn();
     console.log(`[${MODULE_ID}] heal-sweep: done — ${artResult.healedActors} actor(s) + ${artResult.healedTokens} token(s) art-healed, ${clearedCount} stale spawn flag(s) cleared`);

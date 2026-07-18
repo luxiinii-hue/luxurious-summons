@@ -57,10 +57,24 @@
       </div>
     {{/if}}
     {{#if (eq activeTab "templates")}}
-      <p class="luxsum-empty">Templates tab — implemented in Plan 4.</p>
+      <div class="luxsum-gm-console">
+        <div class="luxsum-restyle-group" style="padding-bottom: 4px;">
+          <h5 class="luxsum-restyle-group-title">{{localize "LUXSUM.Editor.Title"}}</h5>
+          <p class="luxsum-gm-editor-hint">{{localize "LUXSUM.Editor.Hint"}}</p>
+          <div class="luxsum-gm-editor-list">
+            {{#each gm.editorTemplates}}{{> "modules/luxurious-summons/templates/partials/gm-template-editor-card.hbs"}}{{/each}}
+          </div>
+        </div>
+      </div>
     {{/if}}
     {{#if (eq activeTab "settings")}}
-      <p>Open module settings via the Game Settings sidebar (or use the registerMenu shortcut, available in Plan 4).</p>
+      <div class="luxsum-gm-console">
+        <div class="luxsum-restyle-group">
+          <h5 class="luxsum-restyle-group-title">{{localize "LUXSUM.Manager.Tab.Settings"}}</h5>
+          <p class="luxsum-gm-editor-hint">{{localize "LUXSUM.SettingsTab.Hint"}}</p>
+          <span role="button" tabindex="0" class="luxsum-gm-editor-btn" data-action="open-module-settings"><i class="fa-solid fa-gears"></i> {{localize "LUXSUM.SettingsTab.OpenButton"}}</span>
+        </div>
+      </div>
     {{/if}}
   </section>
 </div>

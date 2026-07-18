@@ -11,6 +11,7 @@ import { installDnd5eHooks } from "./dnd5e-mods.js";
 import "./handlers/simulacrum.js";   // self-registers Repair via registerHandler
 import { installSheetDecorator } from "./sheet-decorator.js";
 import { installSpellCastTrigger } from "./spell-trigger.js";
+import { installApprovalHooks } from "./approval.js";
 
 const MODULE_ID = "luxurious-summons";
 
@@ -38,7 +39,8 @@ Hooks.once("init", async () => {
       "modules/luxurious-summons/templates/partials/variant-card.hbs",
       "modules/luxurious-summons/templates/partials/gm-global-controls.hbs",
       "modules/luxurious-summons/templates/partials/gm-template-motion-row.hbs",
-      "modules/luxurious-summons/templates/partials/gm-companion-card.hbs"
+      "modules/luxurious-summons/templates/partials/gm-companion-card.hbs",
+      "modules/luxurious-summons/templates/partials/gm-template-editor-card.hbs"
     ]);
     console.log(`[${MODULE_ID}] partials registered`);
   } else {
@@ -85,6 +87,7 @@ Hooks.once("ready", async () => {
   await refreshUserIndexes();
   installBrokerHook();
   installSpawnBrokerHandler();
+  installApprovalHooks();
   installLifecycleHooks();
   installDeleteHandling();
   installDismissBrokerHandler();

@@ -132,8 +132,7 @@ export async function runSpawnFlow(ctx) {
     return { outcome: "cancelled" };
   }
 
-  // Hand off to the primary GM client via chat-broker
-  await postBrokerRequest("spawn", {
+  const payload = {
     templateId: template.id,
     variantId,
     castSlotLevel,
@@ -141,13 +140,35 @@ export async function runSpawnFlow(ctx) {
     sourcePlayerId,
     placements,
     visualOverrides: undefined
-  });
+  };
 
-  // Track local timestamp for the anti-spam rolling window
+  // Track local timestamp for the anti-spam rolling window — counted for
+  // approval REQUESTS too, so a spam-clicker can't flood the GM with cards.
   const ts = Date.now();
   const windowMs = config.antispamWindowSeconds * 1000;
   const updatedRecent = [...recentSpawnTimestamps, ts].filter(t => ts - t <= windowMs);
   await game.user.update({ [`flags.${MODULE_ID}.recentSpawnTimestamps`]: updatedRecent });
+
+  // v0.7.0 D-mode: if this spawn needs GM approval, post the approval card
+  // (payload carries the already-chosen placement) instead of the spawn request.
+  const { needsGmApproval, postApprovalRequest } = await import("./approval.js");
+  if (needsGmApproval({
+    isGM: game.user.isGM,
+    requireAll: s("requireApprovalForAllSpawns") === true,
+    templateRequires: template.requiresApproval === true
+  })) {
+    const variantName = variantId ? (template.variants ?? []).find(v => v.id === variantId)?.name : null;
+    await postApprovalRequest(payload, {
+      templateName: template.name,
+      variantName,
+      sceneName: canvas.scene?.name ?? ""
+    });
+    ui.notifications?.info(game.i18n.localize("LUXSUM.Approval.Pending"));
+    return { outcome: "pending-approval" };
+  }
+
+  // Hand off to the primary GM client via chat-broker
+  await postBrokerRequest("spawn", payload);
 
   return { outcome: "spawned" };
 }
