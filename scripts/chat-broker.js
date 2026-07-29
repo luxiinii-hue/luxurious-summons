@@ -71,6 +71,17 @@ export function installBrokerHook() {
     } catch (err) {
       console.error(`[${MODULE_ID}] broker handler threw for kind=${req.kind}:`, err);
       ui.notifications?.error(`[${MODULE_ID}] broker request failed: ${err.message}`);
+      // v0.7.3: tell the REQUESTER too. The handler runs on the GM's client, so
+      // before this the player who asked for the spawn saw an empty canvas and
+      // no error anywhere — the failure was invisible to the only person
+      // watching for a result.
+      if (req.requesterId && req.requesterId !== game.user.id) {
+        await ChatMessage.create({
+          content: `<em>[Luxurious Summons] Your ${req.kind} request failed on the GM's client: ${err.message}</em>`,
+          whisper: [req.requesterId, game.user.id],
+          style: CONST.CHAT_MESSAGE_STYLES?.OTHER ?? 0
+        }).catch(e => console.warn(`[${MODULE_ID}] could not whisper failure to requester: ${e.message}`));
+      }
     }
   });
 }

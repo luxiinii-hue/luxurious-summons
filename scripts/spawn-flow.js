@@ -11,12 +11,54 @@
 // for the anti-spam window.
 
 import { activatePlacement } from "./placement-overlay.js";
-import { postBrokerRequest } from "./chat-broker.js";
-import { checkRestrictions } from "./spawn-engine.js";
+import { postBrokerRequest, electPrimaryGM } from "./chat-broker.js";
+import { checkRestrictions, performSpawn } from "./spawn-engine.js";
 import { getActiveManager } from "./manager-app.js";
 import { s } from "./settings.js";
 
 const MODULE_ID = "luxurious-summons";
+
+/**
+ * Collect the windows that would occlude the canvas during placement: the
+ * Manager, the caster's sheet, and any of the caster's open item sheets.
+ *
+ * Exported (v0.7.3) so a MULTI-placement caller can minimize once around the
+ * WHOLE sequence instead of per placement. Previously runSpawnFlow minimized
+ * and restored on every iteration, so a Mirror Image cast (3 placements) made
+ * the caster's character sheet pop back up between each click — read as "the
+ * window re-opens after I place one".
+ */
+export function collectOccludingWindows(sourceActor) {
+  const apps = [];
+  const manager = getActiveManager();
+  if (manager) apps.push(manager);
+  if (sourceActor?.sheet?.rendered) apps.push(sourceActor.sheet);
+  if (sourceActor?.items) {
+    for (const item of sourceActor.items) {
+      if (item.sheet?.rendered && !apps.includes(item.sheet)) apps.push(item.sheet);
+    }
+  }
+  return apps;
+}
+
+export async function minimizeWindows(apps) {
+  for (const app of apps) {
+    try { await app.minimize(); } catch (e) {
+      console.log(`[${MODULE_ID}] minimize ${app.constructor?.name} during placement failed: ${e.message}`);
+    }
+  }
+  if (apps.length > 0) {
+    console.log(`[${MODULE_ID}] minimized ${apps.length} window(s) during placement: ${apps.map(a => a.constructor?.name).join(", ")}`);
+  }
+}
+
+export async function restoreWindows(apps) {
+  for (const app of apps) {
+    try { await app.maximize(); } catch (e) {
+      console.log(`[${MODULE_ID}] maximize ${app.constructor?.name} after placement failed: ${e.message}`);
+    }
+  }
+}
 
 /**
  * Runs one placement + spawn request.
@@ -38,7 +80,8 @@ export async function runSpawnFlow(ctx) {
     variantId = null,
     castSlotLevel = null,
     sourcePlayerId = game.user.id,
-    sourceActor = game.user.character
+    sourceActor = game.user.character,
+    manageWindows = true
   } = ctx;
 
   if (!template) {
@@ -89,23 +132,10 @@ export async function runSpawnFlow(ctx) {
   //   - any item sheets owned by the caster (the spell item itself, if open)
   // We collect them up front, minimize all, and restore in finally so we
   // always recover even if placement throws.
-  const toMinimize = [];
-  const manager = getActiveManager();
-  if (manager) toMinimize.push(manager);
-  if (sourceActor?.sheet?.rendered) toMinimize.push(sourceActor.sheet);
-  if (sourceActor?.items) {
-    for (const item of sourceActor.items) {
-      if (item.sheet?.rendered && !toMinimize.includes(item.sheet)) toMinimize.push(item.sheet);
-    }
-  }
-  for (const app of toMinimize) {
-    try { await app.minimize(); } catch (e) {
-      console.log(`[${MODULE_ID}] minimize ${app.constructor?.name} during placement failed: ${e.message}`);
-    }
-  }
-  if (toMinimize.length > 0) {
-    console.log(`[${MODULE_ID}] minimized ${toMinimize.length} window(s) during placement: ${toMinimize.map(a => a.constructor?.name).join(", ")}`);
-  }
+  // v0.7.3: `manageWindows: false` lets a multi-placement caller (the picker's
+  // multi-spawn loop) hoist minimize/restore around the WHOLE sequence.
+  const toMinimize = manageWindows ? collectOccludingWindows(sourceActor) : [];
+  await minimizeWindows(toMinimize);
 
   let placements;
   try {
@@ -117,11 +147,7 @@ export async function runSpawnFlow(ctx) {
       label: game.i18n.format("LUXSUM.Spawn.PlacementLabel", { templateName: template.name })
     });
   } finally {
-    for (const app of toMinimize) {
-      try { await app.maximize(); } catch (e) {
-        console.log(`[${MODULE_ID}] maximize ${app.constructor?.name} after placement failed: ${e.message}`);
-      }
-    }
+    await restoreWindows(toMinimize);
   }
   // v0.4.6 FIX 10: activatePlacement now resolves `null` (not `[]`) on ESC /
   // preemption, so this check unambiguously means "the user cancelled" — no
@@ -167,8 +193,45 @@ export async function runSpawnFlow(ctx) {
     return { outcome: "pending-approval" };
   }
 
-  // Hand off to the primary GM client via chat-broker
+  // ── Execution: locally when we can, brokered when we must (v0.7.3) ────────
+  //
+  // The broker exists because PLAYERS cannot create world actors — the primary
+  // GM client executes on their behalf. Two failure modes made that path a
+  // silent black hole, and both produce the exact symptom "I place the ghost
+  // and nothing appears, with no error anywhere":
+  //
+  //   1. NO GM CLIENT CONNECTED. installBrokerHook bails on every client that
+  //      isn't the elected primary GM (`electPrimaryGM` returns null when no
+  //      active user has isGM), so the request message gets posted and then
+  //      nobody ever acts on it. Solo-testing as a player hits this every time.
+  //   2. GM-SIDE THROW. If performSpawn fails on the GM's client, the error and
+  //      its notification land in THEIR console — the requester, watching a
+  //      canvas where nothing appeared, gets nothing at all.
+  //
+  // Fix: a GM requester executes directly (no round-trip, no dependence on the
+  // election, and any failure surfaces to the person who actually clicked). A
+  // player requester pre-flights for a live executor and is told plainly when
+  // there isn't one, instead of the request vanishing.
+  if (game.user.isGM) {
+    try {
+      await performSpawn(payload);
+      console.log(`[${MODULE_ID}] runSpawnFlow: spawned directly (requester is GM — no broker round-trip)`);
+    } catch (err) {
+      console.error(`[${MODULE_ID}] runSpawnFlow: direct spawn failed:`, err);
+      ui.notifications?.error(`Luxurious Summons — spawn failed: ${err.message}`);
+      return { outcome: "blocked", reason: "spawn-error" };
+    }
+    return { outcome: "spawned" };
+  }
+
+  const primaryGmId = electPrimaryGM(game.users.contents);
+  if (!primaryGmId) {
+    console.warn(`[${MODULE_ID}] runSpawnFlow: no active GM client — a broker request would never be executed; aborting with a visible message`);
+    ui.notifications?.error(game.i18n.localize("LUXSUM.Spawn.NoActiveGm"));
+    return { outcome: "blocked", reason: "no-active-gm" };
+  }
   await postBrokerRequest("spawn", payload);
+  console.log(`[${MODULE_ID}] runSpawnFlow: spawn brokered to GM "${game.users.get(primaryGmId)?.name}"`);
 
   return { outcome: "spawned" };
 }

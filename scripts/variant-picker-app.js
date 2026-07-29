@@ -368,11 +368,17 @@ export class VariantPickerApp extends HandlebarsApplicationMixin(ApplicationV2) 
   }
 
   static async #onPlace(event, target) {
-    const { runSpawnFlow } = await import("./spawn-flow.js");
+    const { runSpawnFlow, collectOccludingWindows, minimizeWindows, restoreWindows } = await import("./spawn-flow.js");
     if (this.multiSpawn) {
       const sequence = toPlacementSequence(this.counter);
       if (sequence.length === 0) return;
       this.close();
+      // v0.7.3: minimize the caster's sheet / Manager ONCE around the whole
+      // sequence. runSpawnFlow used to do it per placement, so a 3-token Mirror
+      // Image cast bounced the character sheet back open between every click.
+      const occluding = collectOccludingWindows(this.#sourceActor());
+      await minimizeWindows(occluding);
+      try {
       // v0.4.6 FIX 10: runSpawnFlow now returns an explicit outcome. Before this
       // fix, ESC on placement N of M resolved the SAME shape as "0 placements
       // collected" (an empty array), which runSpawnFlow already treated as
@@ -385,10 +391,15 @@ export class VariantPickerApp extends HandlebarsApplicationMixin(ApplicationV2) 
       for (const variantId of sequence) {
         const result = await runSpawnFlow({
           template: this.template,
-          variantId,
+          // Fixed multi-spawn templates (Mirror Image) have no real variants —
+          // the counter holds the synthetic "__default__" id. Normalize it to
+          // null exactly like the single-spawn path, so the companion record
+          // never stores a variantId that resolves to nothing.
+          variantId: variantId !== "__default__" ? variantId : null,
           castSlotLevel: this.selectedCastSlotLevel,
           sourcePlayerId: game.user.id,
-          sourceActor: this.#sourceActor()
+          sourceActor: this.#sourceActor(),
+          manageWindows: false          // hoisted around the whole sequence above
         });
         if (result?.outcome === "cancelled") {
           console.log(`[${MODULE_ID}] multi-spawn sequence cancelled by user after ${placedCount} of ${sequence.length} placement(s)`);
@@ -397,9 +408,19 @@ export class VariantPickerApp extends HandlebarsApplicationMixin(ApplicationV2) 
           return;
         }
         if (result?.outcome === "spawned") placedCount++;
-        // "blocked" outcomes (restriction cap hit mid-sequence, etc.) fall
-        // through and the loop continues — a per-iteration restriction
-        // rejection doesn't necessarily invalidate the rest of the batch.
+        // A hard failure (spawn threw, or no GM is connected to execute) will
+        // repeat identically for every remaining token — stop rather than
+        // making the user click through N doomed placements.
+        if (result?.outcome === "blocked"
+            && (result.reason === "spawn-error" || result.reason === "no-active-gm")) {
+          console.warn(`[${MODULE_ID}] multi-spawn sequence aborted after ${placedCount} placement(s): ${result.reason}`);
+          return;
+        }
+        // Other "blocked" outcomes (a cap hit mid-sequence) fall through and
+        // the loop continues — they don't necessarily invalidate the batch.
+      }
+      } finally {
+        await restoreWindows(occluding);
       }
       return;
     }

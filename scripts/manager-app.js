@@ -23,6 +23,18 @@ export class ManagerApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   get activeTab() { return this.#activeTab; }
 
+  /**
+   * Window title with the installed module version appended (v0.7.3).
+   * Diagnostic ergonomics: "which version is he actually running?" was the
+   * first question of every live-test round and there was no way to answer it
+   * without asking him to open Module Management. Now it's on the dialog he
+   * already has open. ApplicationV2 calls this getter on every render.
+   */
+  get title() {
+    const version = game.modules.get(MODULE_ID)?.version ?? "?";
+    return `${game.i18n.localize("LUXSUM.Manager.Title")} — v${version}`;
+  }
+
   static DEFAULT_OPTIONS = {
     id: "luxsum-manager",
     classes: ["luxsum", "luxsum-manager"],

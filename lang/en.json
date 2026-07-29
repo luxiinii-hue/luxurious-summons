@@ -68,6 +68,7 @@
   "LUXSUM.VariantPicker.MultiSpawnCancelled": "Placement cancelled — {placed} of {total} placed.",
   "LUXSUM.Common.Cancel": "Cancel",
   "LUXSUM.Spawn.NoSourceActor": "No source actor — assign a character to your user first.",
+  "LUXSUM.Spawn.NoActiveGm": "No GM is connected. Summons are created by the GM's client, so one needs to be logged in — ask your GM to connect, then place again.",
   "LUXSUM.Settings.MageHandTokenPath.Name": "Mage Hand token art",
   "LUXSUM.Settings.MageHandTokenPath.Hint": "Optional override for Mage Hand's token and portrait — the module ships default art already. Accepts a static image or an animated .webm; leave blank to keep the shipped art.",
   "LUXSUM.GmConsole.GlobalControls": "Global Controls",

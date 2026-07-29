@@ -63,7 +63,9 @@ function injectFleurSprite() {
 }
 
 Hooks.once("ready", async () => {
-  console.log(`[${MODULE_ID}] ready — module loaded`);
+  // Version in the boot line: the first question of every live-test round is
+  // "which build is he actually running?" — now answerable from any pasted log.
+  console.log(`[${MODULE_ID}] ready — module loaded (v${game.modules.get(MODULE_ID)?.version ?? "?"})`);
   injectFleurSprite();
   if (game.system.id !== "dnd5e") {
     ui.notifications?.warn(`[${MODULE_ID}] requires the dnd5e system; spawn features disabled on system "${game.system.id}".`);
