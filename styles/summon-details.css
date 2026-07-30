@@ -17,11 +17,15 @@
   background:
     linear-gradient(180deg, rgba(212, 175, 55, 0.04) 0%, rgba(0, 0, 0, 0.15) 100%),
     var(--luxsum-bg-elev);
-  border: 1px solid var(--luxsum-accent);
+  /* Plan 5: the double-rule frame is the summon's own chrome, so it takes the
+   * template's aesthetic family. --luxsum-family-accent inherits from the
+   * data-family on the picker / restyle root and falls back to gilt at :root,
+   * so no extra selectors are needed here. */
+  border: 1px solid var(--luxsum-family-accent);
   border-radius: 3px;
   box-shadow:
     inset 0 0 0 1px var(--luxsum-bg),
-    inset 0 0 0 2px var(--luxsum-accent),
+    inset 0 0 0 2px var(--luxsum-family-accent),
     0 2px 8px rgba(0, 0, 0, 0.4);
 }
 

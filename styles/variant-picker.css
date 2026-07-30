@@ -12,7 +12,8 @@
 
 .luxsum-variant-picker-header h2 {
   font-family: "Cinzel", serif;
-  color: var(--luxsum-accent);
+  /* Family-tinted: this is the moment the player is choosing the creature. */
+  color: var(--luxsum-family-accent);
   margin: 0 0 16px;
   font-size: 20px;
   font-weight: 500;

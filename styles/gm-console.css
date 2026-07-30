@@ -215,7 +215,10 @@
 
 .luxsum-gm-card-template {
   font-size: 10px;
-  color: var(--luxsum-text-mute);
+  /* Family-tinted so a GM scanning a full roster can group by summon type
+   * without reading every label. The left border stays the owner's colour. */
+  color: var(--luxsum-family-accent);
+  opacity: 0.85;
   letter-spacing: 0.3px;
 }
 

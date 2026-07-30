@@ -40,8 +40,9 @@
   align-items: center;
   transition: transform 120ms ease, box-shadow 120ms ease;
 }
-.luxsum-template-card[data-family="hextech"]     { border-left-color: var(--luxsum-hex-accent, #5cd3e8); }
-.luxsum-template-card[data-family="belle-epoque"] { border-left-color: var(--luxsum-accent); }
+/* Plan 5: was two hard-coded per-family rules; now reads the shared family
+ * token so every family-aware surface in the module stays in step. */
+.luxsum-template-card { border-left-color: var(--luxsum-family-accent); }
 .luxsum-template-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0,0,0,0.45);

@@ -69,6 +69,7 @@ export class ManagerApp extends HandlebarsApplicationMixin(ApplicationV2) {
         templateThumb: tpl?.thumbnail ?? "",
         templateName: tpl?.name ?? "",
         borderColor: flag?.visualOverrides?.borderColor ?? "#c9a14b",
+        aestheticFamily: tpl?.aestheticFamily ?? "belle-epoque",
         extraActions: tpl?.extraActions ?? []
       };
     }).filter(Boolean);
@@ -141,6 +142,7 @@ export class ManagerApp extends HandlebarsApplicationMixin(ApplicationV2) {
           templateName: tpl?.name ?? flag.templateId,
           tokenImg: a.prototypeToken?.texture?.src || a.img || "icons/svg/mystery-man.svg",
           borderColor: flag.visualOverrides?.borderColor ?? "#c9a14b",
+          aestheticFamily: tpl?.aestheticFamily ?? "belle-epoque",
           hpValue, hpMax,
           hpPct: hpMax > 0 ? Math.round((hpValue / hpMax) * 100) : 0,
           ownerId: flag.sourcePlayerId,

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Luxurious Summons — aesthetic family chrome</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&display=swap"/>
+<link rel="stylesheet" href="../styles/luxurious.css"/>
+<link rel="stylesheet" href="../styles/manager.css"/>
+<link rel="stylesheet" href="../styles/summon-details.css"/>
+<link rel="stylesheet" href="../styles/variant-picker.css"/>
+<link rel="stylesheet" href="../styles/spawn-gallery.css"/>
+<link rel="stylesheet" href="../styles/companion-bar.css"/>
+<style>
+  body { margin:0; padding:24px; background:#141014; color:#f5e9d8; font-family:system-ui,sans-serif; }
+  h1 { font-family:Cinzel,serif; color:#c9a14b; font-size:18px; margin:0 0 4px; }
+  p.sub { color:#8d8172; font-size:12px; margin:0 0 20px; }
+  .cols { display:grid; grid-template-columns:1fr 1fr; gap:28px; max-width:1000px; }
+  .col h2 { font-family:Cinzel,serif; font-size:13px; letter-spacing:.08em;
+            text-transform:uppercase; color:var(--luxsum-family-accent); margin:0 0 10px;
+            border-bottom:1px solid var(--luxsum-family-accent); padding-bottom:5px; }
+  .block { margin-bottom:18px; }
+  .lbl { font-size:10px; text-transform:uppercase; letter-spacing:.09em; color:#6f6557; margin-bottom:6px; }
+  /* stand-ins for structures the real templates provide */
+  .luxsum-template-card { border-left:3px solid; padding:10px; background:#2a1828;
+                          border-radius:4px; width:150px; }
+  .luxsum-template-card .nm { font-family:Cinzel,serif; font-size:12px; }
+  /* the real bar is position:fixed; pin it in flow for side-by-side comparison */
+  #barwrap .luxsum-bar { position:static !important; transform:none !important;
+                         justify-content:flex-start; }
+</style>
+</head>
+<body>
+
+<h1>Aesthetic family chrome</h1>
+<p class="sub">Same components, same base wine-and-gold ground — only the accent token differs.
+Belle&nbsp;Époque (5 templates) vs Hextech (9 templates).</p>
+
+<div class="cols">
+  <div class="col" data-family="belle-epoque" id="col-be"></div>
+  <div class="col" data-family="hextech" id="col-hx"></div>
+</div>
+
+<script>
+const FAMILIES = {
+  "col-be": { title: "Belle Époque", summon: "Owl of Lyra", type: "Familiar, Tiny beast", tpl: "Find Familiar" },
+  "col-hx": { title: "Hextech",      summon: "Mage Hand of Lyra", type: "Conjuration", tpl: "Mage Hand" }
+};
+
+function portrait(hue) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+    <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="hsl(${hue},50%,55%)"/><stop offset="100%" stop-color="hsl(${hue},55%,24%)"/>
+    </linearGradient></defs><rect width="64" height="64" fill="url(#g)"/>
+    <circle cx="32" cy="25" r="11" fill="rgba(0,0,0,.28)"/>
+    <path d="M12 60 Q32 38 52 60 Z" fill="rgba(0,0,0,.28)"/></svg>`;
+  return "data:image/svg+xml;base64," + btoa(svg);
+}
+
+for (const [id, f] of Object.entries(FAMILIES)) {
+  const hue = id === "col-hx" ? 185 : 38;
+  document.getElementById(id).innerHTML = `
+    <h2>${f.title}</h2>
+
+    <div class="block">
+      <div class="lbl">Variant picker title</div>
+      <div class="luxsum-variant-picker">
+        <header class="luxsum-variant-picker-header"><h2 style="text-transform:none;border:0;letter-spacing:0">
+          ${f.tpl} — Pick a variant</h2></header>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="lbl">Summon details card</div>
+      <div class="luxsum-summon-details">
+        <div class="luxsum-summon-details-header">
+          <div class="luxsum-summon-details-name">${f.summon}</div>
+          <div class="luxsum-summon-details-type">${f.type}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="lbl">Gallery card &amp; companion card thumbs</div>
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div class="luxsum-template-card"><span class="nm">${f.tpl}</span></div>
+        <div class="luxsum-card" style="border:1px solid #7a4a6a;padding:8px;border-radius:4px;background:#2a1828">
+          <div class="luxsum-card-thumbs">
+            <img class="luxsum-card-token" src="${portrait(hue)}" alt="">
+            <img class="luxsum-card-template" src="${portrait(hue + 20)}" alt="">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="lbl">Companion Bar chips — resting / selected</div>
+      <div id="barwrap">
+        <div class="luxsum luxsum-bar">
+          <div class="luxsum-bar-inner">
+            ${[0,1].map(n => `
+              <div class="luxsum-bar-chip ${n===1?"is-controlled":""}" data-family="${id==="col-hx"?"hextech":"belle-epoque"}">
+                <div class="luxsum-bar-frame"><img class="luxsum-bar-portrait" src="${portrait(hue)}" alt=""></div>
+                <div class="luxsum-bar-hp"><div class="luxsum-bar-hp-fill" style="width:${n===1?72:100}%"></div></div>
+                <div class="luxsum-bar-name">${f.tpl.split(" ")[0]}</div>
+              </div>`).join("")}
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+</script>
+</body>
+</html>

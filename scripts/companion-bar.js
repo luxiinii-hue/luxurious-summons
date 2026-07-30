@@ -23,6 +23,7 @@
 // createToken and updateActor in rapid succession.
 
 import { getCompanionFlag } from "./data-model.js";
+import { getEffectiveTemplate } from "./template-store.js";
 import { s } from "./settings.js";
 
 const MODULE_ID = "luxurious-summons";
@@ -69,6 +70,11 @@ function entryFor(actor, kind) {
   const { token, onScene, sceneName } = locateToken(actor);
   const flag = getCompanionFlag(actor);
   const masterName = flag?.sourceActorId ? game.actors.get(flag.sourceActorId)?.name : null;
+  // Plan 5: the chip's brass/arcane frame follows the template's aesthetic
+  // family, so a row of six summons is scannable by tone as well as portrait.
+  const family = flag?.templateId
+    ? (getEffectiveTemplate(flag.templateId)?.aestheticFamily ?? "belle-epoque")
+    : "belle-epoque";
   const hp = actor.system?.attributes?.hp ?? {};
   const max = Number(hp.max) || 0;
   const value = Number(hp.value) || 0;
@@ -78,6 +84,7 @@ function entryFor(actor, kind) {
     actorId: actor.id,
     name: actor.name,
     label: shortLabel(actor.name, kind, masterName),
+    family,
     img: actor.prototypeToken?.texture?.src || actor.img || "icons/svg/mystery-man.svg",
     onScene,
     sceneName,
@@ -195,7 +202,8 @@ function chipHtml(entry) {
 
   return `
     <div class="${classes}" role="button" tabindex="0"
-         data-actor-id="${entry.actorId}" data-tooltip="${esc(tooltip)}">
+         data-actor-id="${entry.actorId}" data-family="${esc(entry.family ?? "belle-epoque")}"
+         data-tooltip="${esc(tooltip)}">
       <div class="luxsum-bar-frame">
         <img class="luxsum-bar-portrait" src="${entry.img}" alt="" draggable="false"/>
       </div>

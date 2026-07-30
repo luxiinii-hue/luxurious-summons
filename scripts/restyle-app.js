@@ -137,6 +137,8 @@ export class RestyleApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const v = this.#draft.visualOverrides;
     const m = this.#draft.motionOverrides;
     return {
+      // Plan 5: drives the family accent on this dialog's chrome via data-family.
+      aestheticFamily: this.#template?.aestheticFamily ?? "belle-epoque",
       draft: {
         ...v,
         outlineEnabled: (v.outlineThickness ?? 0) > 0,

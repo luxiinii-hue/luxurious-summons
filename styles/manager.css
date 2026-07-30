@@ -51,7 +51,9 @@
   border-radius: 4px;
   object-fit: cover;
   background: var(--luxsum-bg);
-  border: 1px solid var(--luxsum-border);
+  /* Family accent on the thumb frame, not the card border — the card border is
+   * the player's own colour choice in Restyle and must stay under their control. */
+  border: 1px solid var(--luxsum-family-accent);
 }
 
 .luxsum-template-thumb {

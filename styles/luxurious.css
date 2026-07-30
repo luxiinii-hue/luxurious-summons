@@ -10,6 +10,34 @@
   --luxsum-border:    #c9a14b;
   --luxsum-danger:    #ff6b6b;
   --luxsum-success:   #7ad17a;
+
+  /* Aesthetic family (Plan 5). Templates declare `aestheticFamily`, which the
+   * Handlebars templates emit as data-family. Everything family-aware reads
+   * these three custom properties and nothing else, so adding a third family
+   * later means adding one rule block below — not touching six stylesheets.
+   *
+   * Restraint is deliberate: family tints ACCENTS only (an edge, a rule, a
+   * portrait frame). The wine-and-gold base chrome is the module's identity
+   * and does not vary, or the two families would read as two modules. */
+  --luxsum-family-accent:    #c9a14b;
+  --luxsum-family-accent-hi: #f0c97a;
+  --luxsum-family-frame:     linear-gradient(160deg, #f0c97a, #c9a14b 45%, #8a6c2f);
+}
+
+/* Belle Époque — warm brass and gilt. The module's default voice. */
+[data-family="belle-epoque"] {
+  --luxsum-family-accent:    #c9a14b;
+  --luxsum-family-accent-hi: #f0c97a;
+  --luxsum-family-frame:     linear-gradient(160deg, #f0c97a, #c9a14b 45%, #8a6c2f);
+}
+
+/* Hextech — cold arcane cyan over the same dark ground. Used by the
+ * constructed and conjured summons (Mage Hand, Echo, Simulacrum, the Summon X
+ * spirits) where "manufactured magic" reads better than gilt. */
+[data-family="hextech"] {
+  --luxsum-family-accent:    #5cd3e8;
+  --luxsum-family-accent-hi: #9ae9f5;
+  --luxsum-family-frame:     linear-gradient(160deg, #9ae9f5, #5cd3e8 45%, #2b7f93);
 }
 
 .luxsum.luxsum-manager,
