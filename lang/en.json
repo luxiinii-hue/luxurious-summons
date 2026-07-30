@@ -71,6 +71,8 @@
   "LUXSUM.Spawn.NoActiveGm": "No GM is connected. Summons are created by the GM's client, so one needs to be logged in — ask your GM to connect, then place again.",
   "LUXSUM.Settings.MageHandTokenPath.Name": "Mage Hand token art",
   "LUXSUM.Settings.MageHandTokenPath.Hint": "Optional override for Mage Hand's token and portrait — the module ships default art already. Accepts a static image or an animated .webm; leave blank to keep the shipped art.",
+  "LUXSUM.Settings.EnableVendoredOutline.Name": "Token outlines (experimental)",
+  "LUXSUM.Settings.EnableVendoredOutline.Hint": "Your Foundry build ships no outline effect, so this module draws its own. That custom effect is UNVERIFIED on real hardware and was responsible for summons rendering as invisible — leave it off unless you're testing it. If tokens vanish after enabling it, turn it back off and reload.",
   "LUXSUM.GmConsole.GlobalControls": "Global Controls",
   "LUXSUM.GmConsole.MotionMaster": "Idle animations world-wide",
   "LUXSUM.GmConsole.Intensity": "Animation intensity",

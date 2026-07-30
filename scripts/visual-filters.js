@@ -87,21 +87,36 @@ export function buildFilters(descriptors) {
         // construction is wrapped in try/catch — a shader-compile failure on
         // some exotic renderer must skip only the outline entry, never break
         // the rest of the filter chain.
-        const implName = PIXI.filters?.OutlineFilter ? "PIXI.filters.OutlineFilter"
-                        : PIXI.OutlineFilter ? "PIXI.OutlineFilter"
-                        : "LuxOutlineFilter (vendored fallback)";
+        const nativeOutline = PIXI.filters?.OutlineFilter ?? PIXI.OutlineFilter;
+        // v0.7.4 — THE INVISIBLE-SUMMON BUG. The vendored shader (0.4.7) is the
+        // only rendering code this module ships that has never been verified on
+        // a live GPU, and it correlated exactly with the failure: every template
+        // with outlineThickness > 0 rendered as nothing on the friend's V13
+        // build, while Find Familiar (thickness 0, hence no outline filter) kept
+        // working. The mechanism: PIXI compiles filter shaders LAZILY at first
+        // render, so a GLSL problem never reaches the try/catch below — it
+        // surfaces as a WebGL error and the filtered mesh draws as nothing.
+        //
+        // So the vendored path is now opt-in. Skipping it costs nothing that
+        // ever worked: on a PIXI build without a native OutlineFilter (i.e.
+        // production) outlines were silently absent from v0.1.0 through v0.4.6
+        // and nobody noticed. A native OutlineFilter, if some build provides
+        // one, is still used unconditionally.
+        if (!nativeOutline && !s("enableVendoredOutline")) {
+          console.log(`[${MODULE_ID}] outline skipped — this PIXI build has no OutlineFilter and the vendored shader is disabled (enable it in module settings once verified on your canvas)`);
+          break;
+        }
+        const implName = nativeOutline ? "native PIXI OutlineFilter" : "LuxOutlineFilter (vendored, opt-in)";
         try {
           // getLuxOutlineFilterClass() itself can throw (e.g. if PIXI.Filter
           // is somehow unavailable too) — deliberately resolved INSIDE the
           // try so that failure is caught by the same handler as a
           // shader-compile failure, never escaping to break the rest of the
           // filter chain.
-          const Outline = PIXI.filters?.OutlineFilter ?? PIXI.OutlineFilter ?? getLuxOutlineFilterClass();
+          const Outline = nativeOutline ?? getLuxOutlineFilterClass();
           const f = new Outline(d.thickness, parseInt(d.color.replace("#", "0x"), 16));
           filters.push(f);
-          if (s("verboseLogging")) {
-            console.log(`[${MODULE_ID}] outline filter using ${implName}`);
-          }
+          console.log(`[${MODULE_ID}] outline filter using ${implName}`);
         } catch (e) {
           console.warn(`[${MODULE_ID}] outline filter construction failed (${implName}); skipping outline entry:`, e);
         }

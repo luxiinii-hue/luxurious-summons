@@ -80,6 +80,18 @@ export function registerSettings() {
     scope: "world", config: false, type: Boolean, default: false
   });
 
+  // v0.7.4: opt-in for the vendored outline shader. Default OFF — see the
+  // long comment in visual-filters.js buildFilters(): this shader was the
+  // invisible-summons cause, and a broken PIXI filter renders its mesh as
+  // nothing rather than throwing. Turn it on only after confirming outlines
+  // actually draw on your own canvas.
+  game.settings.register(MODULE_ID, "enableVendoredOutline", {
+    name: "LUXSUM.Settings.EnableVendoredOutline.Name",
+    hint: "LUXSUM.Settings.EnableVendoredOutline.Hint",
+    scope: "world", config: true, type: Boolean, default: false,
+    onChange: reapply
+  });
+
   game.settings.register(MODULE_ID, "customTemplates", {
     scope: "world", config: false, type: Array, default: []
   });
