@@ -101,13 +101,16 @@ export async function ensureMasterFolder(masterName) {
  * the drawToken hook plays the spawn animation once. Plumbs variantId +
  * castSlotLevel through the companion record.
  *
- * KNOWN TODO (v0.4.6 FIX 11, comment-only this pass): this function does NOT
- * call checkRestrictions. spawn-flow.js's runSpawnFlow() enforces caps/antispam
- * client-side, on the requester's own client, before the broker post — but
- * that check is bypassable (stale index, race between rapid casts, a modified
- * client) and nothing re-validates on this, the actually-privileged side. A
- * real fix would re-run checkRestrictions here against the requester's live
- * game.actors state before creating anything. Not implemented yet.
+ * v1.0.1: this function now re-checks restrictions authoritatively before
+ * creating anything (was a known TODO since v0.4.6). runSpawnFlow() still
+ * checks client-side for a fast, friendly rejection, but that check runs on the
+ * REQUESTER's client and is bypassable — a stale index, two rapid casts racing
+ * before recentSpawnTimestamps updates, or simply a modified client all got a
+ * spawn through uncontested. The GM's caps weren't actually caps.
+ *
+ * The re-check derives active companions from live `game.actors` rather than
+ * the requester's user-flag index, because the index is exactly what a stale or
+ * hostile client would be wrong about.
  *
  * Payload:
  *   { templateId, variantId?, castSlotLevel?, sourceActorId, sourcePlayerId,
@@ -129,6 +132,37 @@ export async function performSpawn(payload) {
   if (!template) throw new Error(`template ${templateId} not found`);
 
   const variant = variantId ? (template.variants ?? []).find(v => v.id === variantId) : null;
+
+  // Authoritative restriction re-check (see doc comment above). Counts live
+  // companion actors owned by the requester — NOT their user-flag index.
+  // Skipped for a GM, who is allowed to overrule their own table's caps.
+  if (!game.users.get(sourcePlayerId)?.isGM) {
+    const liveActive = game.actors.contents
+      .filter(a => a.flags?.[MODULE_ID]?.isCompanion === true
+                && a.flags[MODULE_ID].sourcePlayerId === sourcePlayerId)
+      .map(a => ({ actorId: a.id, templateId: a.flags[MODULE_ID].templateId }));
+    // A batch places N tokens, so ask "would the LAST one still be allowed?" —
+    // padding with the other N-1 reuses the tested kernel instead of
+    // reimplementing cap arithmetic here. Without this, one request carrying
+    // 100 placements passes a single-spawn check and creates 100 actors.
+    const pending = Array.from({ length: Math.max(0, (placements?.length ?? 1) - 1) },
+                               () => ({ actorId: "pending", templateId }));
+    const verdict = checkRestrictions({
+      template,
+      activeCompanions: [...liveActive, ...pending],
+      recentSpawnTimestamps: game.users.get(sourcePlayerId)?.flags?.[MODULE_ID]?.recentSpawnTimestamps ?? [],
+      now: Date.now(),
+      config: {
+        globalCap: game.settings.get(MODULE_ID, "globalActiveCapPerPlayer"),
+        antispamMax: game.settings.get(MODULE_ID, "antispamMaxSpawnsPerWindow"),
+        antispamWindowSeconds: game.settings.get(MODULE_ID, "antispamWindowSeconds")
+      }
+    });
+    if (!verdict.allowed) {
+      console.warn(`[${MODULE_ID}] performSpawn: REFUSED authoritatively (${verdict.reason}) for user ${sourcePlayerId} — ${verdict.message}`);
+      throw new Error(`Spawn refused: ${verdict.message}`);
+    }
+  }
 
   const masterName = sourceActor.name;
   const folder = await ensureMasterFolder(masterName);
