@@ -70,6 +70,21 @@
     {{#if (eq activeTab "settings")}}
       <div class="luxsum-gm-console">
         <div class="luxsum-restyle-group">
+          <h5 class="luxsum-restyle-group-title">{{localize "LUXSUM.SettingsTab.YourSettings"}}</h5>
+          <p class="luxsum-gm-editor-hint">{{localize "LUXSUM.SettingsTab.YourSettingsHint"}}</p>
+
+          {{#each clientSettings}}
+            <label class="luxsum-toggle" data-tooltip="{{hint}}">
+              <input type="checkbox" class="luxsum-toggle-input" data-client-setting="{{key}}" {{#if value}}checked{{/if}}>
+              <span class="luxsum-toggle-track"><span class="luxsum-toggle-lever"></span></span>
+              <span class="luxsum-toggle-label">{{label}}</span>
+            </label>
+          {{/each}}
+
+          <span class="luxsum-fleur"><svg viewBox="0 0 24 24"><use href="#luxsum-fleur"/></svg></span>
+        </div>
+
+        <div class="luxsum-restyle-group">
           <h5 class="luxsum-restyle-group-title">{{localize "LUXSUM.Manager.Tab.Settings"}}</h5>
           <p class="luxsum-gm-editor-hint">{{localize "LUXSUM.SettingsTab.Hint"}}</p>
           <span role="button" tabindex="0" class="luxsum-gm-editor-btn" data-action="open-module-settings"><i class="fa-solid fa-gears"></i> {{localize "LUXSUM.SettingsTab.OpenButton"}}</span>

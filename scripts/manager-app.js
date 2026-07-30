@@ -83,8 +83,31 @@ export class ManagerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       isGM: game.user.isGM,
       myCompanions,
       templates,
+      clientSettings: this.#prepareClientSettingsContext(),
       gm: game.user.isGM ? this.#prepareGmConsoleContext() : null
     };
+  }
+
+  /**
+   * v0.9.0 — per-user toggles surfaced in the Manager's Settings tab.
+   *
+   * These all exist in Foundry's own settings sheet already, but a player who
+   * dislikes the Companion Bar shouldn't have to know that module options live
+   * three menus deep in Configure Settings. The Manager is the surface they
+   * already have open, so the switches that affect only *them* live here too;
+   * both paths write the same client-scope setting, so they stay in sync.
+   */
+  #prepareClientSettingsContext() {
+    const keys = ["showCompanionBar", "enablePIXIFilters", "enableDeathAnimations", "verboseLogging"];
+    return keys.map(key => {
+      const cfg = game.settings.settings.get(`${MODULE_ID}.${key}`) ?? {};
+      return {
+        key,
+        value: !!s(key),
+        label: game.i18n.localize(cfg.name ?? key),
+        hint: game.i18n.localize(cfg.hint ?? "")
+      };
+    });
   }
 
   /**
@@ -294,6 +317,17 @@ export class ManagerApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     this.#wireGmConsole();
     this.#wireTemplatesEditor();
+
+    // Settings tab: per-user toggles. Client-scope settings only — nothing here
+    // touches shared state, so no permission gate is needed.
+    this.element.querySelectorAll("[data-client-setting]").forEach(el => {
+      el.addEventListener("change", async (e) => {
+        const key = e.currentTarget.dataset.clientSetting;
+        const value = e.currentTarget.checked;
+        await game.settings.set(MODULE_ID, key, value);
+        console.log(`[${MODULE_ID}] settings tab: ${key} → ${value}`);
+      });
+    });
 
     // Settings tab shortcut → Foundry's settings sheet, module section
     this.element.querySelector('[data-action="open-module-settings"]')?.addEventListener("click", () => {

@@ -248,6 +248,70 @@ async function sweepStalePendingSpawn() {
  * Entry point — wired from main.js's ready hook, after settings are
  * available. Primary-GM-gated; no-op on every other client.
  */
+/**
+ * Sweep C (v0.9.0) — retro-fix companions spawned before v0.8.0.
+ *
+ * Those builds never normalized the cloned prototypeToken, so existing
+ * companions still carry `disposition: -1` (hostile red ring; read as an enemy
+ * by combat automation) and `actorLink: false` (damage lands in a TokenDelta,
+ * so the Manager and GM Console HP bars never move). A player has no way to
+ * discover or fix either — the token looks fine until it matters. See
+ * token-normalize.js for the full reasoning.
+ *
+ * Repairs both the actor's prototypeToken (so future drops are correct) and
+ * every already-placed token document across every scene. Idempotent: a
+ * companion whose values already match is skipped, so this costs one pass and
+ * zero writes on a healthy world.
+ *
+ * Deliberately does NOT touch a token a GM has hand-set to something other
+ * than hostile — a deliberate Neutral or Secret summon stays as configured.
+ * Only the un-normalized hostile default is rewritten.
+ */
+async function sweepCompanionTokenFlags() {
+  const { normalizeCompanionTokenData, DISPOSITION } = await import("./token-normalize.js");
+  const target = Number(game.settings.get(MODULE_ID, "companionDisposition"));
+  const wanted = Number.isInteger(target) ? target : DISPOSITION.FRIENDLY;
+  let fixed = 0;
+
+  const companionIds = new Set();
+  for (const actor of game.actors) {
+    if (actor.flags?.[MODULE_ID]?.isCompanion !== true) continue;
+    companionIds.add(actor.id);
+
+    const proto = actor.prototypeToken ?? {};
+    const needsProto = proto.actorLink !== true || proto.disposition === DISPOSITION.HOSTILE;
+    if (needsProto) {
+      const next = normalizeCompanionTokenData(proto.toObject?.() ?? proto, { disposition: wanted });
+      try {
+        await actor.update({ prototypeToken: next });
+        console.log(`[${MODULE_ID}] heal-sweep C: normalized prototypeToken on "${actor.name}"`);
+      } catch (e) {
+        console.warn(`[${MODULE_ID}] heal-sweep C: could not update actor "${actor.name}":`, e);
+      }
+    }
+  }
+
+  for (const scene of game.scenes) {
+    const updates = [];
+    for (const td of scene.tokens) {
+      if (!companionIds.has(td.actorId)) continue;
+      const patch = { _id: td.id };
+      if (td.actorLink !== true) patch.actorLink = true;
+      if (td.disposition === DISPOSITION.HOSTILE) patch.disposition = wanted;
+      if (Object.keys(patch).length > 1) updates.push(patch);
+    }
+    if (!updates.length) continue;
+    try {
+      await scene.updateEmbeddedDocuments("Token", updates);
+      fixed += updates.length;
+      console.log(`[${MODULE_ID}] heal-sweep C: normalized ${updates.length} companion token(s) on scene "${scene.name}"`);
+    } catch (e) {
+      console.warn(`[${MODULE_ID}] heal-sweep C: token update failed on scene "${scene.name}":`, e);
+    }
+  }
+  return fixed;
+}
+
 export async function runHealSweep() {
   if (!isPrimaryGmClient()) {
     console.log(`[${MODULE_ID}] heal-sweep: skipped — this client is not the primary GM`);
@@ -259,8 +323,9 @@ export async function runHealSweep() {
     const templates = getEffectiveTemplates();
     const artResult = await sweepBrokenArt(templates);
     const clearedCount = await sweepStalePendingSpawn();
-    console.log(`[${MODULE_ID}] heal-sweep: done — ${artResult.healedActors} actor(s) + ${artResult.healedTokens} token(s) art-healed, ${clearedCount} stale spawn flag(s) cleared`);
-    return { skipped: false, ...artResult, clearedPendingSpawn: clearedCount };
+    const tokenFixes = await sweepCompanionTokenFlags();
+    console.log(`[${MODULE_ID}] heal-sweep: done — ${artResult.healedActors} actor(s) + ${artResult.healedTokens} token(s) art-healed, ${clearedCount} stale spawn flag(s) cleared, ${tokenFixes} pre-0.8.0 token(s) normalized`);
+    return { skipped: false, ...artResult, clearedPendingSpawn: clearedCount, normalizedTokens: tokenFixes };
   } catch (e) {
     console.error(`[${MODULE_ID}] heal-sweep: unexpected top-level failure (sweep aborted, will retry next boot):`, e);
     return { skipped: false, error: e.message };

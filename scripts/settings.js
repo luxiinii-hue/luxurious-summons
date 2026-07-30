@@ -135,12 +135,15 @@ export function registerSettings() {
     default: true
   });
   game.settings.register(MODULE_ID, "enablePIXIFilters", {
-    name: "Enable PIXI filters",
-    hint: "Performance escape hatch — when off, only basic token tinting is applied (no outline, shimmer, etc.).",
+    name: "Token effects on this client",
+    hint: "Performance escape hatch — when off, only basic token tinting is applied (no outline, shimmer, or idle motion). Affects what you see; other players are unchanged.",
     scope: "client",
     config: true,
     type: Boolean,
-    default: true
+    default: true,
+    // Without this, toggling from the Manager's Settings tab appears to do
+    // nothing until the next token redraw.
+    onChange: reapply
   });
   // v0.8.0 — the Companion Bar (quick-switch strip above the hotbar).
   game.settings.register(MODULE_ID, "showCompanionBar", {
