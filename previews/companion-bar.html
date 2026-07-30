@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Luxurious Summons — Companion Bar preview</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&display=swap"/>
+<link rel="stylesheet" href="../styles/luxurious.css"/>
+<link rel="stylesheet" href="../styles/companion-bar.css"/>
+<style>
+  /* Preview chrome only — approximates the Foundry canvas + hotbar so the bar
+     can be judged in something resembling its real context. */
+  body {
+    margin: 0; height: 100vh; overflow: hidden;
+    background: radial-gradient(ellipse at 50% 40%, #3a3226 0%, #171310 70%);
+    font-family: system-ui, sans-serif;
+  }
+  #fake-hotbar {
+    position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 3px; z-index: 60;
+  }
+  #fake-hotbar div {
+    width: 46px; height: 46px; border: 1px solid #7a6a4a; border-radius: 3px;
+    background: rgba(0,0,0,0.55); color: #6d6250; font-size: 9px;
+    display: flex; align-items: flex-start; justify-content: flex-start; padding: 2px;
+  }
+  .note {
+    position: fixed; top: 12px; left: 12px; color: #b6a890; font-size: 12px;
+    line-height: 1.7; background: rgba(0,0,0,.45); padding: 10px 14px; border-radius: 4px;
+    border: 1px solid #4a3f33;
+  }
+  .note b { color: #f0c97a; font-family: Cinzel, serif; }
+  .note code { color: #e0c88a; }
+</style>
+</head>
+<body>
+
+<div class="note">
+  <b>Companion Bar</b><br/>
+  click = select &amp; pan · shift-click = add to selection · double-click = sheet<br/>
+  <code>Alt+C</code> cycle · <code>Alt+Shift+C</code> select all<br/>
+  Chip 3 is <i>currently controlled</i>; chip 5 is <i>on another scene</i>.
+</div>
+
+<div id="fake-hotbar">
+  <div>1</div><div>2</div><div>3</div><div>4</div><div>5</div>
+  <div>6</div><div>7</div><div>8</div><div>9</div><div>0</div>
+</div>
+
+<div id="luxsum-companion-bar" class="luxsum luxsum-bar"></div>
+
+<svg id="luxsum-fleur-sprite" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
+  <defs><symbol id="luxsum-fleur" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 2 C 10.5 5.5 10.5 9 12 12.5 C 13.5 9 13.5 5.5 12 2 Z"/>
+    <path d="M11.5 5 C 8 6.5 4.5 9 4 12 C 5.5 13.5 9 13.5 11 12 C 11.5 9.5 11.5 7 11.5 5 Z"/>
+    <path d="M12.5 5 C 16 6.5 19.5 9 20 12 C 18.5 13.5 15 13.5 13 12 C 12.5 9.5 12.5 7 12.5 5 Z"/>
+    <path d="M3.5 12.5 L 20.5 12.5 L 20.5 14.5 L 3.5 14.5 Z"/>
+    <path d="M12 14.5 C 10.8 17 10.8 20.5 12 22 C 13.2 20.5 13.2 17 12 14.5 Z"/>
+  </symbol></defs>
+</svg>
+
+<script>
+// Mock entries mirroring collectBarEntries() output shape.
+const ENTRIES = [
+  { kind: "self",      name: "Lyra Vance",           hue: 265, hpPct: 88, controlled: false, onScene: true  },
+  { kind: "companion", name: "Simulacrum of Lyra",   hue: 195, hpPct: 100, controlled: false, onScene: true },
+  { kind: "companion", name: "Mage Hand of Lyra",    hue: 170, hpPct: null, controlled: true,  onScene: true },
+  { kind: "companion", name: "Skeleton of Lyra (1)", hue: 45,  hpPct: 42,  controlled: false, onScene: true },
+  { kind: "companion", name: "Skeleton of Lyra (2)", hue: 45,  hpPct: 18,  controlled: false, onScene: true },
+  { kind: "companion", name: "Owl of Lyra",          hue: 30,  hpPct: 100, controlled: false, onScene: false }
+];
+
+// Stand-in portraits: no Foundry asset paths available from file://
+function portrait(hue) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+    <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="hsl(${hue},55%,58%)"/>
+      <stop offset="100%" stop-color="hsl(${hue},60%,26%)"/>
+    </linearGradient></defs>
+    <rect width="64" height="64" fill="url(#g)"/>
+    <circle cx="32" cy="25" r="11" fill="rgba(0,0,0,.28)"/>
+    <path d="M12 60 Q32 38 52 60 Z" fill="rgba(0,0,0,.28)"/>
+  </svg>`;
+  return "data:image/svg+xml;base64," + btoa(svg);
+}
+
+function shortLabel(name, kind) {
+  if (kind === "self") return name.split(/\s+/)[0];
+  return name.replace(" of Lyra", "");
+}
+
+function hpClass(pct) {
+  if (pct === null) return "";
+  if (pct <= 25) return "is-critical";
+  if (pct <= 50) return "is-hurt";
+  return "";
+}
+
+function chipHtml(e, i) {
+  const classes = ["luxsum-bar-chip",
+    e.kind === "self" ? "is-self" : "",
+    e.controlled ? "is-controlled" : "",
+    e.onScene ? "" : "is-offscene"].filter(Boolean).join(" ");
+  const hp = e.hpPct === null
+    ? `<div class="luxsum-bar-hp is-empty"></div>`
+    : `<div class="luxsum-bar-hp"><div class="luxsum-bar-hp-fill ${hpClass(e.hpPct)}" style="width:${e.hpPct}%"></div></div>`;
+  return `<div class="${classes}" role="button" tabindex="0" data-i="${i}" title="${e.name}">
+      <div class="luxsum-bar-frame"><img class="luxsum-bar-portrait" src="${portrait(e.hue)}" alt="" draggable="false"/></div>
+      ${hp}
+      <div class="luxsum-bar-name">${shortLabel(e.name, e.kind)}</div>
+    </div>`;
+}
+
+let collapsed = false;
+
+function render() {
+  const bar = document.getElementById("luxsum-companion-bar");
+  if (collapsed) {
+    bar.innerHTML = `<div class="luxsum-bar-inner is-collapsed">
+      <div class="luxsum-bar-handle" role="button" tabindex="0" data-action="toggle" title="Show the Companion Bar">
+        <span style="font-size:12px">&#128123;</span><span class="luxsum-bar-count">${ENTRIES.length - 1}</span>
+      </div></div>`;
+  } else {
+    const self = ENTRIES.filter(e => e.kind === "self").map((e, i) => chipHtml(e, i)).join("");
+    const comps = ENTRIES.map((e, i) => [e, i]).filter(([e]) => e.kind === "companion")
+                         .map(([e, i]) => chipHtml(e, i)).join("");
+    bar.innerHTML = `<div class="luxsum-bar-inner">${self}
+      <div class="luxsum-bar-divider" aria-hidden="true"></div>
+      ${comps}
+      <div class="luxsum-bar-handle" role="button" tabindex="0" data-action="toggle" title="Collapse">
+        <span style="font-size:11px">&#9660;</span>
+      </div></div>`;
+  }
+  // Same measured anchor the module uses.
+  const hb = document.getElementById("fake-hotbar");
+  bar.style.bottom = (window.innerHeight - hb.getBoundingClientRect().top + 6) + "px";
+}
+
+document.addEventListener("click", (ev) => {
+  if (ev.target.closest("[data-action='toggle']")) { collapsed = !collapsed; render(); return; }
+  const chip = ev.target.closest(".luxsum-bar-chip");
+  if (!chip) return;
+  const i = Number(chip.dataset.i);
+  ENTRIES.forEach((e, n) => e.controlled = (n === i));
+  render();
+});
+window.addEventListener("resize", render);
+render();
+</script>
+</body>
+</html>

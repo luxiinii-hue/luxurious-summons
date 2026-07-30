@@ -1,0 +1,227 @@
+/* styles/companion-bar.css — the Companion Bar (v0.8.0)
+ *
+ * Docked above the macro hotbar. Deliberately restrained: this thing sits on
+ * screen permanently, so ornament is limited to the brass hex frames (echoing
+ * the Restyle slider thumbs) and one fleur divider that does structural work
+ * separating "you" from "what you summoned".
+ */
+
+/* Fixed and content-width, anchored above the hotbar by a measured offset that
+ * companion-bar.js writes to `bottom` — see positionBar(). Content-width keeps
+ * the element from covering canvas it doesn't occupy, so no invisible overlay
+ * ever swallows a click. */
+#luxsum-companion-bar {
+  --luxsum-hex: polygon(50% 0%, 93.3% 25%, 93.3% 75%, 50% 100%, 6.7% 75%, 6.7% 25%);
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 70;
+  display: flex;
+  justify-content: center;
+}
+
+#luxsum-companion-bar .luxsum-bar-inner {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, rgba(42, 24, 40, 0.92), rgba(28, 14, 26, 0.96));
+  border: 1px solid var(--luxsum-border, #c9a14b);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(240, 201, 122, 0.15);
+}
+
+/* ── Chips ────────────────────────────────────────────────────────── */
+
+#luxsum-companion-bar .luxsum-bar-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 62px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  transition: transform 0.12s ease;
+}
+
+#luxsum-companion-bar .luxsum-bar-chip:hover,
+#luxsum-companion-bar .luxsum-bar-chip:focus-visible {
+  transform: translateY(-3px);
+  outline: none;
+}
+
+/* The brass hex frame. clip-path can't take a border, so the frame is a filled
+ * hexagon with padding and the portrait is a slightly smaller hexagon on top. */
+#luxsum-companion-bar .luxsum-bar-frame {
+  width: 46px;
+  height: 46px;
+  padding: 2px;
+  clip-path: var(--luxsum-hex);
+  background: linear-gradient(160deg, #f0c97a, #c9a14b 45%, #8a6c2f);
+  transition: background 0.15s ease, filter 0.15s ease;
+}
+
+#luxsum-companion-bar .luxsum-bar-portrait {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  clip-path: var(--luxsum-hex);
+  background: #1c0e1a;
+  display: block;
+  border: none;
+}
+
+/* Your own character reads as the anchor of the strip, not one summon among
+ * many — a cooler silver-brass frame separates it at a glance. */
+#luxsum-companion-bar .luxsum-bar-chip.is-self .luxsum-bar-frame {
+  background: linear-gradient(160deg, #ffffff, #d8d2c4 45%, #9c9384);
+}
+
+/* Currently controlled: the single most important state in the whole bar —
+ * "which token am I driving right now?" */
+#luxsum-companion-bar .luxsum-bar-chip.is-controlled {
+  transform: translateY(-3px);
+}
+
+#luxsum-companion-bar .luxsum-bar-chip.is-controlled .luxsum-bar-frame {
+  background: linear-gradient(160deg, #fff4d6, #f0c97a 45%, #c9a14b);
+  filter: drop-shadow(0 0 7px rgba(240, 201, 122, 0.95));
+  padding: 3px;
+}
+
+#luxsum-companion-bar .luxsum-bar-chip.is-controlled .luxsum-bar-name {
+  color: var(--luxsum-accent-hi, #f0c97a);
+  font-weight: 600;
+}
+
+/* A lit brass pip under the active chip. The glow alone is easy to miss at a
+ * glance mid-combat; a hard-edged mark is unambiguous. */
+#luxsum-companion-bar .luxsum-bar-chip.is-controlled::after {
+  content: "";
+  position: absolute;
+  bottom: -6px;
+  width: 18px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--luxsum-accent-hi, #f0c97a);
+  box-shadow: 0 0 5px rgba(240, 201, 122, 0.9);
+}
+
+#luxsum-companion-bar .luxsum-bar-chip { position: relative; }
+
+#luxsum-companion-bar .luxsum-bar-chip.is-offscene {
+  opacity: 0.4;
+}
+
+#luxsum-companion-bar .luxsum-bar-chip.is-offscene:hover {
+  opacity: 0.65;
+}
+
+/* ── HP + name ────────────────────────────────────────────────────── */
+
+#luxsum-companion-bar .luxsum-bar-hp {
+  width: 46px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+}
+
+/* HP-less summons (Mage Hand) still reserve the row so chip heights match. */
+#luxsum-companion-bar .luxsum-bar-hp.is-empty {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+#luxsum-companion-bar .luxsum-bar-hp-fill {
+  height: 100%;
+  background: var(--luxsum-success, #7ad17a);
+  transition: width 0.25s ease, background 0.25s ease;
+}
+
+#luxsum-companion-bar .luxsum-bar-hp-fill.is-hurt    { background: #e0b64a; }
+#luxsum-companion-bar .luxsum-bar-hp-fill.is-critical { background: var(--luxsum-danger, #ff6b6b); }
+
+#luxsum-companion-bar .luxsum-bar-name {
+  font-family: "Cinzel", serif;
+  font-size: 9px;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  color: var(--luxsum-text-mute, #b6a890);
+  max-width: 62px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Divider + collapse handle ────────────────────────────────────── */
+
+/* An etched brass rule, not the fleur used elsewhere in the module. The fleur
+ * needs ~24px to read as a fleur; at the 14px this slot allows it collapses
+ * into an unidentifiable blob, and an ornament nobody can identify is just
+ * noise. The rule does the same structural job — "you" | "what you summoned" —
+ * legibly at any size. The fleur keeps the dividers that have room for it. */
+#luxsum-companion-bar .luxsum-bar-divider {
+  width: 1px;
+  height: 44px;
+  margin: 0 5px 16px;
+  flex: 0 0 auto;
+  background: linear-gradient(
+    180deg,
+    rgba(201, 161, 75, 0) 0%,
+    rgba(240, 201, 122, 0.75) 45%,
+    rgba(201, 161, 75, 0) 100%
+  );
+}
+
+#luxsum-companion-bar .luxsum-bar-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 22px;
+  height: 22px;
+  margin-bottom: 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--luxsum-text-mute, #b6a890);
+  font-size: 11px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+#luxsum-companion-bar .luxsum-bar-handle:hover,
+#luxsum-companion-bar .luxsum-bar-handle:focus-visible {
+  color: var(--luxsum-accent-hi, #f0c97a);
+  background: rgba(240, 201, 122, 0.12);
+  outline: none;
+}
+
+/* Collapsed: a single ghost badge with the companion count, so the bar never
+ * fully disappears and can always be brought back without a settings trip. */
+#luxsum-companion-bar .luxsum-bar-inner.is-collapsed {
+  padding: 4px 8px;
+}
+
+#luxsum-companion-bar .luxsum-bar-inner.is-collapsed .luxsum-bar-handle {
+  width: auto;
+  min-width: 34px;
+  height: 18px;
+  margin-bottom: 0;
+  color: var(--luxsum-accent, #c9a14b);
+}
+
+#luxsum-companion-bar .luxsum-bar-count {
+  font-family: "Cinzel", serif;
+  font-size: 10px;
+}
+
+/* Narrow viewports: shrink rather than wrap — a wrapped bar would shove the
+ * hotbar down and eat canvas. */
+@media (max-width: 1100px) {
+  #luxsum-companion-bar .luxsum-bar-chip { width: 44px; }
+  #luxsum-companion-bar .luxsum-bar-frame { width: 38px; height: 38px; }
+  #luxsum-companion-bar .luxsum-bar-hp { width: 36px; }
+  #luxsum-companion-bar .luxsum-bar-name { max-width: 44px; font-size: 8px; }
+}

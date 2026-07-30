@@ -12,12 +12,15 @@ import "./handlers/simulacrum.js";   // self-registers Repair via registerHandle
 import { installSheetDecorator } from "./sheet-decorator.js";
 import { installSpellCastTrigger } from "./spell-trigger.js";
 import { installApprovalHooks } from "./approval.js";
+import { installCompanionBar, registerCompanionKeybindings } from "./companion-bar.js";
 
 const MODULE_ID = "luxurious-summons";
 
 Hooks.once("init", async () => {
   console.log(`[${MODULE_ID}] init — module loading`);
   registerSettings();
+  // Keybindings MUST register during init — Foundry locks the registry after.
+  registerCompanionKeybindings();
 
   // V14 ships fewer Handlebars helpers than V13. We need `gt` for variant-count
   // comparisons in template-gallery-card.hbs ("show variant badge if > 1").
@@ -96,6 +99,7 @@ Hooks.once("ready", async () => {
   installDnd5eHooks();
   installSheetDecorator();
   installSpellCastTrigger();
+  installCompanionBar();
   // Sweep up ghost tokens from prior sessions (companion tokens whose actor was deleted
   // without the token also being deleted — paid for in v0.3.3). GM-only by gate inside.
   await cleanupOrphanedCompanionTokens();

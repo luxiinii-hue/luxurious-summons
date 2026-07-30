@@ -59,6 +59,20 @@ export function registerSettings() {
     default: "",
     filePicker: "imagevideo"
   });
+  // v0.8.0: compendium stat blocks are HOSTILE by default (verified in dnd5e
+  // release-5.2.1 — see token-normalize.js). Friendly is right for a companion;
+  // exposed because automation-heavy tables sometimes want summons excluded
+  // from "all allies" targeting.
+  game.settings.register(MODULE_ID, "companionDisposition", {
+    name: "LUXSUM.Settings.CompanionDisposition.Name",
+    hint: "LUXSUM.Settings.CompanionDisposition.Hint",
+    scope: "world",
+    config: true,
+    type: Number,
+    choices: { 1: "Friendly (default)", 0: "Neutral", "-2": "Secret" },
+    default: 1
+  });
+
   // ── GM Console (v0.6.0) — world-scope, config:false: the console IS their UI.
   // World-setting onChange fires on EVERY connected client, so a single GM
   // change re-applies filters/motion on all clients instantly. Dynamic import
@@ -127,6 +141,24 @@ export function registerSettings() {
     config: true,
     type: Boolean,
     default: true
+  });
+  // v0.8.0 — the Companion Bar (quick-switch strip above the hotbar).
+  game.settings.register(MODULE_ID, "showCompanionBar", {
+    name: "LUXSUM.Settings.ShowCompanionBar.Name",
+    hint: "LUXSUM.Settings.ShowCompanionBar.Hint",
+    scope: "client",
+    config: true,
+    type: Boolean,
+    default: true,
+    onChange: async () => {
+      const { refreshCompanionBar } = await import("./companion-bar.js");
+      refreshCompanionBar();
+    }
+  });
+  // Collapse state is remembered per user — a player who folds the bar away
+  // shouldn't have it pop back open every reload.
+  game.settings.register(MODULE_ID, "companionBarCollapsed", {
+    scope: "client", config: false, type: Boolean, default: false
   });
   game.settings.register(MODULE_ID, "verboseLogging", {
     name: "Verbose logging",

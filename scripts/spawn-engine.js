@@ -6,10 +6,42 @@
 // ensureMasterFolder auto-creates the actor-directory folder per master
 // (Task 10).
 
-import { makeCompanionFlag } from "./data-model.js";
+import { makeCompanionFlag, getCompanionFlag } from "./data-model.js";
 import { registerBrokerHandler } from "./chat-broker.js";
+import { normalizeCompanionTokenData, DISPOSITION } from "./token-normalize.js";
 
 const MODULE_ID = "luxurious-summons";
+
+/**
+ * Which disposition a freshly spawned companion token gets. Friendly is right
+ * for essentially every summon, but a GM running heavy target automation may
+ * want Neutral (so summons aren't auto-included in "all allies" effects), and
+ * Simulacrum/Mirror Image tables sometimes prefer Secret. Template-level
+ * `tokenDisposition` wins over the world setting for the rare template that
+ * genuinely differs.
+ */
+function resolveCompanionDisposition(template) {
+  if (Number.isInteger(template?.tokenDisposition)) return template.tokenDisposition;
+  const setting = Number(game.settings.get(MODULE_ID, "companionDisposition"));
+  return Number.isInteger(setting) ? setting : DISPOSITION.FRIENDLY;
+}
+
+/**
+ * Pure. Instance-numbers a companion name so a pack stays distinguishable.
+ *
+ * A lone summon keeps its clean name ("Owl of Lyra"). A batch, or a spawn that
+ * joins companions the player already has under the same name, gets a Foundry-
+ * conventional "(n)" suffix continuing from what exists.
+ *
+ * @param {string} baseName
+ * @param {number} indexInBatch      0-based position within this spawn call
+ * @param {number} batchSize         how many tokens this call is placing
+ * @param {number} existingSameName  companions the player already has under baseName
+ */
+export function companionDisplayName(baseName, indexInBatch, batchSize, existingSameName = 0) {
+  if (batchSize <= 1 && existingSameName === 0) return baseName;
+  return `${baseName} (${existingSameName + indexInBatch + 1})`;
+}
 
 // ── Pure-logic restriction kernel (Task 7) ────────────────────────────
 
@@ -109,15 +141,30 @@ export async function performSpawn(payload) {
   } = await import("./source-modes.js");
   const mode = template.source?.mode;
 
+  // 1. Effective name — prefix/suffix from variant > template, with variant
+  // name taking over when present (e.g., "Owl of Lyra" vs. "Simulacrum of Lyra").
+  // Loop-invariant, so it's computed once; only the instance number varies.
+  const prefix = visualOverrides?.namePrefix ?? variant?.defaults?.namePrefix ?? template.defaults?.namePrefix ?? "";
+  const suffix = visualOverrides?.nameSuffix ?? variant?.defaults?.nameSuffix ?? template.defaults?.nameSuffix ?? "";
+  const baseName = variant
+    ? `${variant.name} of ${masterName}`
+    : `${prefix}${masterName}${suffix}`;
+
+  // v0.8.0: four identically-named Skeletons are unmanageable — indistinguishable
+  // in the Companion Bar, on token hover, and in the Manager. Count what the
+  // player already has under this name so a second Animate Dead cast continues
+  // the numbering instead of restarting it.
+  const existingSameName = (game.actors ?? []).filter(a => {
+    const flag = getCompanionFlag(a);
+    return flag?.isCompanion === true
+      && flag.sourcePlayerId === sourcePlayerId
+      && typeof a.name === "string"
+      && a.name.startsWith(baseName);
+  }).length;
+
   const createdActorIds = [];
-  for (const placement of placements) {
-    // 1. Effective name — prefix/suffix from variant > template, with variant
-    // name taking over when present (e.g., "Owl of Lyra" vs. "Simulacrum of Lyra")
-    const prefix = visualOverrides?.namePrefix ?? variant?.defaults?.namePrefix ?? template.defaults?.namePrefix ?? "";
-    const suffix = visualOverrides?.nameSuffix ?? variant?.defaults?.nameSuffix ?? template.defaults?.nameSuffix ?? "";
-    const synthName = variant
-      ? `${variant.name} of ${masterName}`
-      : `${prefix}${masterName}${suffix}`;
+  for (const [batchIndex, placement] of placements.entries()) {
+    const synthName = companionDisplayName(baseName, batchIndex, placements.length, existingSameName);
 
     // 2. Resolve actor data per source mode
     //
@@ -182,6 +229,17 @@ export async function performSpawn(payload) {
     companionFlag.spawnState = "pending-spawn";   // drives spawn animation playback
 
     actorData.flags = { ...(actorData.flags ?? {}), [MODULE_ID]: companionFlag };
+
+    // 4b. v0.8.0 — companion token defaults. Compendium stat blocks ship
+    // `disposition: -1` (hostile red ring; every automation module on the table
+    // reads the summon as an enemy) and `actorLink: false` (damage lands in a
+    // TokenDelta, so the Manager and GM Console HP bars never move off full).
+    // Both are correct for a monster and wrong for a companion — see
+    // token-normalize.js for the full reasoning. Applied to prototypeToken so
+    // step 9's getTokenDocument() inherits it and any later re-drop matches.
+    actorData.prototypeToken = normalizeCompanionTokenData(actorData.prototypeToken ?? {}, {
+      disposition: resolveCompanionDisposition(template)
+    });
 
     // 5. Ownership transfer — requester gets OWNER (3), default permission NONE (0)
     actorData.ownership = { default: 0, [sourcePlayerId]: 3 };
